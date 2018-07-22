@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Reiniciar no Linux
+GenericName=Configura o Grub e reinicia
+Comment=Reiniciar no Linux
+Icon=@ICON@
+Exec=@EXEC@
+Categories=System;
