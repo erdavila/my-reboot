@@ -49,15 +49,20 @@ static void shutdown() {
 	system("/c/Windows/system32/shutdown /s /t 0");
 }
 
+static void execute_command_before(const char *cmd) {
+	printf("> Executing command before\n");
+	system(cmd);
+}
+
 #define ID_RAD1 500
 #define ID_RAD2 501
 #define ID_RAD3 502
+#define ID_CHK  510
 
 #define MARGIN                 8
-#define RADIOBUTTON_HEIGHT    10
-#define RADIOBUTTON_WIDTH    120
-#define RADIOBUTTONS_SPACING  10
-#define PUSHBUTTON_TOP        (MARGIN + 3 * RADIOBUTTONS_SPACING + 8)
+#define OPTIONBUTTON_HEIGHT    10
+#define OPTIONBUTTON_WIDTH    120
+#define OPTIONBUTTONS_SPACING  10
 #define PUSHBUTTON_HEIGHT     14
 #define PUSHBUTTONS_SPACING    8
 
@@ -92,6 +97,7 @@ static BOOL CALLBACK DialogProc(
 		case WM_INITDIALOG:
 			CenterDialog(hwndDlg);
 			CheckDlgButton(hwndDlg, ID_RAD1, BST_CHECKED);
+			CheckDlgButton(hwndDlg, ID_CHK, BST_CHECKED);
 			return TRUE;
 
 		case WM_COMMAND:
@@ -107,6 +113,9 @@ static BOOL CALLBACK DialogProc(
 							break;
 						}
 					}
+
+					nResult |= IsDlgButtonChecked(hwndDlg, ID_CHK) << 16;
+
 					EndDialog(hwndDlg, nResult);
 					break;
 				}
@@ -172,24 +181,39 @@ static void putButton(
 static void putRadioButton(PTR *p, WORD id, const char* title, short y) {
 	putButton(
 		p, id, title, BS_AUTORADIOBUTTON,
-		MARGIN, y, RADIOBUTTON_WIDTH, RADIOBUTTON_HEIGHT
+		MARGIN, y, OPTIONBUTTON_WIDTH, OPTIONBUTTON_HEIGHT
 	);
 }
 
-static void putPushButton(PTR *p, WORD id, const char* title, DWORD style, short x) {
+static void putCheckBox(PTR *p, WORD id, const char *title, short y) {
+	putButton(
+		p, id, title, BS_AUTOCHECKBOX | WS_TABSTOP,
+		MARGIN, y, OPTIONBUTTON_WIDTH, OPTIONBUTTON_HEIGHT
+	);
+}
+
+static void putPushButton(PTR *p, WORD id, const char* title, DWORD style, short x, short y) {
 	putButton(
 		p, id, title, style | WS_TABSTOP,
-		x, PUSHBUTTON_TOP, (RADIOBUTTON_WIDTH - PUSHBUTTONS_SPACING) / 2, PUSHBUTTON_HEIGHT
+		x, y, (OPTIONBUTTON_WIDTH - PUSHBUTTONS_SPACING) / 2, PUSHBUTTON_HEIGHT
 	);
 }
 
 typedef enum { DoNothing, RebootLinux, RebootWindows, Shutdown } Action;
+typedef struct {
+	Action action;
+	bool cmdBefore;
+} Actions;
 
-static Action ask() {
+static Actions ask(const char *cmd_before, const char *lbl_cmd_before) {
 	// https://docs.microsoft.com/pt-br/windows/desktop/dlgbox/dialog-boxes
 	HGLOBAL hgbl = GlobalAlloc(GMEM_ZEROINIT, 1024);
-	if (!hgbl) {
-		return -1;
+
+	WORD cDlgItems = 5;
+	short pushbuttons_top = MARGIN + 3 * OPTIONBUTTONS_SPACING + 8;
+	if (cmd_before) {
+		cDlgItems++;
+		pushbuttons_top += OPTIONBUTTONS_SPACING + 3;
 	}
 
 	PTR p = GlobalLock(hgbl);
@@ -200,11 +224,11 @@ static Action ask() {
 	putDWORD(&p, 0); // helpID
 	putDWORD(&p, 0); // exStyle
 	putDWORD(&p, WS_POPUP | WS_BORDER | WS_SYSMENU | DS_MODALFRAME | WS_CAPTION | DS_SHELLFONT); // style
-	putWORD(&p, 5); // cDlgItems
+	putWORD(&p, cDlgItems); // cDlgItems
 	putshort(&p, 0); // x
 	putshort(&p, 0); // y
-	putshort(&p, RADIOBUTTON_WIDTH + 2*MARGIN); // cx
-	putshort(&p, PUSHBUTTON_TOP + PUSHBUTTON_HEIGHT + MARGIN); // cy
+	putshort(&p, OPTIONBUTTON_WIDTH + 2*MARGIN); // cx
+	putshort(&p, pushbuttons_top + PUSHBUTTON_HEIGHT + MARGIN); // cy
 	put16bit(&p, 0x0000); // menu
 	put16bit(&p, 0x0000); // windowClass
 	putWCHARs(&p, "Sair do Windows"); // title[titleLen]
@@ -215,11 +239,16 @@ static Action ask() {
 	putBYTE(&p, OEM_CHARSET); // charset
 	putWCHARs(&p, "MS Shell Dlg"); // typeface
 
-	putRadioButton(&p, ID_RAD1, "Reiniciar no Linux", MARGIN + 0 * RADIOBUTTONS_SPACING);
-	putRadioButton(&p, ID_RAD2, "Reiniciar o Windows", MARGIN + 1 * RADIOBUTTONS_SPACING);
-	putRadioButton(&p, ID_RAD3, "Desligar o computador", MARGIN + 2 * RADIOBUTTONS_SPACING);
-	putPushButton(&p, IDOK, "OK", BS_DEFPUSHBUTTON, MARGIN);
-	putPushButton(&p, IDCANCEL, "Cancelar", 0, MARGIN + (RADIOBUTTON_WIDTH - PUSHBUTTONS_SPACING) / 2 + PUSHBUTTONS_SPACING);
+	putRadioButton(&p, ID_RAD1, "Reiniciar no Linux", MARGIN + 0 * OPTIONBUTTONS_SPACING);
+	putRadioButton(&p, ID_RAD2, "Reiniciar o Windows", MARGIN + 1 * OPTIONBUTTONS_SPACING);
+	putRadioButton(&p, ID_RAD3, "Desligar o computador", MARGIN + 2 * OPTIONBUTTONS_SPACING);
+	if (cmd_before) {
+		char title[100] = "Antes: ";
+		strcat(title, lbl_cmd_before);
+		putCheckBox(&p, ID_CHK, title, MARGIN + 3 * OPTIONBUTTONS_SPACING + 3);
+	}
+	putPushButton(&p, IDOK, "OK", BS_DEFPUSHBUTTON, MARGIN, pushbuttons_top);
+	putPushButton(&p, IDCANCEL, "Cancelar", 0, MARGIN + (OPTIONBUTTON_WIDTH - PUSHBUTTONS_SPACING) / 2 + PUSHBUTTONS_SPACING, pushbuttons_top);
 
 	GlobalUnlock(hgbl);
 	LRESULT ret = DialogBoxIndirect(
@@ -230,16 +259,32 @@ static Action ask() {
 	);
 	GlobalFree(hgbl);
 
-	switch (ret) {
-		case ID_RAD1: return RebootLinux;
-		case ID_RAD2: return RebootWindows;
-		case ID_RAD3: return Shutdown;
-		default: return DoNothing;
+	Actions actions;
+	actions.cmdBefore = ret >> 16;
+	switch (ret & 0x00FFFF) {
+		case ID_RAD1: actions.action = RebootLinux; break;
+		case ID_RAD2: actions.action = RebootWindows; break;
+		case ID_RAD3: actions.action = Shutdown; break;
+		default:      actions.action = DoNothing; break;
 	}
+	return actions;
 }
 
 int main(int argc, char **argv) {
-	switch (ask()) {
+	const char *command_before = NULL;
+	const char *label_command_before = NULL;
+	if (argc >= 3) {
+		command_before = argv[1];
+		label_command_before = argv[2];
+	}
+
+	Actions actions = ask(command_before, label_command_before);
+
+	if (actions.cmdBefore) {
+		execute_command_before(command_before);
+	}
+
+	switch (actions.action) {
 		case RebootLinux:
 			rewrite_grubenv();
 			reboot();

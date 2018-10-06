@@ -25,6 +25,7 @@ shortcut: $(EXE)
 		--desktop \
 		--icon Linux.ico \
 		--workingdir=/bin \
+		--arguments='"DisplaySwitch.exe /external ; /bin/sleep 3" "Alternar para o monitor"' \
 		$(INSTALLED_EXE)
 	@echo
 	@echo 'Atalho criado na Área de Trabalho'
