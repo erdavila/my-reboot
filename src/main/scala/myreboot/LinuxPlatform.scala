@@ -8,12 +8,23 @@ class LinuxPlatform extends Platform {
     Seq(
       Action("Desligar") { shutdown() },
       Action("Reiniciar") { reboot() },
-      Action("Reiniciar no Windows usando o monitor") {},
-      Action("Reiniciar no Windows usando a TV") {},
+      Action("Reiniciar no Windows usando o monitor") { rebootToWindows(Monitor) },
+      Action("Reiniciar no Windows usando a TV") { rebootToWindows(TV) },
     )
+
+  private val OptionsPath = "/boot/grub/grubenv"
 
   private def shutdown(): Unit =
     execute("systemctl", "poweroff")
+
+  private def rebootToWindows(display: Display): Unit = {
+    val bootOptions = BootOptions.load(OptionsPath)
+    bootOptions.setOS(Windows)
+    bootOptions.setWindowsDisplay(display)
+    bootOptions.save()
+
+    reboot()
+  }
 
   private def reboot(): Unit =
     execute("systemctl", "reboot")
