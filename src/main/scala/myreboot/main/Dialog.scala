@@ -14,7 +14,7 @@ object Dialog extends JFXApp {
   private val platform = Platform()
 
   stage = new PrimaryStage {
-    title = s"MyReboot - ${platform.name}"
+    title = s"My Reboot - ${platform.name}"
     resizable = false
     scene = new Scene(
       new VBox(10) {
