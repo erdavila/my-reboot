@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.{Action, Platform}
+import myreboot.Platform
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
