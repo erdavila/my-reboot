@@ -2,14 +2,6 @@ package myreboot
 
 import scala.io.Source
 
-sealed trait Display
-case object Monitor extends Display
-case object TV extends Display
-
-sealed trait OS
-case object Linux extends OS
-case object Windows extends OS
-
 object BootOptions {
   def load(path: String): BootOptions =
     new BootOptions(path, Grubenv.load(path))
