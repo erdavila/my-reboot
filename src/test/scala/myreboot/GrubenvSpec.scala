@@ -53,6 +53,17 @@ class GrubenvSpec extends FunSpec with Matchers {
       new File("")
     )
 
+    describe("get()") {
+      it("retrieves the value when it exists") {
+        grubenv.get("a") should be (Some("b"))
+        grubenv.get("x") should be (Some("123"))
+      }
+
+      it("returns None when there is no value for the key") {
+        grubenv.get("key") should be (None)
+      }
+    }
+
     describe("set()") {
       it("replaces a line when the key is found") {
         val instance = grubenv

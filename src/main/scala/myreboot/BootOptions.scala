@@ -19,9 +19,20 @@ class BootOptions private(dir: File, configs: Configs) {
     grubenv.save()
   }
 
+  def getWindowsDisplay: Option[Display] = {
+    val propsFile = loadPropertiesFile()
+    for {
+      code <- propsFile.get(WindowsDisplayKey)
+      display <- Display.byCode(code)
+    } yield display
+  }
+
   def setWindowsDisplay(display: Display): Unit = {
-    val propsFile = PropertiesFile.load(new File(dir, "my-reboot-options.properties"))
+    val propsFile = loadPropertiesFile()
     propsFile.set(WindowsDisplayKey, display.code)
     propsFile.save()
   }
+
+  private def loadPropertiesFile() =
+    PropertiesFile.load(new File(dir, "my-reboot-options.properties"))
 }

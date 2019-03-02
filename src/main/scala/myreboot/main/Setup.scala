@@ -58,7 +58,7 @@ object WindowsSetup {
 
     val initialDisplay = askCurrentDisplay
 
-    println(s"A seguir, é possível que a tela mude para ${other(initialDisplay).code}.")
+    println(s"A seguir, é possível que a tela mude para ${initialDisplay.theOther.code}.")
     println("Se a tela atual desligar, responda a pergunta que aparecer na outra tela.")
     Setup.askToProceed()
 
@@ -66,9 +66,9 @@ object WindowsSetup {
     val internalDisplay = askCurrentDisplay
     val Some(internalDeviceId) = WindowsPlatform.currentDeviceId()
 
-    val externalDisplay = other(internalDisplay)
+    val externalDisplay = internalDisplay.theOther
     val Some(externalDeviceId) = if (initialDisplay == internalDisplay) {
-      println(s"Agora, a tela mudará por alguns segundos para ${other(internalDisplay).code}.")
+      println(s"Agora, a tela mudará por alguns segundos para ${internalDisplay.theOther.code}.")
       println(s"Aguarde a tela retornar para ${internalDisplay.code}")
       Setup.askToProceed()
 
@@ -103,7 +103,7 @@ object WindowsSetup {
     val options = Display.Values.map('"' + _.code + '"').mkString(" ou ")
     val answer = StdIn.readLine(s"Qual é a tela atual? $options? ")
 
-    Display.Values.find(_.code == answer) match {
+    Display.byCode(answer) match {
       case Some(display) =>
         println()
         display
@@ -111,12 +111,6 @@ object WindowsSetup {
         askCurrentDisplay
     }
   }
-
-  private def other(display: Display): Display =
-    display match {
-      case Monitor => TV
-      case TV => Monitor
-    }
 
   private def displaySwitch(arg: String): Unit = {
     Seq(WindowsPlatform.DisplaySwitchExe, arg).!!

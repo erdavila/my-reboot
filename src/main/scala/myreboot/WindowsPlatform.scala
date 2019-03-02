@@ -9,6 +9,21 @@ object WindowsPlatform {
 
   val DisplaySwitchExe = "DisplaySwitch.exe"
 
+  lazy val configs: Configs = Configs.load(StateDir)
+
+  def switchDisplay(display: Display): Unit =
+    if (currentDisplay().contains(display)) {
+      println(s"Already in wanted display: ${display.code}")
+    } else {
+      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
+    }
+
+  def currentDisplay(): Option[Display] =
+    for {
+      deviceId <- currentDeviceId()
+      display <- configs.displayByDeviceId(deviceId)
+    } yield display
+
   def currentDeviceId(): Option[String] = {
     val activeDisplayDevices = for {
       adapter <- User32.enumDisplayDevices().toList
@@ -36,21 +51,8 @@ class WindowsPlatform extends Platform {
       Action("Reiniciar no Linux") {},
     )
 
-  private val configs = Configs.load(StateDir)
-
   private def shutdown(): Unit = {
     switchDisplay(Monitor)
     Seq("shutdown", "/sg", "/t", "0").!!
   }
-
-  private def switchDisplay(display: Display): Unit =
-    if (!currentDisplay().contains(display)) {
-      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
-    }
-
-  private def currentDisplay(): Option[Display] =
-    for {
-      deviceId <- currentDeviceId()
-      display <- configs.displayByDeviceId(deviceId)
-    } yield display
 }

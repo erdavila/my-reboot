@@ -28,6 +28,10 @@ object PropertiesFile {
 }
 
 class PropertiesFile(props: Properties, file: File) {
+  def get(key: String): Option[String] = {
+    val valueOrNull = props.getProperty(key)
+    Option(valueOrNull)
+  }
 
   def set(key: String, value: String): Unit =
     props.setProperty(key, value)

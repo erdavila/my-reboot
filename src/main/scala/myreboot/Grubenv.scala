@@ -32,6 +32,12 @@ object Grubenv {
 
 class Grubenv private[myreboot](private[myreboot] var lines: Vector[String], file: File) {
 
+  def get(key: String): Option[String] =
+    lines.collectFirst {
+      case line if line startsWith s"$key=" =>
+        line.dropWhile(_ != '=').drop(1)
+    }
+
   def set(key: String, value: String): Unit = {
     val keyValueLine = s"$key=$value"
 

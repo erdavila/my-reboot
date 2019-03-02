@@ -31,6 +31,9 @@ installedJar := installedAssetsDir.value / (assembly / assemblyJarName).value
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
 installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh"
 
+lazy val installedSwitchDisplayScript = settingKey[File]("Script to switch displays")
+installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display.sh"
+
 lazy val installedIcon = taskKey[File]("Installed icon path")
 installedIcon := installedAssetsDir.value / "icon.png"
 
@@ -50,30 +53,37 @@ installJar := {
 }
 
 
-lazy val installLaunchingScript = taskKey[Unit]("Installs launching script")
-installLaunchingScript := {
+lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
+installLaunchingScripts := {
   val log = streams.value.log
 
-  val dialogShFile = installedMainLaunchingScript.value
   val targetJarFile = installedJar.value
 
-  val targetJarPath = IO.relativize(dialogShFile.getParentFile, targetJarFile)
-    .map { "$(dirname $0)/" + _ }
-    .getOrElse(targetJarFile.getPath)
-  val adjustedTargetJarPath = OS.which match {
-    case Linux => targetJarPath
-    case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
+  def installLaunchingScript(scriptFile: File, mainClass: String): Unit = {
+    val targetJarPath = IO.relativize(scriptFile.getParentFile, targetJarFile)
+      .map { "$(dirname $0)/" + _ }
+      .getOrElse(targetJarFile.getPath)
+
+    val adjustedTargetJarPath = OS.which match {
+      case Linux => targetJarPath
+      case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
+    }
+
+    log.writing(scriptFile)
+    IO.write(scriptFile,
+      s"""
+         |#!/bin/bash
+         |exec java -cp $adjustedTargetJarPath myreboot.main.$mainClass "$$@"
+       """.stripMargin.trim + "\n"
+    )
+    if (OS.which == Linux) {
+      IO.setPermissions(scriptFile, "rwxr-xr-x")
+    }
   }
 
-  log.writing(dialogShFile)
-  IO.write(dialogShFile,
-    s"""
-       |#!/bin/bash
-       |exec java -cp $adjustedTargetJarPath myreboot.main.Dialog
-     """.stripMargin.trim + "\n"
-  )
-  if (OS.which == Linux) {
-    IO.setPermissions(dialogShFile, "rwxr-xr-x")
+  installLaunchingScript(installedMainLaunchingScript.value, "Dialog")
+  if (OS.which == Windows) {
+    installLaunchingScript(installedSwitchDisplayScript.value, "SwitchDisplay")
   }
 }
 
@@ -114,11 +124,11 @@ lazy val install = taskKey[Unit]("Installs")
 install := OS.select {
   case Linux => Def.sequential(
     installJar,
-    installLaunchingScript,
+    installLaunchingScripts,
     installMenuEntry,
   )
   case Windows => Def.sequential(
     installJar,
-    installLaunchingScript,
+    installLaunchingScripts,
   )
 }.value
