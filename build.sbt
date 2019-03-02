@@ -74,33 +74,35 @@ installLaunchingScript := {
 
 
 lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry")
-installMenuEntry := {
-  val log = streams.value.log
+installMenuEntry := OS.linuxOnly {
+  Def.task {
+    val log = streams.value.log
 
-  val iconFile = installedIcon.value
-  log.copying(iconFile)
-  IO.copyFile(baseDirectory.value / "icon.png", iconFile)
+    val iconFile = installedIcon.value
+    log.copying(iconFile)
+    IO.copyFile(baseDirectory.value / "icon.png", iconFile)
 
-  val menuEntryFile = installedMenuEntry.value
-  log.writing(menuEntryFile)
-  IO.write(menuEntryFile,
-      s"""
-         |[Desktop Entry]
-         |Version=${version.value}
-         |Type=Application
-         |Name=${name.value}
-         |Icon=${iconFile.getPath}
-         |Exec=${installedMainLaunchingScript.value.getPath}
-         |Comment=Reboot options
-         |Categories=System;Utility;
-         |Terminal=false
-      """.stripMargin.trim + "\n"
-    )
+    val menuEntryFile = installedMenuEntry.value
+    log.writing(menuEntryFile)
+    IO.write(menuEntryFile,
+        s"""
+           |[Desktop Entry]
+           |Version=${version.value}
+           |Type=Application
+           |Name=${name.value}
+           |Icon=${iconFile.getPath}
+           |Exec=${installedMainLaunchingScript.value.getPath}
+           |Comment=Reboot options
+           |Categories=System;Utility;
+           |Terminal=false
+        """.stripMargin.trim + "\n"
+      )
 
-  log.info("Creating menu entry")
-  Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
-  Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
-}
+    log.info("Creating menu entry")
+    Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
+    Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
+  }
+}.value
 
 
 lazy val buildQueryDisplayExe = taskKey[File]("Builds query-display.exe (Windows only)")
@@ -145,8 +147,15 @@ installQueryDisplayExe := OS.windowsOnly {
 
 
 lazy val install = taskKey[Unit]("Installs")
-install := Def.sequential(
-  installJar,
-  installLaunchingScript,
-  installMenuEntry,
-).value
+install := OS.select {
+  case Linux => Def.sequential(
+    installJar,
+    installLaunchingScript,
+    installMenuEntry,
+  )
+  case Windows => Def.sequential(
+    installJar,
+    installLaunchingScript,
+    installQueryDisplayExe,
+  )
+}.value
