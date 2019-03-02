@@ -61,15 +61,21 @@ installLaunchingScript := {
   val targetJarPath = IO.relativize(dialogShFile.getParentFile, targetJarFile)
     .map { "$(dirname $0)/" + _ }
     .getOrElse(targetJarFile.getPath)
+  val adjustedTargetJarPath = OS.which match {
+    case Linux => targetJarPath
+    case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
+  }
 
   log.writing(dialogShFile)
   IO.write(dialogShFile,
     s"""
        |#!/bin/bash
-       |exec java -cp $targetJarPath myreboot.main.Dialog
+       |exec java -cp $adjustedTargetJarPath myreboot.main.Dialog
      """.stripMargin.trim + "\n"
   )
-  IO.setPermissions(dialogShFile, "rwxr-xr-x")
+  if (OS.which == Linux) {
+    IO.setPermissions(dialogShFile, "rwxr-xr-x")
+  }
 }
 
 
