@@ -1,5 +1,7 @@
 package myreboot
 
+import java.io.File
+
 class LinuxPlatform extends Platform {
 
   override val name: String = "Linux"
@@ -12,13 +14,16 @@ class LinuxPlatform extends Platform {
       Action("Reiniciar no Windows usando a TV") { rebootToWindows(TV) },
     )
 
-  private val OptionsPath = "/boot/grub/grubenv"
+  private val StateDir = new File("/boot/grub/grubenv.dir")
+  private val OptionsPath = new File(StateDir, "grubenv")
+
+  private val configs = Configs.load(StateDir)
 
   private def shutdown(): Unit =
     execute("systemctl", "poweroff")
 
   private def rebootToWindows(display: Display): Unit = {
-    val bootOptions = BootOptions.load(OptionsPath)
+    val bootOptions = BootOptions.load(OptionsPath.toString, configs)
     bootOptions.setOS(Windows)
     bootOptions.setWindowsDisplay(display)
     bootOptions.save()

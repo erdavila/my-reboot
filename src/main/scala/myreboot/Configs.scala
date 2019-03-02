@@ -32,4 +32,7 @@ class Configs private(
   val osGrubEntry: Map[OS, String],
   val windowsDeviceIds: Map[Display, String],
   val windowsDisplaySwitchArgs: Map[Display, String],
-)
+) {
+  def displayByDeviceId(deviceId: String): Option[Display] =
+    windowsDeviceIds.collectFirst { case (display, `deviceId`) => display }
+}

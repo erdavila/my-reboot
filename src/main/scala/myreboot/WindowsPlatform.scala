@@ -1,5 +1,6 @@
 package myreboot
 
+import java.io.File
 import scala.sys.process._
 
 class WindowsPlatform extends Platform {
@@ -14,17 +15,9 @@ class WindowsPlatform extends Platform {
       Action("Reiniciar no Linux") {},
     )
 
-  // TODO: this should come from some configuration
-  private val display2DisplaySwitchParameter: Map[Display, String] = Map(
-    TV -> "/internal",
-    Monitor -> "/external",
-  )
+  private val StateDir = new File("C:\\grubenv.dir")
 
-  // TODO: this should come from some configuration
-  private val deviceId2Display = Map(
-    raw"""\\.\DISPLAY1\Monitor0""" -> TV,
-    raw"""\\.\DISPLAY1\Monitor1""" -> Monitor,
-  )
+  private val configs = Configs.load(StateDir)
 
   private def shutdown(): Unit = {
     switchDisplay(Monitor)
@@ -33,13 +26,13 @@ class WindowsPlatform extends Platform {
 
   private def switchDisplay(display: Display): Unit =
     if (!currentDisplay().contains(display)) {
-      Seq("DisplaySwitch.exe", display2DisplaySwitchParameter(display)).!!
+      Seq("DisplaySwitch.exe", configs.windowsDisplaySwitchArgs(display)).!!
     }
 
   private def currentDisplay(): Option[Display] = {
     val output = Seq("query-display").!!
     wrapString(output).lines.toList match {
-      case List("Single", _, deviceId) => Some(deviceId2Display(deviceId))
+      case List("Single", _, deviceId) => configs.displayByDeviceId(deviceId)
       case _ => None
     }
   }
