@@ -15,7 +15,10 @@ assembly / assemblyJarName := "my-reboot.jar"
 
 
 lazy val installDir = settingKey[File]("Directory where executables will be written")
-installDir := file(System.getProperty("user.home")) / "bin"
+installDir := {
+  val userHome = scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))
+  file(userHome) / "bin"
+}
 
 lazy val installedAssetsDir = settingKey[File]("Directory where non-executables will be written")
 installedAssetsDir := installDir.value / "my-reboot"
@@ -25,6 +28,9 @@ installedJar := installedAssetsDir.value / (assembly / assemblyJarName).value
 
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
 installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh"
+
+lazy val installedQueryDisplayExe = settingKey[File]("query-display.exe tool")
+installedQueryDisplayExe := installDir.value / "query-display.exe"
 
 lazy val installedIcon = taskKey[File]("Installed icon path")
 installedIcon := installedAssetsDir.value / "icon.png"
@@ -120,6 +126,20 @@ buildQueryDisplayExe := OS.windowsOnly {
 
     val Seq(outputFile) = outputFiles.toSeq
     outputFile
+  }
+}.value
+
+
+lazy val installQueryDisplayExe = taskKey[Unit]("Installs query-display.exe tool (Windows only)")
+installQueryDisplayExe := OS.windowsOnly {
+  Def.task {
+    val log = streams.value.log
+
+    val srcExeFile = buildQueryDisplayExe.value
+    val destExeFile = installedQueryDisplayExe.value
+
+    log.copying(destExeFile)
+    IO.copyFile(srcExeFile, destExeFile)
   }
 }.value
 
