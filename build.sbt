@@ -66,6 +66,7 @@ installLaunchingScript := {
   IO.setPermissions(dialogShFile, "rwxr-xr-x")
 }
 
+
 lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry")
 installMenuEntry := {
   val log = streams.value.log
@@ -94,6 +95,33 @@ installMenuEntry := {
   Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
   Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
 }
+
+
+lazy val buildQueryDisplayExe = taskKey[File]("Builds query-display.exe (Windows only)")
+buildQueryDisplayExe := OS.windowsOnly {
+  Def.task {
+    val s = streams.value
+    val outputDir = target.value / "native"
+    IO.createDirectory(outputDir)
+
+    val build = FileFunction.cached(s.cacheDirectory) { inFiles =>
+      for (inFile <- inFiles)
+      yield {
+        val (baseName, "cpp") = IO.split(inFile.getName)
+        val outFile = outputDir / (baseName + ".exe")
+        s.log.info(s"Building ${outFile.getPath}")
+        Seq("c++", "-Wall", "-mwindows", inFile.getPath, "-o", outFile.getPath).!!
+        outFile
+      }
+    }
+
+    val inputFiles = Set(baseDirectory.value / "src" / "main" / "cpp" / "query-display.cpp")
+    val outputFiles = build(inputFiles)
+
+    val Seq(outputFile) = outputFiles.toSeq
+    outputFile
+  }
+}.value
 
 
 lazy val install = taskKey[Unit]("Installs")
