@@ -8,6 +8,8 @@ version := "0.1"
 scalaVersion := "2.12.8"
 
 libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.181-R13"
+libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 
 assembly / mainClass := Some("myreboot.main.Dialog")
@@ -28,9 +30,6 @@ installedJar := installedAssetsDir.value / (assembly / assemblyJarName).value
 
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
 installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh"
-
-lazy val installedQueryDisplayExe = settingKey[File]("query-display.exe tool")
-installedQueryDisplayExe := installDir.value / "query-display.exe"
 
 lazy val installedIcon = taskKey[File]("Installed icon path")
 installedIcon := installedAssetsDir.value / "icon.png"
@@ -111,47 +110,6 @@ installMenuEntry := OS.linuxOnly {
 }.value
 
 
-lazy val buildQueryDisplayExe = taskKey[File]("Builds query-display.exe (Windows only)")
-buildQueryDisplayExe := OS.windowsOnly {
-  Def.task {
-    val s = streams.value
-    val outputDir = target.value / "native"
-    IO.createDirectory(outputDir)
-
-    val build = FileFunction.cached(s.cacheDirectory) { inFiles =>
-      for (inFile <- inFiles)
-      yield {
-        val (baseName, "cpp") = IO.split(inFile.getName)
-        val outFile = outputDir / (baseName + ".exe")
-        s.log.info(s"Building ${outFile.getPath}")
-        Seq("c++", "-Wall", "-mwindows", inFile.getPath, "-o", outFile.getPath).!!
-        outFile
-      }
-    }
-
-    val inputFiles = Set(baseDirectory.value / "src" / "main" / "cpp" / "query-display.cpp")
-    val outputFiles = build(inputFiles)
-
-    val Seq(outputFile) = outputFiles.toSeq
-    outputFile
-  }
-}.value
-
-
-lazy val installQueryDisplayExe = taskKey[Unit]("Installs query-display.exe tool (Windows only)")
-installQueryDisplayExe := OS.windowsOnly {
-  Def.task {
-    val log = streams.value.log
-
-    val srcExeFile = buildQueryDisplayExe.value
-    val destExeFile = installedQueryDisplayExe.value
-
-    log.copying(destExeFile)
-    IO.copyFile(srcExeFile, destExeFile)
-  }
-}.value
-
-
 lazy val install = taskKey[Unit]("Installs")
 install := OS.select {
   case Linux => Def.sequential(
@@ -162,6 +120,5 @@ install := OS.select {
   case Windows => Def.sequential(
     installJar,
     installLaunchingScript,
-    installQueryDisplayExe,
   )
 }.value

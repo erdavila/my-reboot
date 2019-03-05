@@ -2,6 +2,7 @@ package myreboot
 
 import java.io.File
 import scala.sys.process._
+import windowsapi.scala.User32
 
 object WindowsPlatform {
   val StateDir = new File("C:\\grubenv.dir")
@@ -9,9 +10,14 @@ object WindowsPlatform {
   val DisplaySwitchExe = "DisplaySwitch.exe"
 
   def currentDeviceId(): Option[String] = {
-    val output = Seq("query-display.exe").!!
-    wrapString(output).lines.toList match {
-      case List("Single", _, _, deviceId) => Some(deviceId)
+    val activeDisplayDevices = for {
+      adapter <- User32.enumDisplayDevices().toList
+      displayDevice <- User32.enumDisplayDevices(adapter.name)
+      if displayDevice.active
+    } yield displayDevice
+
+    activeDisplayDevices match {
+      case List(displayDevice) => Some(displayDevice.id)
       case _ => None
     }
   }
