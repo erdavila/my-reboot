@@ -3,7 +3,22 @@ package myreboot
 import java.io.File
 import scala.sys.process._
 
+object WindowsPlatform {
+  val StateDir = new File("C:\\grubenv.dir")
+
+  val DisplaySwitchExe = "DisplaySwitch.exe"
+
+  def currentDeviceId(): Option[String] = {
+    val output = Seq("query-display.exe").!!
+    wrapString(output).lines.toList match {
+      case List("Single", _, _, deviceId) => Some(deviceId)
+      case _ => None
+    }
+  }
+}
+
 class WindowsPlatform extends Platform {
+  import WindowsPlatform._
 
   override val name: String = "Windows"
 
@@ -15,8 +30,6 @@ class WindowsPlatform extends Platform {
       Action("Reiniciar no Linux") {},
     )
 
-  private val StateDir = new File("C:\\grubenv.dir")
-
   private val configs = Configs.load(StateDir)
 
   private def shutdown(): Unit = {
@@ -26,14 +39,12 @@ class WindowsPlatform extends Platform {
 
   private def switchDisplay(display: Display): Unit =
     if (!currentDisplay().contains(display)) {
-      Seq("DisplaySwitch.exe", configs.windowsDisplaySwitchArgs(display)).!!
+      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
     }
 
-  private def currentDisplay(): Option[Display] = {
-    val output = Seq("query-display").!!
-    wrapString(output).lines.toList match {
-      case List("Single", _, deviceId) => configs.displayByDeviceId(deviceId)
-      case _ => None
-    }
-  }
+  private def currentDisplay(): Option[Display] =
+    for {
+      deviceId <- currentDeviceId()
+      display <- configs.displayByDeviceId(deviceId)
+    } yield display
 }

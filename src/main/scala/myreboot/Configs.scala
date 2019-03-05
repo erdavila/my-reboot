@@ -8,6 +8,8 @@ object Configs {
   val FileName = "my-reboot-configs.properties"
 
   val GrubEntrySubKey = "grubEntry"
+  val DeviceIdSubKey = "deviceId"
+  val DisplaySwitchArgSubKey = "displaySwitchArg"
 
   def load(directory: File): Configs = {
     val props = new Properties
@@ -25,8 +27,8 @@ object Configs {
 
     new Configs(
       osGrubEntry = enumProperties(OS.Values, GrubEntrySubKey),
-      windowsDeviceIds = enumProperties(Display.Values, "deviceId"),
-      windowsDisplaySwitchArgs = enumProperties(Display.Values, "displaySwitchArg"),
+      windowsDeviceIds = enumProperties(Display.Values, DeviceIdSubKey),
+      windowsDisplaySwitchArgs = enumProperties(Display.Values, DisplaySwitchArgSubKey),
     )
   }
 

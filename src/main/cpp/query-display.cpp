@@ -6,11 +6,12 @@
 using namespace std;
 
 struct NameAndString {
-	string name;
-	string string;
+	std::string name;
+	std::string string;
+	std::string id;
 
 	explicit NameAndString(const DISPLAY_DEVICE& dd)
-		: name(dd.DeviceName), string(dd.DeviceString)
+		: name(dd.DeviceName), string(dd.DeviceString), id(dd.DeviceID)
 		{}
 };
 
@@ -88,6 +89,7 @@ int main() {
 		cout << "Single" << endl;
 		cout << displays[0].monitors[0].string << endl;
 		cout << displays[0].monitors[0].name << endl;
+		cout << displays[0].monitors[0].id << endl;
 	}
 
 	return 0;
