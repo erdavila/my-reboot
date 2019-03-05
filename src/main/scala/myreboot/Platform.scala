@@ -7,8 +7,8 @@ trait Platform {
 
 object Platform {
   def apply(): Platform =
-    System.getProperty("os.name") match {
-      case n if n.startsWith("Linux") => new LinuxPlatform
-      case n if n.startsWith("Windows") => new WindowsPlatform
+    OS.which match {
+      case Linux => new LinuxPlatform
+      case Windows => new WindowsPlatform
     }
 }

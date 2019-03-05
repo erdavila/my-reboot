@@ -2,7 +2,12 @@ package myreboot
 
 import java.io.File
 
+object LinuxPlatform {
+  val StateDir = new File("/boot/grub/grubenv.dir")
+}
+
 class LinuxPlatform extends Platform {
+  import LinuxPlatform._
 
   override val name: String = "Linux"
 
@@ -13,8 +18,6 @@ class LinuxPlatform extends Platform {
       Action("Reiniciar no Windows usando o monitor") { rebootToWindows(Monitor) },
       Action("Reiniciar no Windows usando a TV") { rebootToWindows(TV) },
     )
-
-  private val StateDir = new File("/boot/grub/grubenv.dir")
 
   private val configs = Configs.load(StateDir)
 

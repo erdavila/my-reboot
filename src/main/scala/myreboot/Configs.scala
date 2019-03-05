@@ -5,9 +5,13 @@ import java.util.Properties
 
 object Configs {
 
+  val FileName = "my-reboot-configs.properties"
+
+  val GrubEntrySubKey = "grubEntry"
+
   def load(directory: File): Configs = {
     val props = new Properties
-    val file = new File(directory, "my-reboot-configs.properties")
+    val file = new File(directory, FileName)
     val reader = new FileReader(file)
     props.load(reader)
     reader.close()
@@ -20,7 +24,7 @@ object Configs {
       }.toMap
 
     new Configs(
-      osGrubEntry = enumProperties(OS.Values, "grubEntry"),
+      osGrubEntry = enumProperties(OS.Values, GrubEntrySubKey),
       windowsDeviceIds = enumProperties(Display.Values, "deviceId"),
       windowsDisplaySwitchArgs = enumProperties(Display.Values, "displaySwitchArg"),
     )

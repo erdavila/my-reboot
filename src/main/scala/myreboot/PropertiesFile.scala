@@ -20,7 +20,7 @@ object PropertiesFile {
   private def save(props: Properties, file: File): Unit = {
     val writer = new FileWriter(file)
     try {
-      props.store(writer, "")
+      props.store(writer, null)
     } finally {
       writer.close()
     }
