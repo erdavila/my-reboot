@@ -15,7 +15,6 @@ class LinuxPlatform extends Platform {
     )
 
   private val StateDir = new File("/boot/grub/grubenv.dir")
-  private val OptionsPath = new File(StateDir, "grubenv")
 
   private val configs = Configs.load(StateDir)
 
@@ -23,10 +22,9 @@ class LinuxPlatform extends Platform {
     execute("systemctl", "poweroff")
 
   private def rebootToWindows(display: Display): Unit = {
-    val bootOptions = BootOptions.load(OptionsPath.toString, configs)
+    val bootOptions = BootOptions.using(StateDir, configs)
     bootOptions.setOS(Windows)
     bootOptions.setWindowsDisplay(display)
-    bootOptions.save()
 
     reboot()
   }

@@ -1,21 +1,27 @@
 package myreboot
 
+import java.io.File
+
 object BootOptions {
-  def load(path: String, configs: Configs): BootOptions =
-    new BootOptions(path, Grubenv.load(path), configs: Configs)
+  def using(dir: File, configs: Configs): BootOptions = {
+    new BootOptions(dir, configs: Configs)
+  }
 }
 
-class BootOptions private(path: String, grubenv: Grubenv, configs: Configs) {
+class BootOptions private(dir: File, configs: Configs) {
 
   private val OSKey = "saved_entry"
-  private val WindowsDisplayKey = "windows_display"
+  private val WindowsDisplayKey = "windows.display"
 
-  def setOS(os: OS): Unit =
+  def setOS(os: OS): Unit = {
+    val grubenv = Grubenv.load(new File(dir, "grubenv"))
     grubenv.set(OSKey, configs.osGrubEntry(os))
+    grubenv.save()
+  }
 
-  def setWindowsDisplay(display: Display): Unit =
-    grubenv.set(WindowsDisplayKey, display.code)
-
-  def save(): Unit =
-    grubenv.save(path)
+  def setWindowsDisplay(display: Display): Unit = {
+    val propsFile = PropertiesFile.load(new File(dir, "my-reboot-options.properties"))
+    propsFile.set(WindowsDisplayKey, display.code)
+    propsFile.save()
+  }
 }

@@ -1,24 +1,36 @@
 package myreboot
 
-import java.io.FileWriter
+import java.io.{File, FileWriter}
 import scala.io.Source
 
 object Grubenv {
-  def load(path: String): Grubenv =
-    fromLines(Source.fromFile(path).getLines())
+  def load(file: File): Grubenv = {
+    val lines = cleanLines(Source.fromFile(file).getLines())
+    new Grubenv(lines.toVector, file)
+  }
 
-  private[myreboot] def fromLines(linesIter: Iterator[String]): Grubenv = {
-    val loadedLines = linesIter.toVector
-    val lines = if (loadedLines.last.startsWith("#") || loadedLines.last == "") {
-      loadedLines.dropRight(1)
-    } else {
-      loadedLines
+  private[myreboot] def cleanLines(lines: Iterator[String]): Iterator[String] =
+    lines.filter(line => line.exists(_ != '#'))
+
+  private def save(lines: Vector[String], file: File): Unit = {
+    val f = new FileWriter(file)
+    try {
+      f.write(toFileContent(lines))
+    } finally {
+      f.close()
     }
-    new Grubenv(lines)
+  }
+
+  private[myreboot] def toFileContent(lines: Vector[String]): String = {
+    val Length = 1024
+    lines.map(_ + "\n")
+      .mkString
+      .take(Length)
+      .padTo(Length, '#')
   }
 }
 
-class Grubenv private[myreboot](private[myreboot] var lines: Vector[String]) {
+class Grubenv private[myreboot](private[myreboot] var lines: Vector[String], file: File) {
 
   def set(key: String, value: String): Unit = {
     val keyValueLine = s"$key=$value"
@@ -43,20 +55,6 @@ class Grubenv private[myreboot](private[myreboot] var lines: Vector[String]) {
   def unset(key: String): Unit =
     lines = lines.filterNot(_ startsWith s"$key=")
 
-  def save(path: String): Unit = {
-    val f = new FileWriter(path)
-    try {
-      f.write(this.toFileContent)
-    } finally {
-     f.close()
-    }
-  }
-
-  private[myreboot] def toFileContent: String = {
-    val Length = 1024
-    lines.map(_ + "\n")
-      .mkString
-      .take(Length)
-      .padTo(Length, '#')
-  }
+  def save(): Unit =
+    Grubenv.save(lines, file)
 }
