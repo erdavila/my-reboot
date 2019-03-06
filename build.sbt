@@ -2,109 +2,106 @@ import Logging._
 import scala.sys.process._
 
 
-name := "My Reboot"
-version := "0.1"
+ThisBuild / name := "My Reboot"
+ThisBuild / version := "0.1"
 
-scalaVersion := "2.12.8"
-
-libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.181-R13"
-libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
-
-assembly / mainClass := Some("myreboot.main.Dialog")
-assembly / assemblyJarName := "my-reboot.jar"
+ThisBuild / scalaVersion := "2.12.8"
 
 
+// Settings
+lazy val jarName = settingKey[String]("Jar name")
 lazy val installDir = settingKey[File]("Directory where executables will be written")
-installDir := {
-  val userHome = scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))
-  file(userHome) / "bin"
-}
-
 lazy val installedAssetsDir = settingKey[File]("Directory where non-executables will be written")
-installedAssetsDir := installDir.value / "my-reboot"
-
-lazy val installedJar = taskKey[File]("Installed Jar path")
-installedJar := installedAssetsDir.value / (assembly / assemblyJarName).value
-
+lazy val installedJar = settingKey[File]("Installed Jar path")
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
-installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh"
-
 lazy val installedSwitchDisplayScript = settingKey[File]("Script to switch displays")
-installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display.sh"
+lazy val installedLaunchingScripts = settingKey[Seq[(File, String)]]("Scripts and their main class names")
+lazy val installedIcon = settingKey[File]("Installed icon path")
+lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry path")
 
-lazy val installedIcon = taskKey[File]("Installed icon path")
-installedIcon := installedAssetsDir.value / "icon.png"
-
-lazy val installedMenuEntry = taskKey[File]("Installed desktop menu entry path")
-installedMenuEntry := installedAssetsDir.value / "entry.desktop"
-
-
+// Tasks
 lazy val installJar = taskKey[Unit]("Installs the jar file")
-installJar := {
-  val log = streams.value.log
-
-  val srcJarFile = assembly.value
-  val destJarFile = installedJar.value
-
-  log.copying(destJarFile)
-  IO.copyFile(srcJarFile, destJarFile)
-}
-
-
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
-installLaunchingScripts := {
-  val log = streams.value.log
-
-  val targetJarFile = installedJar.value
-
-  def installLaunchingScript(scriptFile: File, mainClass: String): Unit = {
-    val targetJarPath = IO.relativize(scriptFile.getParentFile, targetJarFile)
-      .map { "$(dirname $0)/" + _ }
-      .getOrElse(targetJarFile.getPath)
-
-    val adjustedTargetJarPath = OS.which match {
-      case Linux => targetJarPath
-      case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
-    }
-
-    log.writing(scriptFile)
-    IO.write(scriptFile,
-      s"""
-         |#!/bin/bash
-         |exec java -cp $adjustedTargetJarPath myreboot.main.$mainClass "$$@"
-       """.stripMargin.trim + "\n"
-    )
-    if (OS.which == Linux) {
-      IO.setPermissions(scriptFile, "rwxr-xr-x")
-    }
-  }
-
-  installLaunchingScript(installedMainLaunchingScript.value, "Dialog")
-  if (OS.which == Windows) {
-    installLaunchingScript(installedSwitchDisplayScript.value, "SwitchDisplay")
-  }
-}
-
-
 lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry")
-installMenuEntry := OS.linuxOnly {
-  Def.task {
-    val log = streams.value.log
+lazy val install = taskKey[Unit]("Installs")
 
-    val iconFile = installedIcon.value
-    log.copying(iconFile)
-    IO.copyFile(baseDirectory.value / "icon.png", iconFile)
 
-    val menuEntryFile = installedMenuEntry.value
-    log.writing(menuEntryFile)
-    IO.write(menuEntryFile,
+lazy val shared = (project in file("shared"))
+  .settings(
+    libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.181-R13",
+    libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
+
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+  )
+
+
+lazy val commonSettings = Seq(
+  jarName := "my-reboot.jar",
+  assembly / assemblyJarName := jarName.value,
+  installDir := {
+    val userHome = scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))
+    file(userHome) / "bin"
+  },
+  installedAssetsDir := installDir.value / "my-reboot",
+  installedJar := installedAssetsDir.value / jarName.value,
+  installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh",
+  installedLaunchingScripts := Seq(installedMainLaunchingScript.value -> "Dialog"),
+
+  installJar := {
+    val destJarFile = installedJar.value
+    streams.value.log.copying(destJarFile)
+    IO.copyFile(assembly.value, destJarFile)
+  },
+  installLaunchingScripts := {
+    val targetJarFile = installedJar.value
+
+    for ((scriptFile, mainClass) <- installedLaunchingScripts.value) {
+      val targetJarPath = IO.relativize(scriptFile.getParentFile, targetJarFile)
+        .map { "$(dirname $0)/" + _ }
+        .getOrElse(targetJarFile.getPath)
+
+      val adjustedTargetJarPath = OS.which match {
+        case Linux => targetJarPath
+        case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
+      }
+
+      streams.value.log.writing(scriptFile)
+      IO.write(scriptFile,
+        s"""
+           |#!/bin/bash
+           |exec java -cp $adjustedTargetJarPath myreboot.main.$mainClass "$$@"
+       """.stripMargin.trim + "\n"
+      )
+      if (OS.which == Linux) {
+        IO.setPermissions(scriptFile, "rwxr-xr-x")
+      }
+    }
+  },
+)
+
+
+lazy val linux = (project in file("linux"))
+  .dependsOn(shared)
+  .settings(commonSettings: _*)
+  .settings(
+    installedIcon := installedAssetsDir.value / "icon.png",
+    installedMenuEntry := installedAssetsDir.value / "entry.desktop",
+
+    installMenuEntry := {
+      val log = streams.value.log
+
+      val iconFile = installedIcon.value
+      log.copying(iconFile)
+      IO.copyFile((ThisBuild / baseDirectory).value / "icon.png", iconFile)
+
+      val menuEntryFile = installedMenuEntry.value
+      log.writing(menuEntryFile)
+      IO.write(menuEntryFile,
         s"""
            |[Desktop Entry]
            |Version=${version.value}
            |Type=Application
-           |Name=${name.value}
+           |Name=${(ThisBuild / name).value}
            |Icon=${iconFile.getPath}
            |Exec=${installedMainLaunchingScript.value.getPath}
            |Comment=Reboot options
@@ -113,22 +110,41 @@ installMenuEntry := OS.linuxOnly {
         """.stripMargin.trim + "\n"
       )
 
-    log.info("Creating menu entry")
-    Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
-    Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
-  }
-}.value
+      log.info("Creating menu entry")
+      Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
+      Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
+    },
+    install := Def.sequential(
+      installJar,
+      installLaunchingScripts,
+      installMenuEntry,
+    ).value,
+  )
 
 
-lazy val install = taskKey[Unit]("Installs")
-install := OS.select {
-  case Linux => Def.sequential(
-    installJar,
-    installLaunchingScripts,
-    installMenuEntry,
+lazy val windows = (project in file("windows"))
+  .dependsOn(shared)
+  .settings(commonSettings: _*)
+  .settings(
+    installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display.sh",
+    installedLaunchingScripts += (installedSwitchDisplayScript.value -> "SwitchDisplay"),
+
+    install := Def.sequential(
+      installJar,
+      installLaunchingScripts,
+    ).value,
   )
-  case Windows => Def.sequential(
-    installJar,
-    installLaunchingScripts,
+
+
+lazy val myReboot = (project in file("."))
+  .aggregate(shared, linux, windows)
+  .settings(
+    install / aggregate := false,
+
+    install := Def.taskDyn {
+      OS.which match {
+        case Linux => Def.task { (linux / install).value }
+        case Windows => Def.task { (windows / install).value }
+      }
+    }.value,
   )
-}.value
