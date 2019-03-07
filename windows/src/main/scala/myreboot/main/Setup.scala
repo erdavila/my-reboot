@@ -1,66 +1,21 @@
 package myreboot.main
 
-import java.io.File
-import myreboot._
+import myreboot.{Configs, Display, WindowsPlatform}
 import scala.annotation.tailrec
-import scala.io.{Source, StdIn}
+import scala.io.StdIn
 import scala.sys.process._
 
-object Setup {
+object Setup extends SetupBase {
+
+  private val Internal = "/internal"
+  private val External = "/external"
 
   def main(args: Array[String]): Unit = {
-    val (entries, stateDir) = OS.which match {
-      case Linux => (LinuxSetup.run, LinuxPlatform.StateDir)
-      case Windows => (WindowsSetup.run, WindowsPlatform.StateDir)
-    }
-
-    val configsFile = new File(stateDir, Configs.FileName)
-    val propsFile = PropertiesFile.load(configsFile)
-    println(s"As seguintes propriedades serão salvas em ${configsFile.getPath}:")
-    for ((key, value) <- entries) {
-      println(s"  $key=$value")
-      propsFile.set(key, value)
-    }
-    askToProceed()
-    propsFile.save()
-
-    println("PRONTO")
-  }
-
-  def askToProceed(): Unit = {
-    StdIn.readLine("Pressione ENTER para prosseguir ")
-    println()
-  }
-}
-
-object LinuxSetup {
-  def run: Seq[(String, String)] = {
-    val grubCfgFile = new File("/boot/grub/grub.cfg")
-    println(s"Lendo ${grubCfgFile.getPath}...")
-    val menuentryLines = Source.fromFile(grubCfgFile).getLines().filter(_ startsWith "menuentry ").toList
-
-    for (os <- OS.Values)
-      yield {
-        println("Detectando entrada com \"" + os.code + "\"...")
-        val entryIndex = menuentryLines.indexWhere(_ contains os.code)
-        assert(entryIndex >= 0, "Entrada não encontrada!")
-        val entryNumber = 1 + entryIndex
-        val key = os.code + "." + Configs.GrubEntrySubKey
-        key -> entryNumber.toString
-      }
-  }
-}
-
-object WindowsSetup {
-  def run: Seq[(String, String)] = {
-    val Internal = "/internal"
-    val External = "/external"
-
     val initialDisplay = askCurrentDisplay
 
     println(s"A seguir, é possível que a tela mude para ${initialDisplay.theOther.code}.")
     println("Se a tela atual desligar, responda a pergunta que aparecer na outra tela.")
-    Setup.askToProceed()
+    askToProceed()
 
     displaySwitch(Internal)
     val internalDisplay = askCurrentDisplay
@@ -70,7 +25,7 @@ object WindowsSetup {
     val Some(externalDeviceId) = if (initialDisplay == internalDisplay) {
       println(s"Agora, a tela mudará por alguns segundos para ${internalDisplay.theOther.code}.")
       println(s"Aguarde a tela retornar para ${internalDisplay.code}")
-      Setup.askToProceed()
+      askToProceed()
 
       displaySwitch(External)
       val externalDeviceId = WindowsPlatform.currentDeviceId()
@@ -80,7 +35,7 @@ object WindowsSetup {
 
     } else {
       println(s"Agora, a tela retornará para ${externalDisplay.code}.")
-      Setup.askToProceed()
+      askToProceed()
 
       displaySwitch(External)
       val externalDeviceId = WindowsPlatform.currentDeviceId()
@@ -90,12 +45,13 @@ object WindowsSetup {
 
     assert(internalDeviceId != externalDeviceId, internalDeviceId)
 
-    Seq(
+    val entries = Seq(
       (internalDisplay.code + "." + Configs.DeviceIdSubKey) -> internalDeviceId,
       (internalDisplay.code + "." + Configs.DisplaySwitchArgSubKey) -> Internal,
       (externalDisplay.code + "." + Configs.DeviceIdSubKey) -> externalDeviceId,
       (externalDisplay.code + "." + Configs.DisplaySwitchArgSubKey) -> External,
     )
+    saveConfigs(entries, WindowsPlatform.StateDir)
   }
 
   @tailrec
