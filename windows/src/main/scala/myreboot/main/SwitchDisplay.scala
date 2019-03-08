@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.{BootOptions, Display, WindowsPlatform}
+import myreboot.{BootOptions, Display, Platform}
 
 object SwitchDisplay {
 
@@ -8,14 +8,14 @@ object SwitchDisplay {
     val display = args.headOption match {
       case Some("saved") => savedDisplay().getOrElse(scala.sys.error("Nenhuma tela salva!"))
       case Some(code) => Display.byCode(code).getOrElse(exitWithHelp(s"Tela desconhecida: $code!"))
-      case None => WindowsPlatform.currentDisplay().getOrElse(exitWithHelp("Não é possível identificar a tela atual!")).theOther
+      case None => Platform.currentDisplay().getOrElse(exitWithHelp("Não é possível identificar a tela atual!")).theOther
     }
 
-    WindowsPlatform.switchDisplay(display)
+    Platform.switchDisplay(display)
   }
 
   private def savedDisplay(): Option[Display] = {
-    val bootOptions = BootOptions.using(WindowsPlatform.StateDir, WindowsPlatform.configs)
+    val bootOptions = BootOptions.using(Platform.StateDir, Platform.configs)
     bootOptions.getWindowsDisplay
   }
 

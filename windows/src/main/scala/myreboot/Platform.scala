@@ -4,7 +4,7 @@ import java.io.File
 import scala.sys.process._
 import windowsapi.scala.User32
 
-object WindowsPlatform {
+object Platform {
   val StateDir = new File("C:\\grubenv.dir")
 
   val DisplaySwitchExe = "DisplaySwitch.exe"

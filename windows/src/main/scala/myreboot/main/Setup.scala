@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.{Configs, Display, WindowsPlatform}
+import myreboot.{Configs, Display, Platform}
 import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.sys.process._
@@ -19,7 +19,7 @@ object Setup extends SetupBase {
 
     displaySwitch(Internal)
     val internalDisplay = askCurrentDisplay
-    val Some(internalDeviceId) = WindowsPlatform.currentDeviceId()
+    val Some(internalDeviceId) = Platform.currentDeviceId()
 
     val externalDisplay = internalDisplay.theOther
     val Some(externalDeviceId) = if (initialDisplay == internalDisplay) {
@@ -28,7 +28,7 @@ object Setup extends SetupBase {
       askToProceed()
 
       displaySwitch(External)
-      val externalDeviceId = WindowsPlatform.currentDeviceId()
+      val externalDeviceId = Platform.currentDeviceId()
 
       displaySwitch(Internal)
       externalDeviceId
@@ -38,7 +38,7 @@ object Setup extends SetupBase {
       askToProceed()
 
       displaySwitch(External)
-      val externalDeviceId = WindowsPlatform.currentDeviceId()
+      val externalDeviceId = Platform.currentDeviceId()
 
       externalDeviceId
     }
@@ -51,7 +51,7 @@ object Setup extends SetupBase {
       (externalDisplay.code + "." + Configs.DeviceIdSubKey) -> externalDeviceId,
       (externalDisplay.code + "." + Configs.DisplaySwitchArgSubKey) -> External,
     )
-    saveConfigs(entries, WindowsPlatform.StateDir)
+    saveConfigs(entries, Platform.StateDir)
   }
 
   @tailrec
@@ -69,7 +69,7 @@ object Setup extends SetupBase {
   }
 
   private def displaySwitch(arg: String): Unit = {
-    Seq(WindowsPlatform.DisplaySwitchExe, arg).!!
+    Seq(Platform.DisplaySwitchExe, arg).!!
     Thread.sleep(3000)
   }
 }

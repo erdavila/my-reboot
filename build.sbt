@@ -29,7 +29,6 @@ lazy val install = taskKey[Unit]("Installs")
 lazy val shared = (project in file("shared"))
   .settings(
     libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.181-R13",
-    libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
 
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
   )
@@ -126,6 +125,8 @@ lazy val windows = (project in file("windows"))
   .dependsOn(shared)
   .settings(commonSettings: _*)
   .settings(
+    libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
+
     installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display.sh",
     installedLaunchingScripts += (installedSwitchDisplayScript.value -> "SwitchDisplay"),
 

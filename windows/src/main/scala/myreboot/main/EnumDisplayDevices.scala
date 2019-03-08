@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.WindowsPlatform
+import myreboot.Platform
 import windowsapi.scala.User32
 
 object EnumDisplayDevices {
@@ -24,6 +24,6 @@ object EnumDisplayDevices {
       println()
     }
 
-    println("currentDeviceId: " + WindowsPlatform.currentDeviceId())
+    println("currentDeviceId: " + Platform.currentDeviceId())
   }
 }
