@@ -2,7 +2,7 @@ package myreboot.main
 
 import java.io.File
 import myreboot.Configs
-import myreboot.{LinuxPlatform, OS}
+import myreboot.{Platform, OS}
 import scala.io.Source
 
 object Setup extends SetupBase {
@@ -21,6 +21,6 @@ object Setup extends SetupBase {
         val key = os.code + "." + Configs.GrubEntrySubKey
         key -> entryNumber.toString
       }
-    saveConfigs(entries, LinuxPlatform.StateDir)
+    saveConfigs(entries, Platform.StateDir)
   }
 }
