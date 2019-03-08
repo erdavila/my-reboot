@@ -11,6 +11,11 @@ object WindowsPlatform {
 
   lazy val configs: Configs = Configs.load(StateDir)
 
+  def shutdown(): Unit = {
+    switchDisplay(Monitor)
+    Seq("shutdown", "/sg", "/t", "0").!!
+  }
+
   def switchDisplay(display: Display): Unit =
     if (currentDisplay().contains(display)) {
       println(s"Already in wanted display: ${display.code}")
@@ -35,24 +40,5 @@ object WindowsPlatform {
       case List(displayDevice) => Some(displayDevice.id)
       case _ => None
     }
-  }
-}
-
-class WindowsPlatform extends Platform {
-  import WindowsPlatform._
-
-  override val name: String = "Windows"
-
-  override val actions: Seq[Action] =
-    Seq(
-      Action("Desligar") { shutdown() },
-      Action("Reiniciar usando o monitor") {},
-      Action("Reiniciar usando a TV") {},
-      Action("Reiniciar no Linux") {},
-    )
-
-  private def shutdown(): Unit = {
-    switchDisplay(Monitor)
-    Seq("shutdown", "/sg", "/t", "0").!!
   }
 }

@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.Platform
+import myreboot.Action
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
@@ -9,22 +9,22 @@ import scalafx.scene.Scene
 import scalafx.scene.control.Button
 import scalafx.scene.layout.VBox
 
-object Dialog extends JFXApp {
-
-  private val platform = Platform()
+abstract class DialogBase extends JFXApp {
+  protected def platformName: String
+  protected def actions: Seq[Action]
 
   stage = new PrimaryStage {
-    title = s"My Reboot - ${platform.name}"
+    title = s"My Reboot - $platformName"
     resizable = false
     scene = new Scene(
       new VBox(10) {
         padding = Insets(10)
         children =
-          for (a <- platform.actions)
-            yield new Button(a.label) {
+          for (action <- actions)
+            yield new Button(action.label) {
               maxWidth = Double.MaxValue
               onAction = handle {
-                a()
+                action()
                 stage.close()
               }
             }

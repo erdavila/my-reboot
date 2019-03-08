@@ -6,10 +6,4 @@ case object Windows extends OS("windows")
 
 object OS {
   val Values: Seq[OS] = Seq(Linux, Windows)
-
-  val which: OS =
-    System.getProperty("os.name") match {
-      case n if n.startsWith("Linux") => Linux
-      case n if n.startsWith("Windows") => Windows
-    }
 }
