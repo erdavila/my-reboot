@@ -24,6 +24,7 @@ lazy val installJar = taskKey[Unit]("Installs the jar file")
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
 lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry")
 lazy val install = taskKey[Unit]("Installs")
+lazy val runSetup = taskKey[Unit]("Runs setup")
 
 
 lazy val shared = (project in file("shared"))
@@ -76,6 +77,9 @@ lazy val commonSettings = Seq(
       }
     }
   },
+  runSetup := {
+    (Compile / runMain).toTask(" myreboot.main.Setup").value
+  },
 )
 
 
@@ -117,6 +121,7 @@ lazy val linux = (project in file("linux"))
       installJar,
       installLaunchingScripts,
       installMenuEntry,
+      runSetup,
     ).value,
   )
 
@@ -133,6 +138,7 @@ lazy val windows = (project in file("windows"))
     install := Def.sequential(
       installJar,
       installLaunchingScripts,
+      runSetup,
     ).value,
   )
 
