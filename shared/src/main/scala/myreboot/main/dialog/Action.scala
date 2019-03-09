@@ -1,4 +1,4 @@
-package myreboot
+package myreboot.main.dialog
 
 trait Action {
   val label: String

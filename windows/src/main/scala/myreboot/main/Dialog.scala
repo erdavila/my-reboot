@@ -1,6 +1,7 @@
 package myreboot.main
 
-import myreboot.{Action, Icon, Platform}
+import myreboot.main.dialog.{Action, Icon}
+import myreboot.Platform
 
 object Dialog extends DialogBase {
 

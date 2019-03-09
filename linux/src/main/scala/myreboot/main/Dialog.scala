@@ -1,6 +1,7 @@
 package myreboot.main
 
-import myreboot._
+import myreboot.{Monitor, Platform, TV}
+import myreboot.main.dialog.{Action, Icon}
 
 object Dialog extends DialogBase {
 

@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.{Action, Icon}
+import myreboot.main.dialog.{Action, Icon}
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage

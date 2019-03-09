@@ -1,4 +1,4 @@
-package myreboot
+package myreboot.main.dialog
 
 import scalafx.scene.image.Image
 
