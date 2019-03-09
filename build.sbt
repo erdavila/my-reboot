@@ -38,6 +38,11 @@ lazy val shared = (project in file("shared"))
 lazy val commonSettings = Seq(
   jarName := "my-reboot.jar",
   assembly / assemblyJarName := jarName.value,
+  assembly / assemblyMergeStrategy := {
+    case PathList("myreboot", "main", cls) if cls startsWith "Setup" => MergeStrategy.discard
+    case p => (assembly / assemblyMergeStrategy).value(p)
+  },
+
   installDir := {
     val userHome = scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))
     file(userHome) / "bin"
