@@ -1,6 +1,7 @@
 package myreboot
 
 import java.io.File
+import scala.annotation.tailrec
 import scala.sys.process._
 import windowsapi.scala.User32
 
@@ -16,12 +17,28 @@ object Platform {
     Seq("shutdown", "/sg", "/t", "0").!!
   }
 
-  def switchDisplay(display: Display): Unit =
-    if (currentDisplay().contains(display)) {
-      println(s"Already in wanted display: ${display.code}")
-    } else {
-      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
+  def switchDisplay(display: Display): Unit = {
+    def notInWantedDisplay = !currentDisplay().contains(display)
+
+    @tailrec
+    def waitToSwitch(count: Int): Unit = {
+      Thread.sleep(1000)
+      if (notInWantedDisplay) {
+        if (count > 0) {
+          waitToSwitch(count - 1)
+        } else {
+          System.err.println("Desistindo de esperar!")
+        }
+      }
     }
+
+    if (notInWantedDisplay) {
+      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
+      waitToSwitch(count = 10)
+    } else {
+      println(s"Tela atual já é a desejada: ${display.code}")
+    }
+  }
 
   def currentDisplay(): Option[Display] =
     for {
