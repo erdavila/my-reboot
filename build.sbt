@@ -1,4 +1,5 @@
 import Logging._
+import java.io.File
 import scala.sys.process._
 
 
@@ -62,19 +63,19 @@ lazy val commonSettings = Seq(
 
     for ((scriptFile, mainClass) <- installedLaunchingScripts.value) {
       val targetJarPath = IO.relativize(scriptFile.getParentFile, targetJarFile)
-        .map { "$(dirname $0)/" + _ }
         .getOrElse(targetJarFile.getPath)
 
-      val adjustedTargetJarPath = OS.which match {
+      val escapedTargetJarPath = OS.which match {
         case Linux => targetJarPath
-        case Windows => "$(cygpath -w " + targetJarPath.replace('\\', '/') + ")"
+        case Windows => targetJarPath.replace("\\", "\\\\")
       }
 
       streams.value.log.writing(scriptFile)
       IO.write(scriptFile,
         s"""
            |#!/bin/bash
-           |exec java -cp $adjustedTargetJarPath myreboot.main.$mainClass "$$@"
+           |cd $$(dirname $$0)
+           |exec java -cp $escapedTargetJarPath myreboot.main.$mainClass "$$@"
        """.stripMargin.trim + "\n"
       )
       if (OS.which == Linux) {
