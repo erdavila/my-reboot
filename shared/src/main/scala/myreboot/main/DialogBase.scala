@@ -8,6 +8,7 @@ import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Scene
 import scalafx.scene.control.Button
 import scalafx.scene.image.ImageView
+import scalafx.scene.input.{KeyCode, KeyEvent}
 import scalafx.scene.layout.VBox
 
 abstract class DialogBase extends JFXApp {
@@ -37,6 +38,12 @@ abstract class DialogBase extends JFXApp {
               }
             }
       }
-    )
+    ) {
+      handleEvent(KeyEvent.KeyPressed) { e: KeyEvent =>
+        if (e.code == KeyCode.Escape) {
+          stage.close()
+        }
+      }
+    }
   }
 }
