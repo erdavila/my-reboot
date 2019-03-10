@@ -50,7 +50,7 @@ lazy val commonSettings = Seq(
   },
   installedAssetsDir := installDir.value / "my-reboot",
   installedJar := installedAssetsDir.value / jarName.value,
-  installedMainLaunchingScript := installDir.value / "my-reboot-dialog.sh",
+  installedMainLaunchingScript := installDir.value / "my-reboot-dialog",
   installedLaunchingScripts := Seq(installedMainLaunchingScript.value -> "Dialog"),
 
   installJar := {
@@ -138,7 +138,7 @@ lazy val windows = (project in file("windows"))
   .settings(
     libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
 
-    installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display.sh",
+    installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display",
     installedLaunchingScripts += (installedSwitchDisplayScript.value -> "SwitchDisplay"),
 
     install := Def.sequential(
