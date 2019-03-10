@@ -5,10 +5,10 @@ object Logging {
 
   implicit class LogOps(val log: ManagedLogger) extends AnyVal {
     def copying(file: File): Unit =
-      log.info(s"Copying ${file.getName} to ${file.getParent}")
+      log.info(s"Copiando ${file.getName} para ${file.getParent}")
 
     def writing(file: File): Unit =
-      log.info(s"Writing ${file.getName} in ${file.getParent}")
+      log.info(s"Escrevendo ${file.getName} em ${file.getParent}")
   }
 
 }

@@ -119,7 +119,7 @@ lazy val linux = (project in file("linux"))
         """.stripMargin.trim + "\n"
       )
 
-      log.info("Creating menu entry")
+      log.info("Criando entrada no menu")
       Seq("xdg-desktop-menu", "install", "--novendor", "--mode", "user", menuEntryFile.getPath).!!
       Seq("xdg-desktop-menu", "forceupdate", "--mode", "user").!!
     },
