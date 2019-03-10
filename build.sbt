@@ -23,7 +23,8 @@ lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry pat
 // Tasks
 lazy val installJar = taskKey[Unit]("Installs the jar file")
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
-lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry")
+lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry on Linux")
+lazy val installShortcuts = taskKey[Unit]("Installs shortcuts on Windows")
 lazy val install = taskKey[Unit]("Installs")
 lazy val runSetup = taskKey[Unit]("Runs setup")
 
@@ -138,12 +139,66 @@ lazy val windows = (project in file("windows"))
   .settings(
     libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
 
+    installedIcon := installedAssetsDir.value / "icon.ico",
     installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display",
     installedLaunchingScripts += (installedSwitchDisplayScript.value -> "SwitchDisplay"),
 
+    installShortcuts := {
+      val log = streams.value.log
+
+      def findPath(program: String) = Seq("which", program).!!.stripLineEnd
+      val javawPath = findPath("javaw.exe")
+
+      def installShortcut(
+        className: String,
+        name: String,
+        description: String,
+        iconPath: String,
+        iconOffset: Option[Int] = None,
+      ): Unit = {
+        val places = Seq(
+          ("--desktop", "na Área de Trabalho"),
+          ("--smprograms", "no Menu Iniciar"),
+        )
+        for ((placeArg, placeName) <- places) {
+          log.info(s"Criando atalho para $name $placeName")
+          val cmd = Seq(
+            "mkshortcut",
+            placeArg,
+            "--name", name,
+            "--desc", description,
+            "--icon", iconPath
+          ) ++ iconOffset.map(offs => Seq("--iconoffset", offs.toString)).getOrElse(Seq.empty) ++ Seq(
+            "--arguments", s"-cp ${installedJar.value.getPath} $className",
+            javawPath,
+          )
+          cmd.!!
+        }
+      }
+
+      val iconFile = installedIcon.value
+      log.copying(iconFile)
+      IO.copyFile((ThisBuild / baseDirectory).value / "icon.ico", iconFile)
+      val iconPosixPath = Seq("cygpath", "-u", iconFile.getPath).!!
+      installShortcut(
+        className = "myreboot.main.Dialog",
+        name = "My Reboot",
+        description = "Opções de reinicialização",
+        iconPath = iconPosixPath,
+      )
+
+      installShortcut(
+        className = "myreboot.main.SwitchDisplay",
+        name = "Alternar Tela",
+        description = "Alternar tela",
+        iconPath = findPath("DisplaySwitch.exe"),
+        iconOffset = Some(2),
+      )
+    },
     install := Def.sequential(
       installJar,
       installLaunchingScripts,
+      installShortcuts,
       runSetup,
     ).value,
   )
