@@ -17,14 +17,25 @@ object Platform {
     shutdownNow(reboot = false)
   }
 
-  def reboot(display: Display): Unit = {
+  def reboot(display: Display): Unit =
+    rebootTo(Windows, display)
+
+  def rebootToLinux(): Unit =
+    rebootTo(Linux, Monitor)
+
+  private def rebootTo(os: OS, display: Display): Unit = {
     switchDisplay(Monitor)
 
     val bootOptions = BootOptions.using(StateDir, configs)
-    bootOptions.setOS(Windows)
+    bootOptions.setOS(os)
     bootOptions.setWindowsDisplay(display)
 
     shutdownNow(reboot = true)
+  }
+
+  private def shutdownNow(reboot: Boolean): Unit = {
+    val arg = if (reboot) "/g" else "/sg"
+    Seq("shutdown", arg, "/t", "0").!!
   }
 
   def switchDisplay(display: Display): Unit = {
@@ -67,10 +78,5 @@ object Platform {
       case List(displayDevice) => Some(displayDevice.id)
       case _ => None
     }
-  }
-
-  private def shutdownNow(reboot: Boolean): Unit = {
-    val arg = if (reboot) "/g" else "/sg"
-    Seq("shutdown", arg, "/t", "0").!!
   }
 }

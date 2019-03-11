@@ -11,6 +11,6 @@ object Dialog extends DialogBase {
     Action("Desligar", Icon.Shutdown) { Platform.shutdown() },
     Action("Reiniciar usando o monitor", Icon.Windows) { Platform.reboot(Monitor) },
     Action("Reiniciar usando a TV", Icon.Windows) { Platform.reboot(TV) },
-    Action("Reiniciar no Linux", Icon.Linux) {},
+    Action("Reiniciar no Linux", Icon.Linux) { Platform.rebootToLinux() },
   )
 }
