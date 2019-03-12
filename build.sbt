@@ -25,8 +25,13 @@ lazy val installJar = taskKey[Unit]("Installs the jar file")
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
 lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry on Linux")
 lazy val installShortcuts = taskKey[Unit]("Installs shortcuts on Windows")
+lazy val setSwitchDisplayToRunOnStartup = taskKey[Unit]("Register SwitchDisplay to run on Windows startup")
 lazy val install = taskKey[Unit]("Installs")
 lazy val runSetup = taskKey[Unit]("Runs setup")
+
+val DialogClassName = "myreboot.main.Dialog"
+val SwitchDisplayClassName = "myreboot.main.SwitchDisplay"
+lazy val JavawPosixPath = findPath("javaw.exe")
 
 
 lazy val shared = (project in file("shared"))
@@ -52,7 +57,7 @@ lazy val commonSettings = Seq(
   installedAssetsDir := installDir.value / "my-reboot",
   installedJar := installedAssetsDir.value / jarName.value,
   installedMainLaunchingScript := installDir.value / "my-reboot-dialog",
-  installedLaunchingScripts := Seq(installedMainLaunchingScript.value -> "Dialog"),
+  installedLaunchingScripts := Seq(installedMainLaunchingScript.value -> DialogClassName),
 
   installJar := {
     val destJarFile = installedJar.value
@@ -76,7 +81,7 @@ lazy val commonSettings = Seq(
         s"""
            |#!/bin/bash
            |cd $$(dirname $$0)
-           |exec java -cp $escapedTargetJarPath myreboot.main.$mainClass "$$@"
+           |exec java -cp $escapedTargetJarPath $mainClass "$$@"
        """.stripMargin.trim + "\n"
       )
       if (OS.which == Linux) {
@@ -141,13 +146,10 @@ lazy val windows = (project in file("windows"))
 
     installedIcon := installedAssetsDir.value / "icon.ico",
     installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display",
-    installedLaunchingScripts += (installedSwitchDisplayScript.value -> "SwitchDisplay"),
+    installedLaunchingScripts += (installedSwitchDisplayScript.value -> SwitchDisplayClassName),
 
     installShortcuts := {
       val log = streams.value.log
-
-      def findPath(program: String) = Seq("which", program).!!.stripLineEnd
-      val javawPath = findPath("javaw.exe")
 
       def installShortcut(
         className: String,
@@ -170,7 +172,7 @@ lazy val windows = (project in file("windows"))
             "--icon", iconPath
           ) ++ iconOffset.map(offs => Seq("--iconoffset", offs.toString)).getOrElse(Seq.empty) ++ Seq(
             "--arguments", s"-cp ${installedJar.value.getPath} $className",
-            javawPath,
+            JavawPosixPath,
           )
           cmd.!!
         }
@@ -181,24 +183,34 @@ lazy val windows = (project in file("windows"))
       IO.copyFile((ThisBuild / baseDirectory).value / "icon.ico", iconFile)
       val iconPosixPath = Seq("cygpath", "-u", iconFile.getPath).!!
       installShortcut(
-        className = "myreboot.main.Dialog",
+        className = DialogClassName,
         name = "My Reboot",
         description = "Opções de reinicialização",
         iconPath = iconPosixPath,
       )
 
       installShortcut(
-        className = "myreboot.main.SwitchDisplay",
+        className = SwitchDisplayClassName,
         name = "Alternar Tela",
         description = "Alternar tela",
         iconPath = findPath("DisplaySwitch.exe"),
         iconOffset = Some(2),
       )
     },
+    setSwitchDisplayToRunOnStartup := {
+      streams.value.log.info("Definindo DisplaySwitch para executar no início do Windows")
+      val javawPath = Seq("cygpath", "-w", JavawPosixPath).!!.stripLineEnd
+      def quoted(str: String): String = "\"" + str + "\""
+
+      val key = raw"""\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\MyRebootSwitchDisplay"""
+      val value = s"${quoted(javawPath)} -cp ${quoted(installedJar.value.getPath)} $SwitchDisplayClassName saved"
+      s"regtool set '$key' '$value'".!!
+    },
     install := Def.sequential(
       installJar,
       installLaunchingScripts,
       installShortcuts,
+      setSwitchDisplayToRunOnStartup,
       runSetup,
     ).value,
   )
@@ -216,3 +228,7 @@ lazy val myReboot = (project in file("."))
       }
     }.value,
   )
+
+
+def findPath(program: String): String =
+  Seq("which", program).!!.stripLineEnd
