@@ -4,9 +4,6 @@ sealed abstract class Display(val code: String) extends WithCode { def theOther:
 case object Monitor extends Display("monitor") { override def theOther: Display = TV }
 case object TV extends Display("tv") { override def theOther: Display = Monitor }
 
-object Display {
+object Display extends WithCode.Companion[Display] {
   val Values: Seq[Display] = Seq(Monitor, TV)
-
-  def byCode(code: String): Option[Display] =
-    Values.find(_.code == code)
 }

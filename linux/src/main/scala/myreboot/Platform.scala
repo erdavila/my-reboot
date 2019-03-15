@@ -8,17 +8,20 @@ object Platform {
 
   private val configs = Configs.load(StateDir)
 
+  private lazy val bootOptions: BootOptions = BootOptions.using(StateDir, configs)
+
   def shutdown(): Unit =
     Seq("systemctl", "poweroff").!!
 
-  def rebootToWindows(display: Display): Unit = {
-    val bootOptions = BootOptions.using(StateDir, configs)
-    bootOptions.setOS(Windows)
-    bootOptions.setWindowsDisplay(display)
+  def reboot(os: Option[OS] = None, display: Option[Display] = None): Unit = {
+    for (os <- os) {
+      Platform.bootOptions.setOS(os)
+    }
 
-    reboot()
-  }
+    for (display <- display) {
+      Platform.bootOptions.setWindowsDisplay(display)
+    }
 
-  def reboot(): Unit =
     Seq("systemctl", "reboot").!!
+  }
 }

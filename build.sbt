@@ -15,6 +15,7 @@ lazy val installDir = settingKey[File]("Directory where executables will be writ
 lazy val installedAssetsDir = settingKey[File]("Directory where non-executables will be written")
 lazy val installedJar = settingKey[File]("Installed Jar path")
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
+lazy val installedRebootScript =settingKey[File]("Script to reboot")
 lazy val installedSwitchDisplayScript = settingKey[File]("Script to switch displays")
 lazy val installedLaunchingScripts = settingKey[Seq[(File, String)]]("Scripts and their main class names")
 lazy val installedIcon = settingKey[File]("Installed icon path")
@@ -29,6 +30,7 @@ lazy val install = taskKey[Unit]("Installs")
 lazy val runSetup = taskKey[Unit]("Runs setup")
 
 val DialogClassName = "myreboot.main.Dialog"
+val RebootClassName = "myreboot.main.Reboot"
 val SwitchDisplayClassName = "myreboot.main.SwitchDisplay"
 lazy val JavawPosixPath = findPath("javaw.exe")
 
@@ -100,6 +102,8 @@ lazy val linux = (project in file("linux"))
   .settings(
     installedIcon := installedAssetsDir.value / "icon.png",
     installedMenuEntry := installedAssetsDir.value / "entry.desktop",
+    installedRebootScript := installDir.value / "my-reboot-reboot",
+    installedLaunchingScripts += (installedRebootScript.value -> RebootClassName),
 
     installLaunchingIcons := {
       val log = streams.value.log
