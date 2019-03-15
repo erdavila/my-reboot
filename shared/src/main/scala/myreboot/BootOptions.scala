@@ -13,7 +13,17 @@ class BootOptions private(dir: File, configs: Configs) {
   private val OSKey = "saved_entry"
   private val WindowsDisplayKey = "windows.display"
 
-  def setOS(os: OS): Unit = {
+  def set(os: Option[OS] = None, display: Option[Display] = None): Unit = {
+    for (os <- os) {
+      setOS(os)
+    }
+
+    for (display <- display) {
+      setWindowsDisplay(display)
+    }
+  }
+
+  private def setOS(os: OS): Unit = {
     val grubenv = Grubenv.load(new File(dir, "grubenv"))
     grubenv.set(OSKey, configs.osGrubEntry(os))
     grubenv.save()
@@ -27,7 +37,7 @@ class BootOptions private(dir: File, configs: Configs) {
     } yield display
   }
 
-  def setWindowsDisplay(display: Display): Unit = {
+  private def setWindowsDisplay(display: Display): Unit = {
     val propsFile = loadPropertiesFile()
     propsFile.set(WindowsDisplayKey, display.code)
     propsFile.save()

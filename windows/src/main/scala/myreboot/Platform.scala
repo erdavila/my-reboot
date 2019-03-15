@@ -5,37 +5,18 @@ import scala.annotation.tailrec
 import scala.sys.process._
 import windowsapi.scala.User32
 
-object Platform {
-  val StateDir = new File("C:\\grubenv.dir")
-
+object Platform extends OSPlatform {
+  override val StateDir = new File("C:\\grubenv.dir")
   val DisplaySwitchExe = "DisplaySwitch.exe"
 
-  lazy val configs: Configs = Configs.load(StateDir)
+  override def reboot(): Unit = {
+    switchDisplay(Monitor)
+    shutdownNow(reboot = true)
+  }
 
   def shutdown(): Unit = {
     switchDisplay(Monitor)
     shutdownNow(reboot = false)
-  }
-
-  def reboot(display: Display): Unit =
-    rebootTo(Windows, display)
-
-  def rebootToLinux(): Unit =
-    rebootTo(Linux, Monitor)
-
-  private def rebootTo(os: OS, display: Display): Unit = {
-    switchDisplay(Monitor)
-
-    val bootOptions = BootOptions.using(StateDir, configs)
-    bootOptions.setOS(os)
-    bootOptions.setWindowsDisplay(display)
-
-    shutdownNow(reboot = true)
-  }
-
-  private def shutdownNow(reboot: Boolean): Unit = {
-    val arg = if (reboot) "/g" else "/sg"
-    Seq("shutdown", arg, "/t", "0").!!
   }
 
   def switchDisplay(display: Display): Unit = {
@@ -78,5 +59,10 @@ object Platform {
       case List(displayDevice) => Some(displayDevice.id)
       case _ => None
     }
+  }
+
+  private def shutdownNow(reboot: Boolean): Unit = {
+    val arg = if (reboot) "/g" else "/sg"
+    Seq("shutdown", arg, "/t", "0").!!
   }
 }

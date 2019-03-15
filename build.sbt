@@ -58,7 +58,11 @@ lazy val commonSettings = Seq(
   installedAssetsDir := installDir.value / "my-reboot",
   installedJar := installedAssetsDir.value / jarName.value,
   installedMainLaunchingScript := installDir.value / "my-reboot-dialog",
-  installedLaunchingScripts := Seq(installedMainLaunchingScript.value -> DialogClassName),
+  installedRebootScript := installDir.value / "my-reboot-reboot",
+  installedLaunchingScripts := Seq(
+    installedMainLaunchingScript.value -> DialogClassName,
+    installedRebootScript.value -> RebootClassName,
+  ),
 
   installJar := {
     val destJarFile = installedJar.value
@@ -102,8 +106,6 @@ lazy val linux = (project in file("linux"))
   .settings(
     installedIcon := installedAssetsDir.value / "icon.png",
     installedMenuEntry := installedAssetsDir.value / "entry.desktop",
-    installedRebootScript := installDir.value / "my-reboot-reboot",
-    installedLaunchingScripts += (installedRebootScript.value -> RebootClassName),
 
     installLaunchingIcons := {
       val log = streams.value.log

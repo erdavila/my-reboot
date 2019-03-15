@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.{BootOptions, Display, Platform}
+import myreboot.{Display, Platform}
 
 object SwitchDisplay {
 
@@ -14,10 +14,8 @@ object SwitchDisplay {
     Platform.switchDisplay(display)
   }
 
-  private def savedDisplay(): Option[Display] = {
-    val bootOptions = BootOptions.using(Platform.StateDir, Platform.configs)
-    bootOptions.getWindowsDisplay
-  }
+  private def savedDisplay(): Option[Display] =
+    Platform.bootOptions.getWindowsDisplay
 
   private def exitWithHelp(message: String): Nothing = {
     System.err.println(message)
