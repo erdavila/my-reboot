@@ -1,9 +1,9 @@
 package myreboot.main
 
+import myreboot.utils.Executor.execute
 import myreboot.{Configs, Display, Platform}
 import scala.annotation.tailrec
 import scala.io.StdIn
-import scala.sys.process._
 
 object Setup extends SetupBase {
 
@@ -69,7 +69,7 @@ object Setup extends SetupBase {
   }
 
   private def displaySwitch(arg: String): Unit = {
-    Seq(Platform.DisplaySwitchExe, arg).!!
+    execute(Platform.DisplaySwitchExe, arg)
     Thread.sleep(3000)
   }
 }

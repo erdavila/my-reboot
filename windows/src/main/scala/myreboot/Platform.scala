@@ -1,8 +1,8 @@
 package myreboot
 
 import java.io.File
+import myreboot.utils.Executor.execute
 import scala.annotation.tailrec
-import scala.sys.process._
 import windowsapi.scala.User32
 
 object Platform extends OSPlatform {
@@ -35,7 +35,7 @@ object Platform extends OSPlatform {
     }
 
     if (notInWantedDisplay) {
-      Seq(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display)).!!
+      execute(DisplaySwitchExe, configs.windowsDisplaySwitchArgs(display))
       waitToSwitch(count = 10)
     } else {
       println(s"Tela atual já é a desejada: ${display.code}")
@@ -63,6 +63,6 @@ object Platform extends OSPlatform {
 
   private def shutdownNow(reboot: Boolean): Unit = {
     val arg = if (reboot) "/g" else "/sg"
-    Seq("shutdown", arg, "/t", "0").!!
+    execute("shutdown", arg, "/t", "0")
   }
 }
