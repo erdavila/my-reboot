@@ -218,7 +218,12 @@ lazy val windows = (project in file("windows"))
 lazy val myReboot = (project in file("."))
   .aggregate(shared, linux, windows)
   .settings(
+    installJar / aggregate := false,
+    installLaunchingScripts / aggregate := false,
+    installLaunchingIcons / aggregate := false,
+    setSwitchDisplayToRunOnStartup / aggregate := false,
     install / aggregate := false,
+    runSetup  / aggregate := false,
 
     install := Def.taskDyn {
       OS.which match {
