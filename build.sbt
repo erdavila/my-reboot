@@ -23,8 +23,7 @@ lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry pat
 // Tasks
 lazy val installJar = taskKey[Unit]("Installs the jar file")
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
-lazy val installMenuEntry = taskKey[Unit]("Installs desktop menu entry on Linux")
-lazy val installShortcuts = taskKey[Unit]("Installs shortcuts on Windows")
+lazy val installLaunchingIcons = taskKey[Unit]("Installs launching icons")
 lazy val setSwitchDisplayToRunOnStartup = taskKey[Unit]("Register SwitchDisplay to run on Windows startup")
 lazy val install = taskKey[Unit]("Installs")
 lazy val runSetup = taskKey[Unit]("Runs setup")
@@ -102,7 +101,7 @@ lazy val linux = (project in file("linux"))
     installedIcon := installedAssetsDir.value / "icon.png",
     installedMenuEntry := installedAssetsDir.value / "entry.desktop",
 
-    installMenuEntry := {
+    installLaunchingIcons := {
       val log = streams.value.log
 
       val iconFile = installedIcon.value
@@ -132,7 +131,7 @@ lazy val linux = (project in file("linux"))
     install := Def.sequential(
       installJar,
       installLaunchingScripts,
-      installMenuEntry,
+      installLaunchingIcons,
       runSetup,
     ).value,
   )
@@ -148,7 +147,7 @@ lazy val windows = (project in file("windows"))
     installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display",
     installedLaunchingScripts += (installedSwitchDisplayScript.value -> SwitchDisplayClassName),
 
-    installShortcuts := {
+    installLaunchingIcons := {
       val log = streams.value.log
 
       def installShortcut(
@@ -209,7 +208,7 @@ lazy val windows = (project in file("windows"))
     install := Def.sequential(
       installJar,
       installLaunchingScripts,
-      installShortcuts,
+      installLaunchingIcons,
       setSwitchDisplayToRunOnStartup,
       runSetup,
     ).value,
