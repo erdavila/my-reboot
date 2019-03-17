@@ -8,4 +8,5 @@ trait OSPlatform {
   lazy val bootOptions: BootOptions = BootOptions.using(StateDir, configs)
 
   def reboot(): Unit
+  def shutdown(): Unit
 }

@@ -9,6 +9,6 @@ object Platform extends OSPlatform {
   override def reboot(): Unit =
     execute("systemctl", "reboot")
 
-  def shutdown(): Unit =
+  override def shutdown(): Unit =
     execute("systemctl", "poweroff")
 }

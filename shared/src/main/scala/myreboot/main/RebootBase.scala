@@ -1,6 +1,7 @@
 package myreboot.main
 
 import myreboot.main.reboot.ArgsProgram._
+import myreboot.main.reboot.{Action, Reboot}
 import myreboot.{Display, OS, OSPlatform}
 
 trait RebootBase {
@@ -19,17 +20,19 @@ trait RebootBase {
     for {
       os <- argOfType[OS]
       display <- argOfType[Display]
+      action <- argOfType[Action]
       _ <- noMoreArgs
     } yield {
       platform.bootOptions.set(os, display)
-      platform.reboot()
+      (action getOrElse Reboot)(platform)
     }
 
   private def showUsageAndAbort(msg: String): Nothing = {
-    val args = s"Argumentos possíveis: [${OS.Values.map(_.code).mkString("|")}] [${Display.Values.map(_.code).mkString("|")}]"
+    val allowedArgs = "Argumentos possíveis: " +
+      Seq(OS, Display, Action).map { _.Values.map(_.code).mkString("[", "|", "]") }.mkString(" ")
 
     System.err.println(msg)
-    System.err.println(args)
+    System.err.println(allowedArgs)
     System.exit(1).asInstanceOf[Nothing]
   }
 }

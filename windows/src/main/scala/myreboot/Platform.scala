@@ -14,7 +14,7 @@ object Platform extends OSPlatform {
     shutdownNow(reboot = true)
   }
 
-  def shutdown(): Unit = {
+  override def shutdown(): Unit = {
     switchDisplay(Monitor)
     shutdownNow(reboot = false)
   }
