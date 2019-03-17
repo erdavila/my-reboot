@@ -11,9 +11,6 @@ object WithCode {
     def byCode(code: String): Option[A] =
       Values.find(_.code == code)
 
-    object Code {
-      def unapply(code: String): Option[A] =
-        byCode(code)
-    }
+    implicit val self: Companion[A] = this
   }
 }
