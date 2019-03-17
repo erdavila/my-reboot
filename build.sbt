@@ -11,23 +11,24 @@ ThisBuild / scalaVersion := "2.12.8"
 
 // Settings
 lazy val jarName = settingKey[String]("Jar name")
-lazy val installDir = settingKey[File]("Directory where executables will be written")
+lazy val userHome = settingKey[File]("User home directory")
 lazy val installedAssetsDir = settingKey[File]("Directory where non-executables will be written")
 lazy val installedJar = settingKey[File]("Installed Jar path")
+lazy val installedIcon = settingKey[File]("Installed icon path")
+lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry path")
+lazy val installedScriptsDir = settingKey[File]("Directory where scripts will be written")
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
 lazy val installedRebootScript =settingKey[File]("Script to reboot")
 lazy val installedSwitchDisplayScript = settingKey[File]("Script to switch displays")
 lazy val installedLaunchingScripts = settingKey[Seq[(File, String)]]("Scripts and their main class names")
-lazy val installedIcon = settingKey[File]("Installed icon path")
-lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry path")
 
 // Tasks
 lazy val installJar = taskKey[Unit]("Installs the jar file")
 lazy val installLaunchingScripts = taskKey[Unit]("Installs launching scripts")
 lazy val installLaunchingIcons = taskKey[Unit]("Installs launching icons")
 lazy val setSwitchDisplayToRunOnStartup = taskKey[Unit]("Register SwitchDisplay to run on Windows startup")
-lazy val install = taskKey[Unit]("Installs")
 lazy val runSetup = taskKey[Unit]("Runs setup")
+lazy val install = taskKey[Unit]("Installs")
 
 val DialogClassName = "myreboot.main.Dialog"
 val RebootClassName = "myreboot.main.Reboot"
@@ -51,14 +52,12 @@ lazy val commonSettings = Seq(
     case p => (assembly / assemblyMergeStrategy).value(p)
   },
 
-  installDir := {
-    val userHome = scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))
-    file(userHome) / "bin"
-  },
-  installedAssetsDir := installDir.value / "my-reboot",
+  userHome := file(scala.sys.env.getOrElse("HOME", System.getProperty("user.home"))),
+  installedAssetsDir := userHome.value / "my-reboot",
   installedJar := installedAssetsDir.value / jarName.value,
-  installedMainLaunchingScript := installDir.value / "my-reboot-dialog",
-  installedRebootScript := installDir.value / "my-reboot-reboot",
+  installedScriptsDir := userHome.value / "bin",
+  installedMainLaunchingScript := installedScriptsDir.value / "my-reboot-dialog",
+  installedRebootScript := installedScriptsDir.value / "my-reboot",
   installedLaunchingScripts := Seq(
     installedMainLaunchingScript.value -> DialogClassName,
     installedRebootScript.value -> RebootClassName,
@@ -150,7 +149,7 @@ lazy val windows = (project in file("windows"))
     libraryDependencies += "net.java.dev.jna" % "jna" % "5.2.0",
 
     installedIcon := installedAssetsDir.value / "icon.ico",
-    installedSwitchDisplayScript := installDir.value / "my-reboot-switch-display",
+    installedSwitchDisplayScript := installedScriptsDir.value / "my-reboot-switch-display",
     installedLaunchingScripts += (installedSwitchDisplayScript.value -> SwitchDisplayClassName),
 
     installLaunchingIcons := {
@@ -228,8 +227,8 @@ lazy val myReboot = (project in file("."))
     installLaunchingScripts / aggregate := false,
     installLaunchingIcons / aggregate := false,
     setSwitchDisplayToRunOnStartup / aggregate := false,
-    install / aggregate := false,
     runSetup  / aggregate := false,
+    install / aggregate := false,
 
     install := Def.taskDyn {
       OS.which match {
