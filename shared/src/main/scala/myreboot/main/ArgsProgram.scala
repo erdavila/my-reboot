@@ -1,7 +1,7 @@
-package myreboot.main.reboot
+package myreboot.main
 
-import myreboot.WithCode
-import myreboot.main.reboot.ArgsProgram.{Args, Result}
+import myreboot.{Display, OS, WithCode}
+import myreboot.main.ArgsProgram.{Args, Result}
 
 class ArgsProgram[A](val run: Args => Result[A]) {
   final def map[B](f: A => B): ArgsProgram[B] =
@@ -49,6 +49,13 @@ object ArgsProgram {
       }
     })
 
+  def hasArg(arg: String): ArgsProgram[Boolean] =
+    new ArgsProgram[Boolean]({ args =>
+      val unmatchedArgs = args.filter(_ != arg)
+      val found = unmatchedArgs.length != args.length
+      success(found, unmatchedArgs)
+    })
+
   def noMoreArgs: ArgsProgram[Unit] =
     new ArgsProgram[Unit]({ args =>
       args.headOption match {
@@ -56,4 +63,7 @@ object ArgsProgram {
         case None => success((), Vector.empty)
       }
     })
+
+  implicit val osCompanion: OS.type = OS
+  implicit val displayCompanion: Display.type = Display
 }

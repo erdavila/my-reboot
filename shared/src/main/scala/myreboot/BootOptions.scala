@@ -23,23 +23,42 @@ class BootOptions private(dir: File, configs: Configs) {
     }
   }
 
+  def getOS: Option[OS] =
+    for {
+      entry <- loadGrubenv().get(OSKey)
+      os <- configs.osByEntry(entry)
+    } yield os
+
   private def setOS(os: OS): Unit = {
-    val grubenv = Grubenv.load(new File(dir, "grubenv"))
+    val grubenv = loadGrubenv()
     grubenv.set(OSKey, configs.osGrubEntry(os))
     grubenv.save()
   }
 
-  def getWindowsDisplay: Option[Display] = {
-    val propsFile = loadPropertiesFile()
+  def unsetOS(): Unit = {
+    val grubenv = loadGrubenv()
+    grubenv.unset(OSKey)
+    grubenv.save()
+  }
+
+  private def loadGrubenv() =
+    Grubenv.load(new File(dir, "grubenv"))
+
+  def getWindowsDisplay: Option[Display] =
     for {
-      code <- propsFile.get(WindowsDisplayKey)
+      code <- loadPropertiesFile().get(WindowsDisplayKey)
       display <- Display.byCode(code)
     } yield display
-  }
 
   private def setWindowsDisplay(display: Display): Unit = {
     val propsFile = loadPropertiesFile()
     propsFile.set(WindowsDisplayKey, display.code)
+    propsFile.save()
+  }
+
+  def unsetWindowsDisplay(): Unit = {
+    val propsFile = loadPropertiesFile()
+    propsFile.unset(WindowsDisplayKey)
     propsFile.save()
   }
 

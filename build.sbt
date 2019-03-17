@@ -18,7 +18,8 @@ lazy val installedIcon = settingKey[File]("Installed icon path")
 lazy val installedMenuEntry = settingKey[File]("Installed desktop menu entry path")
 lazy val installedScriptsDir = settingKey[File]("Directory where scripts will be written")
 lazy val installedMainLaunchingScript = settingKey[File]("Main launching script")
-lazy val installedRebootScript =settingKey[File]("Script to reboot")
+lazy val installedRebootScript = settingKey[File]("Script to reboot")
+lazy val installedOptionsScript = settingKey[File]("Script to show, set and unset options")
 lazy val installedSwitchDisplayScript = settingKey[File]("Script to switch displays")
 lazy val installedLaunchingScripts = settingKey[Seq[(File, String)]]("Scripts and their main class names")
 
@@ -32,6 +33,7 @@ lazy val install = taskKey[Unit]("Installs")
 
 val DialogClassName = "myreboot.main.Dialog"
 val RebootClassName = "myreboot.main.Reboot"
+val OptionsClassName = "myreboot.main.Options"
 val SwitchDisplayClassName = "myreboot.main.SwitchDisplay"
 lazy val JavawPosixPath = findPath("javaw.exe")
 
@@ -58,9 +60,11 @@ lazy val commonSettings = Seq(
   installedScriptsDir := userHome.value / "bin",
   installedMainLaunchingScript := installedScriptsDir.value / "my-reboot-dialog",
   installedRebootScript := installedScriptsDir.value / "my-reboot",
+  installedOptionsScript := installedScriptsDir.value / "my-reboot-options",
   installedLaunchingScripts := Seq(
     installedMainLaunchingScript.value -> DialogClassName,
     installedRebootScript.value -> RebootClassName,
+    installedOptionsScript.value -> OptionsClassName,
   ),
 
   installJar := {

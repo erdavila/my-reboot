@@ -1,7 +1,7 @@
-package myreboot.main.reboot
+package myreboot.main
 
 import myreboot._
-import myreboot.main.reboot.ArgsProgram._
+import myreboot.main.ArgsProgram._
 import org.scalatest.{FunSpec, Matchers}
 
 class ArgsProgramSpec extends FunSpec with Matchers {
@@ -71,6 +71,26 @@ class ArgsProgramSpec extends FunSpec with Matchers {
       val result = argOfType[Display].run(Vector("monitor", "windows", "tv"))
 
       result should be (conflictingArgs("monitor", "tv"))
+    }
+  }
+
+  describe("ArgsProgram.hasArg") {
+    it("consumes specified arg providing true value") {
+      val result = hasArg("x").run(Vector("a", "x", "b"))
+
+      result should be (success(true, Vector("a", "b")))
+    }
+
+    it("ignores repetitions") {
+      val result = hasArg("x").run(Vector("a", "x", "b", "x", "c"))
+
+      result should be (success(true, Vector("a", "b", "c")))
+    }
+
+    it("provides false when the specified arg is not present") {
+      val result = hasArg("x").run(Vector("a", "b"))
+
+      result should be (success(false, Vector("a", "b")))
     }
   }
 

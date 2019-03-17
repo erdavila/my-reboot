@@ -36,6 +36,9 @@ class PropertiesFile(props: Properties, file: File) {
   def set(key: String, value: String): Unit =
     props.setProperty(key, value)
 
+  def unset(key: String): Unit =
+    props.remove(key)
+
   def save(): Unit =
     PropertiesFile.save(props, file)
 }

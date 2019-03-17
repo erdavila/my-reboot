@@ -39,6 +39,9 @@ class Configs private(
   val windowsDeviceIds: Map[Display, String],
   val windowsDisplaySwitchArgs: Map[Display, String],
 ) {
+  def osByEntry(entry: String): Option[OS] =
+    osGrubEntry.collectFirst { case (os, `entry`) => os }
+
   def displayByDeviceId(deviceId: String): Option[Display] =
     windowsDeviceIds.collectFirst { case (display, `deviceId`) => display }
 }

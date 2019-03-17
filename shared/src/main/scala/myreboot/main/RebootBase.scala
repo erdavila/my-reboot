@@ -1,6 +1,6 @@
 package myreboot.main
 
-import myreboot.main.reboot.ArgsProgram._
+import myreboot.main.ArgsProgram._
 import myreboot.main.reboot.{Action, Reboot}
 import myreboot.{Display, OS, OSPlatform}
 
