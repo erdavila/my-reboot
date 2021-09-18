@@ -38,6 +38,7 @@ trait OptionsBase {
     }
   }
 
+  //noinspection MutatorLikeMethodIsParameterless
   private def setProgram =
     for {
       os <- argOfType[OS]

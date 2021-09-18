@@ -14,8 +14,11 @@ object SwitchDisplay {
     Platform.switchDisplay(display)
   }
 
-  private def savedDisplay(): Option[Display] =
-    Platform.bootOptions.getWindowsDisplay
+  private def savedDisplay(): Option[Display] = {
+    val saved = Platform.bootOptions.getWindowsDisplay
+    Platform.bootOptions.unsetWindowsDisplay()
+    saved
+  }
 
   private def exitWithHelp(message: String): Nothing = {
     System.err.println(message)

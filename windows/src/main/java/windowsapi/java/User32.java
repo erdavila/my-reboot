@@ -12,11 +12,11 @@ public interface User32 extends Library {
     @Structure.FieldOrder({"cb", "DeviceName", "DeviceString", "StateFlags", "DeviceID", "DeviceKey"})
     class DISPLAY_DEVICE extends Structure {
         public int cb;
-        public char DeviceName[] = new char[32];
-        public char DeviceString[] = new char[128];
+        public char[] DeviceName = new char[32];
+        public char[] DeviceString = new char[128];
         public int StateFlags;
-        public char DeviceID[] = new char[128];
-        public char DeviceKey[] = new char[128];
+        public char[] DeviceID = new char[128];
+        public char[] DeviceKey = new char[128];
 
         public DISPLAY_DEVICE() {
             cb = size();
