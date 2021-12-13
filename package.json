@@ -1,0 +1,22 @@
+{
+  "name": "my-reboot",
+  "version": "2.0.0",
+  "description": "My Reboot",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://erdavila@github.com/erdavila/my-reboot.git"
+  },
+  "author": "erdavila@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/erdavila/my-reboot/issues"
+  },
+  "homepage": "https://github.com/erdavila/my-reboot#readme",
+  "devDependencies": {
+    "electron": "^16.0.4"
+  }
+}
