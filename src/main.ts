@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+import { app, BrowserWindow, Event, Size } from 'electron';
 
 const createBasicWindow = () => {
   const win = new BrowserWindow({
@@ -7,18 +7,17 @@ const createBasicWindow = () => {
     center: true,
     resizable: false,
     fullscreenable: false,
-    icon: process.platform === 'windows' ? 'icon.ico' : 'icon.png',
+    icon: process.platform === 'win32' ? 'icon.ico' : 'icon.png',
     // Consider on Windows: titleBarStyle
     webPreferences: {
         enablePreferredSizeMode: true,
     },
   });
 
-  win.loadFile('basic.html');
+  win.loadFile('../basic.html');
   win.removeMenu();
   win.webContents.openDevTools();
-  win.webContents.on('preferred-size-changed', (event, preferredSize) => {
-    console.log("Setting height:", preferredSize.height);
+  win.webContents.on('preferred-size-changed', (event: Event, preferredSize: Size) => {
     win.setBounds({ height: preferredSize.height });
   });
 };
