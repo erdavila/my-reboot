@@ -2,6 +2,30 @@ import { app, ipcMain, BrowserWindow, Event, Size } from 'electron';
 import { OSProvider } from './os-provider';
 import * as path from "path";
 
+class ArgumentError extends Error {
+  constructor(message: string, arg: string) {
+    super(`${message}: ${arg}`);
+    Object.setPrototypeOf(this, ArgumentError.prototype);
+  }
+}
+
+process.on('uncaughtException', error => {
+  if (error instanceof ArgumentError) {
+    console.error(error.message);
+    console.error();
+    showUsage(console.error);
+  } else if (error instanceof Error) {
+    console.error(error.message);
+    console.error(error.stack);
+  } else {
+    console.error("Exceção não tratada:", error);
+  }
+
+  app.quit();
+  app.exit(1);
+  process.exit(1);
+});
+
 handleArguments(process.argv.slice(2));
 
 function handleArguments(args: string[]) {
@@ -45,18 +69,11 @@ function showUsage(out: typeof console.log = console.log) {
 }
 
 function exceedingArgument(arg: string): never {
-  argumentError("Argumento em excesso:", arg);
+  throw new ArgumentError("Argumento em excesso", arg);
 }
 
 function unknownArgument(arg: string): never {
-  argumentError("Argumento inesperado:", arg);
-}
-
-function argumentError(message: string, arg: string): never {
-  console.error(message, arg);
-  console.error();
-  showUsage(console.error);
-  process.exit(1);
+  throw new ArgumentError("Argumento inesperado", arg);
 }
 
 function basicDialog() {

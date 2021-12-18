@@ -1,5 +1,12 @@
 import { Properties } from "./properties";
 
+export class ConfigurationError extends Error {
+    constructor(key: string, providerOperatingSystem: 'Linux' | 'Windows') {
+        super(`Configuração '${key}' não encontrada. Execute 'my-reboot configure' no ${providerOperatingSystem}`);
+        Object.setPrototypeOf(this, ConfigurationError.prototype);
+      }
+}
+
 export class Configs {
     private readonly props: Properties;
 
@@ -18,7 +25,7 @@ export class Configs {
         if (value) {
             return value;
         } else {
-            throw new Error(`Configuração '${key}' Não encontrada. A configuração foi executada no Linux?`);
+            throw new ConfigurationError(key, 'Linux');
         }
     }
 }
