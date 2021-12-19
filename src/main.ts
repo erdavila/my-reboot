@@ -84,7 +84,7 @@ function basicDialog() {
     });
 
     ipcMain.once('basic-mode-button-click', async (_event, index: number) => {
-      const script = osProvider.buttons[index].script;
+      const script = osProvider.buttons[index]!.script;
       await ScriptExecutor.get().execute(script);
       app.quit();
     });
