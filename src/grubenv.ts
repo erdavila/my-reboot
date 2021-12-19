@@ -16,6 +16,13 @@ export class Grubenv {
         this.path = path;
     }
 
+    get(key: string): string | undefined {
+        return this.withKeyIndex(
+            key,
+            index => this.lines[index]?.substring(key.length + 1),
+        );
+    }
+
     set(key: string, value: string): void {
         const updatedLine = `${key}=${value}`;
         this.withKeyIndex<void>(

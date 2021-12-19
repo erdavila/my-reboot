@@ -1,6 +1,7 @@
 import { app, ipcMain, BrowserWindow, Event, Size } from 'electron';
 import { OSProvider } from './os-provider';
 import { Script, ScriptExecutor } from './script';
+import { State } from './state';
 import * as path from "path";
 
 class ArgumentError extends Error {
@@ -54,9 +55,35 @@ function handleArguments(args: string[]) {
       break;
     }
 
+    case "show": {
+      const arg = args.shift();
+      if (arg !== undefined) {
+        exceedingArgument(arg);
+      }
+      showState();
+      break;
+    }
+
     default:
       handleScriptArguments(arg, args);
   }
+}
+
+function showState() {
+  OSProvider.get().then(async osProvider => {
+    const state = new State(osProvider.stateDir);
+    const os = await state.getOperatingSystem();
+    const display = await state.getWindowsDisplay();
+    // TODO: identify current Window display
+
+    console.log("S.O. a ser iniciado na próxima inicialização do computador:");
+    console.log(" ", os !== undefined ? os : "indefinido");
+    console.log();
+    console.log("Tela a ser usada na próxima inicialização do Windows:");
+    console.log(" ", display !== undefined ? display : "indefinida");
+
+    process.exit()
+  })
 }
 
 function handleScriptArguments(arg: string | undefined, args: string[]) {
@@ -135,6 +162,9 @@ function showUsage(out: typeof console.log = console.log) {
   out("    AÇÃO poder ser:");
   out("      reboot - Reinicia o computador.");
   out("      shutdown - Desliga o computador.");
+  out();
+  out("  my-reboot show");
+  out("    Exibe as opções atuais para inicialização.");
   out();
   out("  my-reboot -h|--help");
   out("    Exibe este conteúdo.");

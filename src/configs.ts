@@ -1,8 +1,9 @@
 import { Properties } from "./properties";
+import { OperatingSystem, OPERATING_SYSTEMS } from "./state";
 
 export class ConfigurationError extends Error {
-    constructor(key: string, providerOperatingSystem: 'Linux' | 'Windows') {
-        super(`Configuração '${key}' não encontrada. Execute 'my-reboot configure' no ${providerOperatingSystem}`);
+    constructor(message: string, providerOperatingSystem: 'Linux' | 'Windows') {
+        super(`${message}. Execute 'my-reboot configure' no ${providerOperatingSystem}`);
         Object.setPrototypeOf(this, ConfigurationError.prototype);
       }
 }
@@ -19,13 +20,22 @@ export class Configs {
         this.props = props;
     }
 
-    getGrubEntry(operatingSystem: string): string {
-        const key = `${operatingSystem}.grubEntry`
-        const value = this.props.get(key);
-        if (value) {
-            return value;
+    getOperatingSystemByGrubEntry(grubEntry: string): OperatingSystem {
+        const os = OPERATING_SYSTEMS.find(os => this.getGrubEntry(os) === grubEntry);
+        if (os !== undefined) {
+            return os;
         } else {
-            throw new ConfigurationError(key, 'Linux');
+            throw new ConfigurationError(`Configuração com valor ${grubEntry} não encontrada`, 'Linux');
+        }
+    }
+
+    getGrubEntry(operatingSystem: OperatingSystem): string {
+        const key = `${operatingSystem}.grubEntry`
+        const grubEntry = this.props.get(key);
+        if (grubEntry !== undefined) {
+            return grubEntry;
+        } else {
+            throw new ConfigurationError(`Configuração '${key}' não encontrada`, 'Linux');
         }
     }
 }
