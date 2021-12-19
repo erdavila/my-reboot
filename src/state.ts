@@ -16,7 +16,11 @@ export class State {
     async setOperatingSystem(operatingSystem: OperatingSystem): Promise<void> {
         const grubEntry = await this.getGrubEntryConfigFor(operatingSystem);
         await this.setGrubenvEntry(grubEntry);
-    }        
+    }
+
+    async unsetOperatingSystem() {
+        throw new Error("Method not implemented: State.unsetOperatingSystem()");
+    }
 
     private async getGrubEntryConfigFor(operatingSystem: OperatingSystem): Promise<string> {
         const configs = await Configs.load(this.stateDir);
@@ -35,4 +39,7 @@ export class State {
         await options.save();
     }
 
+    async unsetWindowsDisplay() {
+        throw new Error("Method not implemented: State.unsetWindowsDisplay.");
+    }
 }

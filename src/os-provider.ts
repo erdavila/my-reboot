@@ -1,6 +1,8 @@
+import { Script } from "./script";
+
 export interface Button {
-    clicked(): Promise<void>;
     readonly label: string;
+    readonly script: Script;
 }
 
 export abstract class OSProvider {
@@ -11,4 +13,11 @@ export abstract class OSProvider {
     abstract readonly icon: string;
 
     abstract reboot(): Promise<void>;
+
+    abstract shutdown(): Promise<void>;
+
+    static async get(): Promise<OSProvider> {
+        const osProvider = await import(`./${process.platform}-provider`);
+        return osProvider.default;
+    }
 };

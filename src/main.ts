@@ -1,5 +1,6 @@
 import { app, ipcMain, BrowserWindow, Event, Size } from 'electron';
 import { OSProvider } from './os-provider';
+import { ScriptExecutor } from './script';
 import * as path from "path";
 
 class ArgumentError extends Error {
@@ -77,15 +78,14 @@ function unknownArgument(arg: string): never {
 }
 
 function basicDialog() {
-  const provider = import(`./${process.platform}-provider`);
-
   const createBasicWindow = (osProvider: OSProvider) => {
     ipcMain.handleOnce('get-button-labels', () => {
       return osProvider.buttons.map(x => x.label);
     });
 
     ipcMain.once('basic-mode-button-click', async (_event, index: number) => {
-      await osProvider.buttons[index].clicked();
+      const script = osProvider.buttons[index].script;
+      await ScriptExecutor.get().execute(script);
       app.quit();
     });
 
@@ -112,7 +112,7 @@ function basicDialog() {
   };
 
 
-  Promise.all([app.whenReady(), provider]).then(([_, provider]) => {
-    createBasicWindow(provider.default);
+  Promise.all([app.whenReady(), OSProvider.get()]).then(([_, provider]) => {
+    createBasicWindow(provider);
   });
 }
