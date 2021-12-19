@@ -73,7 +73,7 @@ export class ScriptExecutor {
     ): Promise<void> {
         const osProvider = await this.getOSProvider();
         console.log(message);
-        await action(osProvider)();
+        await action(osProvider).call(osProvider);
     }
 
     private async getOSProvider(): Promise<OSProvider> {

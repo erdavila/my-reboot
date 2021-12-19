@@ -2,9 +2,7 @@ import { OSProvider } from "./os-provider";
 import { Script } from "./script";
 import { WindowsDisplay } from "./state";
 import * as childProcess from "child_process";
-import { promisify } from "util";
-
-const execFile = promisify(childProcess.execFile);
+import * as util from "util";
 
 function rebootToWindowsWithDisplay(display: WindowsDisplay): Script {
     return {
@@ -31,11 +29,16 @@ class LinuxProvider extends OSProvider {
     override icon = 'icon.png';
 
     override async reboot(): Promise<void> {
-        await execFile('systemctl', ['reboot'])
+        await this.systemctl('reboot');
     }
 
-    override shutdown(): Promise<void> {
-        throw new Error("Method not implemented: LinuxProvider.shutdown()");
+    override async shutdown(): Promise<void> {
+        await this.systemctl('poweroff');
+    }
+
+    private async systemctl(command: string) {
+        const execFile = util.promisify(childProcess.execFile);
+        await execFile('systemctl', [command]);
     }
 }
 

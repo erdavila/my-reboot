@@ -35,6 +35,10 @@ export class Properties {
         this.map.set(key, value);
     }
 
+    clear(key: string): void {
+        this.map.delete(key);
+    }
+
     async save(): Promise<void> {
         const lines: string[] = [];
         this.map.forEach((value, key) => {
