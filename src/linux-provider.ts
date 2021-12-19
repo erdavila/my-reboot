@@ -13,14 +13,14 @@ function rebootToWindowsWithDisplay(display: WindowsDisplay): Script {
 }
 
 class LinuxProvider extends OSProvider {
-    override buttons = [
+    override predefinedScripts = [
         {
-            label: "Reiniciar no Windows usando o monitor",
             script: rebootToWindowsWithDisplay('monitor'),
+            buttonLabel: "Reiniciar no Windows usando o monitor",
         },
         {
-            label: "Reiniciar no Windows usando a TV",
             script: rebootToWindowsWithDisplay('tv'),
+            buttonLabel: "Reiniciar no Windows usando a TV",
         },
     ]
 

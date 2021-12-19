@@ -44,13 +44,39 @@ function handleArguments(args: string[]) {
 
     case "dialog": {
       const arg = args.shift();
-      switch (arg) {
-        case undefined:
-          basicDialog()
-          break;
+      if (arg !== undefined) {
+        exceedingArgument(arg);
+      } else {
+        basicDialog()
+      }
+      break;
+    }
 
-        default:
+    case "script": {
+      let arg = args.shift();
+      if (arg === undefined) {
+        missingArgument("NÚMERO");
+      } else if (!arg.match(/^\d+$/)) {
+        invalidArgument(arg);
+      } else {
+        const num = parseInt(arg);
+        arg = args.shift();
+        if (arg !== undefined) {
           exceedingArgument(arg);
+        } else {
+          OSProvider.get().then(async osProvider => {
+            const script = osProvider.predefinedScripts[num - 1]?.script;
+            if (script === undefined) {
+              throw new ArgumentError(
+                `Número inválido de script para o sistema operacional atual (mín: 1; máx: ${osProvider.predefinedScripts.length})`,
+                num.toString(),
+              );
+            } else {
+              await ScriptExecutor.get().execute(script);
+              process.exit(0);
+            }
+          });
+        }
       }
       break;
     }
@@ -166,6 +192,9 @@ function showUsage(out: typeof console.log = console.log) {
   out("  my-reboot show");
   out("    Exibe as opções atuais para inicialização.");
   out();
+  out("  my-reboot script NÚMERO");
+  out("    Executa o script correspondente às ações disponíveis no diálogo básico do S.O. atual.");
+  out();
   out("  my-reboot -h|--help");
   out("    Exibe este conteúdo.");
 }
@@ -178,14 +207,22 @@ function unknownArgument(arg: string): never {
   throw new ArgumentError("Argumento inesperado", arg);
 }
 
+function missingArgument(arg: string): never {
+  throw new ArgumentError("Argumento faltando", arg);
+}
+
+function invalidArgument(arg: string): never {
+  throw new ArgumentError("Argumento inválido", arg);
+}
+
 function basicDialog() {
   const createBasicWindow = (osProvider: OSProvider) => {
     ipcMain.handleOnce('get-button-labels', () => {
-      return osProvider.buttons.map(x => x.label);
+      return osProvider.predefinedScripts.map(x => x.buttonLabel);
     });
 
     ipcMain.once('basic-mode-button-click', async (_event, index: number) => {
-      const script = osProvider.buttons[index]!.script;
+      const script = osProvider.predefinedScripts[index]!.script;
       await ScriptExecutor.get().execute(script);
       app.quit();
     });

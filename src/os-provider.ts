@@ -1,12 +1,12 @@
 import { Script } from "./script";
 
-export interface Button {
-    readonly label: string;
+export interface PredefinedScript {
     readonly script: Script;
+    readonly buttonLabel: string;
 }
 
 export abstract class OSProvider {
-    abstract readonly buttons: Button[];
+    abstract readonly predefinedScripts: PredefinedScript[];
 
     abstract readonly stateDir: string;
 
