@@ -1,6 +1,6 @@
 import { app, ipcMain, BrowserWindow, Event, Size } from 'electron';
 import { OSProvider } from './os-provider';
-import { ScriptExecutor } from './script';
+import { Script, ScriptExecutor } from './script';
 import * as path from "path";
 
 class ArgumentError extends Error {
@@ -55,18 +55,89 @@ function handleArguments(args: string[]) {
     }
 
     default:
-      unknownArgument(arg);
+      handleScriptArguments(arg, args);
   }
+}
+
+function handleScriptArguments(arg: string | undefined, args: string[]) {
+  let script: Script = {};
+
+  const OS_PREFIX = 'os:'
+  if (arg === 'windows' || arg === 'linux') {
+    arg = `${OS_PREFIX}${arg}`;
+  }
+  if (arg?.startsWith(OS_PREFIX)) {
+    const os = arg!.substring(OS_PREFIX.length);
+    switch (os) {
+      case 'windows':
+      case 'linux':
+      case 'unset':
+        script = { ...script, nextBootOperatingSystem: os };
+        arg = args.shift();
+        break;
+      default:
+        throw new ArgumentError("Sistema operacional inválido", arg);
+    }
+  }
+
+  const DISPLAY_PREFIX = 'display:'
+  if (arg === 'monitor' || arg === 'tv') {
+    arg = `${DISPLAY_PREFIX}${arg}`;
+  }
+  if (arg?.startsWith(DISPLAY_PREFIX)) {
+    const display = arg.substring(DISPLAY_PREFIX.length);
+    switch (display) {
+      case 'monitor':
+      case 'tv':
+      case 'unset':
+        script = { ...script, nextWindowsBootDisplay: display };
+        arg = args.shift();
+        break;
+      default:
+        throw new ArgumentError("Tela inválida", arg);
+    }
+  }
+
+  switch (arg) {
+    case 'reboot':
+    case 'shutdown':
+      script = { ...script, rebootAction: arg };
+      arg = args.shift();
+      break;
+  }
+
+  if (arg) {
+    unknownArgument(arg);
+  }
+
+  ScriptExecutor.get().execute(script).then(() => {
+    process.exit(0);
+  });
 }
 
 function showUsage(out: typeof console.log = console.log) {
   out("Usos:");
   out("  my-reboot");
   out("  my-reboot dialog");
-  out("    Exibe diálogo básico");
+  out("    Exibe diálogo básico.");
+  out();
+  out("  my-reboot [SO] [TELA] [AÇÃO]");
+  out("    SO poder ser:");
+  out("      [os:]windows - Inicia Windows na próxima inicialização do computador.");
+  out("      [os:]linux - Inicia Linux na próxima inicialização do computador.");
+  out("      os:unset - Deixa o Grub decidir o S.O. na próxima inicialização do computador.");
+  out();
+  out("    TELA poder ser:");
+  out("      [display:]monitor - Usa o monitor na próxima inicialização do Windows.");
+  out("      [display:]tv - Usa a TV na próxima inicialização do Windows.");
+  out("      display:unset - Deixa o Windows decidir a tela na próxima inicialização do Windows.");
+  out();
+  out("    AÇÃO poder ser:");
+  out("      reboot - Reinicia o computador.");
+  out("      shutdown - Desliga o computador.");
   out();
   out("  my-reboot -h|--help");
-  out("    Exibe este conteúdo");
+  out("    Exibe este conteúdo.");
 }
 
 function exceedingArgument(arg: string): never {

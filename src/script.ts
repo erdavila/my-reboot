@@ -20,22 +20,23 @@ export class ScriptExecutor {
             script.nextBootOperatingSystem,
             state => state.setOperatingSystem,
             state => state.unsetOperatingSystem,
+            "Sistema operacional a ser iniciado na próxima inicialização do computador foi atualizado.",
         );
 
         await this.updateStateWith(
             script.nextWindowsBootDisplay,
             state => state.setWindowsDisplay,
             state => state.unsetWindowsDisplay,
+            "Tela a ser usada na próxima inicialização do Windows foi atualizada.",
         );
 
         if (script.rebootAction) {
-            const osProvider = await this.getOSProvider();
             switch (script.rebootAction) {
                 case "reboot":
-                    await osProvider.reboot();
+                    await this.doRebootAction(osProvider => osProvider.reboot, "Reiniciando...");
                     break;
                 case "shutdown":
-                    await osProvider.shutdown();
+                    await this.doRebootAction(osProvider => osProvider.shutdown, "Desligando...");
                     break;
             }
         }
@@ -45,6 +46,7 @@ export class ScriptExecutor {
         value: T | "unset" | undefined,
         set: (state: State) => (value: T) => Promise<void>,
         unset: (state: State) => () => Promise<void>,
+        message: string,
     ): Promise<void> {
         if (value) {
             const state = await this.getState();
@@ -53,6 +55,7 @@ export class ScriptExecutor {
             } else {
                 await set(state).call(state, value);
             }
+            console.log(message);
         }
     }
 
@@ -63,6 +66,15 @@ export class ScriptExecutor {
         }
         return this.state;
     };
+
+    private async doRebootAction(
+        action: (osProvider: OSProvider) => () => Promise<void>,
+        message: string,
+    ): Promise<void> {
+        const osProvider = await this.getOSProvider();
+        console.log(message);
+        await action(osProvider)();
+    }
 
     private async getOSProvider(): Promise<OSProvider> {
         if (!this.osProvider) {
