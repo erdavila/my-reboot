@@ -20,4 +20,4 @@ export abstract class OSProvider {
         const osProvider = await import(`./${process.platform}-provider`);
         return osProvider.default;
     }
-};
+}

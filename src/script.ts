@@ -65,7 +65,7 @@ export class ScriptExecutor {
             this.state = new State(osProvider.stateDir);
         }
         return this.state;
-    };
+    }
 
     private async doRebootAction(
         action: (osProvider: OSProvider) => () => Promise<void>,

@@ -5,20 +5,25 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "lint": "eslint --ext .ts .",
     "start": "npm run build && electron ./dist/main.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://erdavila@github.com/erdavila/my-reboot.git"
   },
-  "author": "erdavila@gmail.com",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/erdavila/my-reboot/issues"
+  "author": {
+    "name": "Eduardo R. D'Avila",
+    "email": "erdavila@gmail.com"
   },
+  "license": "MIT",
   "homepage": "https://github.com/erdavila/my-reboot#readme",
   "devDependencies": {
-    "electron": "^16.0.4",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "electron": "^16.0.5",
+    "eslint": "^8.5.0",
+    "eslint-plugin-import": "^2.25.3",
     "typescript": "^4.5.4"
   }
 }

@@ -120,7 +120,7 @@ function handleScriptArguments(arg: string | undefined, args: string[]) {
     arg = `${OS_PREFIX}${arg}`;
   }
   if (arg?.startsWith(OS_PREFIX)) {
-    const os = arg!.substring(OS_PREFIX.length);
+    const os = arg.substring(OS_PREFIX.length);
     switch (os) {
       case 'windows':
       case 'linux':
@@ -222,10 +222,15 @@ function basicDialog() {
     });
 
     ipcMain.once('basic-mode-button-click', async (_event, index: number) => {
-      const script = osProvider.predefinedScripts[index]!.script;
+      const script = osProvider.predefinedScripts[index]?.script;
+      if (script === undefined) {
+        throw new Error("Invalid index");
+      }
       await ScriptExecutor.get().execute(script);
       app.quit();
     });
+
+    const asset = (file: string) => path.join(__dirname, '../src', file);
 
     const win = new BrowserWindow({
       width: 300,
@@ -233,7 +238,7 @@ function basicDialog() {
       center: true,
       resizable: false,
       fullscreenable: false,
-      icon: osProvider.icon,
+      icon: asset(osProvider.icon),
       // TODO: Consider on Windows: titleBarStyle
       webPreferences: {
         preload: path.join(__dirname, 'basic-preload.js'),
@@ -241,7 +246,7 @@ function basicDialog() {
       },
     });
 
-    win.loadFile('../basic.html');
+    win.loadFile(asset('basic.html'));
     win.removeMenu();
     // win.webContents.openDevTools();
     win.webContents.on('preferred-size-changed', (_event: Event, preferredSize: Size) => {
@@ -250,7 +255,7 @@ function basicDialog() {
   };
 
 
-  Promise.all([app.whenReady(), OSProvider.get()]).then(([_, provider]) => {
+  Promise.all([OSProvider.get(), app.whenReady()]).then(([provider]) => {
     createBasicWindow(provider);
   });
 }
