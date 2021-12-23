@@ -230,7 +230,7 @@ function basicDialog() {
       app.quit();
     });
 
-    const asset = (file: string) => path.join(__dirname, '../src', file);
+    const asset = (file: string) => path.join(__dirname, file);
 
     const win = new BrowserWindow({
       width: 300,
