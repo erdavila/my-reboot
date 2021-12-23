@@ -3,6 +3,7 @@ import { OSProvider } from './os-provider';
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
 import { operatingSystemText, State, windowsDisplayText } from './state';
 import { showBasicDialog } from './basic-dialog';
+import { showAdvancedDialog } from './advanced-dialog';
 
 class ArgumentError extends Error {
   constructor(message: string, arg: string) {
@@ -39,53 +40,57 @@ function handleArguments(args: string[]) {
   const arg = args.shift();
   switch (arg) {
     case undefined:
-      showDialog();
+      showDialog({ advanced: false });
       break;
 
     case "dialog": {
       const arg = args.shift();
-      if (arg !== undefined) {
-        exceedingArgument(arg);
-      } else {
-        showDialog();
+      let advanced: boolean;
+
+      switch (arg) {
+        case undefined:
+          advanced = false;
+          break;
+        case "-x": {
+          advanced = true;
+          noMoreArguments(args);
+          break;
+        }
+        default:
+          unknownArgument(arg);
       }
+
+      showDialog({ advanced });
       break;
     }
 
     case "script": {
-      let arg = args.shift();
+      const arg = args.shift();
       if (arg === undefined) {
         missingArgument("NÚMERO");
       } else if (!arg.match(/^\d+$/)) {
         invalidArgument(arg);
       } else {
         const num = parseInt(arg);
-        arg = args.shift();
-        if (arg !== undefined) {
-          exceedingArgument(arg);
-        } else {
-          OSProvider.get().then(async osProvider => {
-            const script = osProvider.predefinedScripts[num - 1]?.script;
-            if (script === undefined) {
-              throw new ArgumentError(
-                `Número inválido de script para o sistema operacional atual (mín: 1; máx: ${osProvider.predefinedScripts.length})`,
-                num.toString(),
-              );
-            } else {
-              await ScriptExecutor.get().execute(script);
-              process.exit(0);
-            }
-          });
-        }
+        noMoreArguments(args);
+        OSProvider.get().then(async osProvider => {
+          const script = osProvider.predefinedScripts[num - 1]?.script;
+          if (script === undefined) {
+            throw new ArgumentError(
+              `Número inválido de script para o sistema operacional atual (mín: 1; máx: ${osProvider.predefinedScripts.length})`,
+              num.toString(),
+            );
+          } else {
+            await ScriptExecutor.get().execute(script);
+            process.exit(0);
+          }
+        });
       }
       break;
     }
 
     case "show": {
-      const arg = args.shift();
-      if (arg !== undefined) {
-        exceedingArgument(arg);
-      }
+      noMoreArguments(args);
       showState();
       break;
     }
@@ -171,6 +176,9 @@ function showUsage(out: typeof console.log = console.log) {
   out("  my-reboot dialog");
   out("    Exibe diálogo básico.");
   out();
+  out("  my-reboot dialog -x");
+  out("    Exibe diálogo avançado.");
+  out();
   out("  my-reboot [SO] [TELA] [AÇÃO]");
   out("    SO poder ser:");
   out("      [os:]windows - Inicia Windows na próxima inicialização do computador.");
@@ -196,6 +204,13 @@ function showUsage(out: typeof console.log = console.log) {
   out("    Exibe este conteúdo.");
 }
 
+function noMoreArguments(args: string[]) {
+  const arg = args.shift();
+  if (arg !== undefined) {
+    exceedingArgument(arg);
+  }
+}
+
 function exceedingArgument(arg: string): never {
   throw new ArgumentError("Argumento em excesso", arg);
 }
@@ -212,8 +227,12 @@ function invalidArgument(arg: string): never {
   throw new ArgumentError("Argumento inválido", arg);
 }
 
-function showDialog() {
+function showDialog(options: { advanced: boolean }) {
   Promise.all([OSProvider.get(), app.whenReady()]).then(([osProvider]) => {
-    showBasicDialog(osProvider);
+    if (options.advanced) {
+      showAdvancedDialog(osProvider);
+    } else {
+      showBasicDialog(osProvider);
+    }
   });
 }
