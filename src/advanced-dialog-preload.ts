@@ -74,4 +74,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     ipcRenderer.send('execute-script', script);
   });
+
+  document.getElementById('switch-mode')?.addEventListener('click', () => {
+    ipcRenderer.invoke('replace-dialog', { advanced: false });
+  });
 });

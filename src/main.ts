@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { OSProvider } from './os-provider';
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
 import { operatingSystemText, State, windowsDisplayText } from './state';
@@ -229,15 +229,27 @@ function invalidArgument(arg: string): never {
 
 function showDialog(options: { advanced: boolean }) {
   Promise.all([OSProvider.get(), app.whenReady()]).then(([osProvider]) => {
+    function show(advanced: boolean) {
+      if (advanced) {
+        showAdvancedDialog(osProvider);
+      } else {
+        showBasicDialog(osProvider);
+      }
+    }
+
+    ipcMain.handle('replace-dialog', (_event, options: { advanced: boolean }) => {
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.close();
+      });
+
+      show(options.advanced);
+    });
+
     ipcMain.once('execute-script', async (_event, script: Script) => {
       await ScriptExecutor.get().execute(script);
       app.quit();
     })
 
-    if (options.advanced) {
-      showAdvancedDialog(osProvider);
-    } else {
-      showBasicDialog(osProvider);
-    }
+    show(options.advanced);
   });
 }
