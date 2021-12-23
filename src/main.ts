@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { OSProvider } from './os-provider';
-import { Script, ScriptExecutor } from './script';
-import { State } from './state';
+import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
+import { operatingSystemText, State, windowsDisplayText } from './state';
 import { showBasicDialog } from './basic-dialog';
 
 class ArgumentError extends Error {
@@ -102,11 +102,8 @@ function showState() {
     const display = await state.getWindowsDisplay();
     // TODO: identify current Window display
 
-    console.log("S.O. a ser iniciado na próxima inicialização do computador:");
-    console.log(" ", os !== undefined ? os : "indefinido");
-    console.log();
-    console.log("Tela a ser usada na próxima inicialização do Windows:");
-    console.log(" ", display !== undefined ? display : "indefinida");
+    console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(os));
+    console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, windowsDisplayText(display));
 
     process.exit()
   })

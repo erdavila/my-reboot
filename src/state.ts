@@ -1,11 +1,26 @@
+import chalk = require("chalk");
 import { Configs } from "./configs";
 import { Grubenv } from "./grubenv";
 import { Properties } from "./properties";
 
 export type OperatingSystem = 'windows' | 'linux';
 export const OPERATING_SYSTEMS: OperatingSystem[] = ['windows', 'linux'];
+export function operatingSystemText(operatingSystem: OperatingSystem | undefined) {
+    switch (operatingSystem) {
+        case "linux": return chalk.green.bold("Linux");
+        case "windows": return chalk.blueBright.bold("Windows");
+        case undefined: return chalk.red.bold("indefinido");
+    }
+}
 
 export type WindowsDisplay = 'monitor' | 'tv';
+export function windowsDisplayText(windowsDisplay: WindowsDisplay | undefined) {
+    switch (windowsDisplay) {
+        case "monitor": return chalk.green.bold("monitor");
+        case "tv": return chalk.blueBright.bold("TV");
+        case undefined: return chalk.red.bold("indefinida");
+    }
+}
 
 const GRUB_ENTRY = 'saved_entry';
 const WINDOWS_DISPLAY_KEY = 'windows.display';

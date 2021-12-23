@@ -1,5 +1,9 @@
 import { OSProvider } from "./os-provider";
-import { OperatingSystem, State, WindowsDisplay } from "./state";
+import { OperatingSystem, operatingSystemText, State, WindowsDisplay, windowsDisplayText } from "./state";
+import chalk = require("chalk");
+
+export const NEXT_BOOT_OPERATING_SYSTEM_SENTENCE = "Sistema operacional a ser iniciado na próxima inicialização do computador";
+export const NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE = "Tela a ser usada na próxima inicialização do Windows";
 
 export interface Script {
     readonly nextBootOperatingSystem?: OperatingSystem | "unset";
@@ -9,7 +13,6 @@ export interface Script {
 
 export class ScriptExecutor {
     private state: State | undefined = undefined;
-    private osProvider: OSProvider | undefined = undefined;
 
     static get(): ScriptExecutor {
         return new ScriptExecutor();
@@ -20,14 +23,14 @@ export class ScriptExecutor {
             script.nextBootOperatingSystem,
             state => state.setOperatingSystem,
             state => state.unsetOperatingSystem,
-            "Sistema operacional a ser iniciado na próxima inicialização do computador foi atualizado.",
+            os => `${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE} foi atualizado para ${operatingSystemText(os)}.`,
         );
 
         await this.updateStateWith(
             script.nextWindowsBootDisplay,
             state => state.setWindowsDisplay,
             state => state.unsetWindowsDisplay,
-            "Tela a ser usada na próxima inicialização do Windows foi atualizada.",
+            display => `${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} foi atualizada para ${windowsDisplayText(display)}.`,
         );
 
         if (script.rebootAction) {
@@ -46,7 +49,7 @@ export class ScriptExecutor {
         value: T | "unset" | undefined,
         set: (state: State) => (value: T) => Promise<void>,
         unset: (state: State) => () => Promise<void>,
-        message: string,
+        message: (value: T | undefined) => string,
     ): Promise<void> {
         if (value) {
             const state = await this.getState();
@@ -55,13 +58,13 @@ export class ScriptExecutor {
             } else {
                 await set(state).call(state, value);
             }
-            console.log(message);
+            console.log(message(value === "unset" ? undefined : value));
         }
     }
 
     private async getState(): Promise<State> {
         if (!this.state) {
-            const osProvider = await this.getOSProvider();
+            const osProvider = await OSProvider.get();
             this.state = new State(osProvider.stateDir);
         }
         return this.state;
@@ -71,15 +74,12 @@ export class ScriptExecutor {
         action: (osProvider: OSProvider) => () => Promise<void>,
         message: string,
     ): Promise<void> {
-        const osProvider = await this.getOSProvider();
         console.log(message);
-        await action(osProvider).call(osProvider);
-    }
-
-    private async getOSProvider(): Promise<OSProvider> {
-        if (!this.osProvider) {
-            this.osProvider = await OSProvider.get();
+        if (process.env["NO_REBOOT_ACTION"] === 'true') {
+            console.log(chalk.yellow("...mas não de verdade!"), "😬");
+        } else {
+            const osProvider = await OSProvider.get();
+            await action(osProvider).call(osProvider);
         }
-        return this.osProvider;
     }
 }

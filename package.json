@@ -44,5 +44,8 @@
       "dist/*.css",
       "dist/icon.*"
     ]
+  },
+  "dependencies": {
+    "chalk": "4.1.2"
   }
 }
