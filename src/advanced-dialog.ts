@@ -1,8 +1,7 @@
 import { OSProvider } from "./os-provider";
-import { app, BrowserWindow, ipcMain, Size } from "electron";
-import * as path from "path";
+import { ipcMain } from "electron";
 import { OperatingSystem, State, WindowsDisplay } from "./state";
-import { Script, ScriptExecutor } from "./script";
+import { showDialog } from "./dialog";
 
 export function showAdvancedDialog(osProvider: OSProvider) {
   ipcMain.handleOnce('get-state', async () => {
@@ -13,32 +12,8 @@ export function showAdvancedDialog(osProvider: OSProvider) {
     return values;
   });
 
-  ipcMain.once('execute-script', async (_event, script: Script) => {
-    await ScriptExecutor.get().execute(script);
-    app.quit();
-  })
-
-  const asset = (file: string) => path.join(__dirname, file);
-
-  const win = new BrowserWindow({
+  showDialog(osProvider, {
     width: 340,
-    height: 100,
-    center: true,
-    resizable: false,
-    fullscreenable: false,
-    icon: asset(osProvider.icon),
-    // TODO: Consider on Windows: titleBarStyle
-    webPreferences: {
-      preload: path.join(__dirname, 'advanced-dialog-preload.js'),
-      enablePreferredSizeMode: true,
-    },
-  });
-
-  win.loadFile(asset('advanced-dialog.html'));
-  win.removeMenu();
-  // win.webContents.openDevTools();
-  win.webContents.on('preferred-size-changed', (_event, preferredSize: Size) => {
-    win.setBounds({ height: preferredSize.height });
-    win.center();
-  });
+    filePrefix: 'advanced-dialog',
+  })
 }

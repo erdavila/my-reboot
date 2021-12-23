@@ -26,7 +26,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setSentence('os-sentence', NEXT_BOOT_OPERATING_SYSTEM_SENTENCE);
   setSentence('display-sentence', NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE);
 
-  document.getElementById('ok-button')?.addEventListener('click', () => {
+  document.getElementById('ok-button')?.addEventListener('click', async () => {
     const possiblyUndefinedForm = document.forms[0];
     if (possiblyUndefinedForm === undefined) {
       throw new Error("Form not found");
