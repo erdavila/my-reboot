@@ -5,10 +5,13 @@ import chalk = require("chalk");
 export const NEXT_BOOT_OPERATING_SYSTEM_SENTENCE = "Sistema operacional a ser iniciado na próxima inicialização do computador";
 export const NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE = "Tela a ser usada na próxima inicialização do Windows";
 
+const RebootActions = ["reboot", "shutdown"] as const;
+type RebootAction = typeof RebootActions[number];
+export const REBOOT_ACTIONS: ReadonlyArray<RebootAction> = RebootActions;
 export interface Script {
     readonly nextBootOperatingSystem?: OperatingSystem | "unset";
     readonly nextWindowsBootDisplay?: WindowsDisplay | "unset";
-    readonly rebootAction?: "reboot" | "shutdown";
+    readonly rebootAction?: RebootAction;
 }
 
 export class ScriptExecutor {

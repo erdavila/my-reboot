@@ -8,24 +8,26 @@
     <title>My Reboot - modo avançado</title>
   </head>
   <body>
-    <div>
-      <h1>Sistema operacional bla bla bla</h1>
-      <label><input type="radio" name="os" value="windows">Windows</label><br/>
-      <label><input type="radio" name="os" value="linux">Linux</label><br/>
-      <label><input type="radio" name="os" value="unset">último usado</label><br/>
-    </div>
-    <div>
-      <h1>Tela bla bla bla</h1>
-      <label><input type="radio" name="display" value="monitor">monitor</label><br/>
-      <label><input type="radio" name="display" value="tv">TV</label><br/>
-      <label><input type="radio" name="display" value="unset">última usada</label><br/>
-    </div>
-    <div>
-      <h1>Ação</h1>
-      <label><input type="radio" name="action" value="reboot">reiniciar</label><br/>
-      <label><input type="radio" name="action" value="shutdown">desligar</label><br/>
-      <label><input type="radio" name="action" value="none">continuar usando</label><br/>
-    </div>
+    <form name="frm">
+      <div>
+        <h1 id="os-sentence"></h1>
+        <label><input type="radio" name="os" value="windows">Windows</label><br/>
+        <label><input type="radio" name="os" value="linux">Linux</label><br/>
+        <label><input type="radio" name="os" value="unset">último usado</label><br/>
+      </div>
+      <div>
+        <h1 id="display-sentence"></h1>
+        <label><input type="radio" name="display" value="monitor">monitor</label><br/>
+        <label><input type="radio" name="display" value="tv">TV</label><br/>
+        <label><input type="radio" name="display" value="unset">última usada</label><br/>
+      </div>
+      <div>
+        <h1>Ação</h1>
+        <label><input type="radio" name="action" value="reboot">reiniciar</label><br/>
+        <label><input type="radio" name="action" value="shutdown">desligar</label><br/>
+        <label><input type="radio" name="action" value="none" checked>continuar usando</label><br/>
+      </div>
+    </form>
     <footer>
       <div>
         <button id='ok-button'>OK</button>

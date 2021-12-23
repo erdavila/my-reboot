@@ -3,8 +3,9 @@ import { Configs } from "./configs";
 import { Grubenv } from "./grubenv";
 import { Properties } from "./properties";
 
-export type OperatingSystem = 'windows' | 'linux';
-export const OPERATING_SYSTEMS: OperatingSystem[] = ['windows', 'linux'];
+const OperatingSystems = ['windows', 'linux'] as const;
+export type OperatingSystem = typeof OperatingSystems[number];
+export const OPERATING_SYSTEMS: ReadonlyArray<OperatingSystem> = OperatingSystems;
 export function operatingSystemText(operatingSystem: OperatingSystem | undefined) {
     switch (operatingSystem) {
         case "linux": return chalk.green.bold("Linux");
@@ -13,7 +14,9 @@ export function operatingSystemText(operatingSystem: OperatingSystem | undefined
     }
 }
 
-export type WindowsDisplay = 'monitor' | 'tv';
+const WindowsDisplays = ['monitor', 'tv'] as const;
+export type WindowsDisplay = typeof WindowsDisplays[number];
+export const WINDOWS_DISPLAYS: ReadonlyArray<WindowsDisplay> = WindowsDisplays;
 export function windowsDisplayText(windowsDisplay: WindowsDisplay | undefined) {
     switch (windowsDisplay) {
         case "monitor": return chalk.green.bold("monitor");

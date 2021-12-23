@@ -19,6 +19,7 @@ button#ok-button {
 
 h1 {
     font-size: medium;
+    margin-top: 16px;
     margin-bottom: 4px;
 }
 
@@ -28,6 +29,7 @@ div:first-of-type > h1 {
 
 input {
     margin-bottom: 8px;
+    margin-right: 5px;
 }
 
 footer {

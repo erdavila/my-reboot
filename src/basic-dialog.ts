@@ -38,5 +38,6 @@ export function showBasicDialog(osProvider: OSProvider) {
   // win.webContents.openDevTools();
   win.webContents.on('preferred-size-changed', (_event, preferredSize: Size) => {
     win.setBounds({ height: preferredSize.height });
+    win.center();
   });
 }
