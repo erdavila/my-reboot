@@ -1,8 +1,8 @@
-import { app, ipcMain, BrowserWindow, Event, Size } from 'electron';
+import { app } from 'electron';
 import { OSProvider } from './os-provider';
 import { Script, ScriptExecutor } from './script';
 import { State } from './state';
-import * as path from "path";
+import { showBasicDialog } from './basic-dialog';
 
 class ArgumentError extends Error {
   constructor(message: string, arg: string) {
@@ -39,7 +39,7 @@ function handleArguments(args: string[]) {
   const arg = args.shift();
   switch (arg) {
     case undefined:
-      basicDialog();
+      showDialog();
       break;
 
     case "dialog": {
@@ -47,7 +47,7 @@ function handleArguments(args: string[]) {
       if (arg !== undefined) {
         exceedingArgument(arg);
       } else {
-        basicDialog()
+        showDialog();
       }
       break;
     }
@@ -215,47 +215,8 @@ function invalidArgument(arg: string): never {
   throw new ArgumentError("Argumento inválido", arg);
 }
 
-function basicDialog() {
-  const createBasicWindow = (osProvider: OSProvider) => {
-    ipcMain.handleOnce('get-button-labels', () => {
-      return osProvider.predefinedScripts.map(x => x.buttonLabel);
-    });
-
-    ipcMain.once('basic-mode-button-click', async (_event, index: number) => {
-      const script = osProvider.predefinedScripts[index]?.script;
-      if (script === undefined) {
-        throw new Error("Invalid index");
-      }
-      await ScriptExecutor.get().execute(script);
-      app.quit();
-    });
-
-    const asset = (file: string) => path.join(__dirname, file);
-
-    const win = new BrowserWindow({
-      width: 300,
-      height: 100,
-      center: true,
-      resizable: false,
-      fullscreenable: false,
-      icon: asset(osProvider.icon),
-      // TODO: Consider on Windows: titleBarStyle
-      webPreferences: {
-        preload: path.join(__dirname, 'basic-preload.js'),
-        enablePreferredSizeMode: true,
-      },
-    });
-
-    win.loadFile(asset('basic.html'));
-    win.removeMenu();
-    // win.webContents.openDevTools();
-    win.webContents.on('preferred-size-changed', (_event: Event, preferredSize: Size) => {
-      win.setBounds({ height: preferredSize.height });
-    });
-  };
-
-
-  Promise.all([OSProvider.get(), app.whenReady()]).then(([provider]) => {
-    createBasicWindow(provider);
+function showDialog() {
+  Promise.all([OSProvider.get(), app.whenReady()]).then(([osProvider]) => {
+    showBasicDialog(osProvider);
   });
 }
