@@ -21,7 +21,7 @@ export abstract class OSProvider {
     protected execFile = util.promisify(childProcess.execFile);
 
     static async get(): Promise<OSProvider> {
-        const osProvider = await import(`./${process.platform}-provider`);
-        return osProvider.default;
+      const osProvider = await import(`./${process.platform}-provider`);
+      return osProvider.default;
     }
 }
