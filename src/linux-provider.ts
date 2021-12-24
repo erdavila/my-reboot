@@ -1,8 +1,6 @@
 import { OSProvider } from "./os-provider";
 import { Script } from "./script";
 import { WindowsDisplay } from "./state";
-import * as childProcess from "child_process";
-import * as util from "util";
 
 function rebootToWindowsWithDisplay(display: WindowsDisplay): Script {
     return {
@@ -37,8 +35,7 @@ class LinuxProvider extends OSProvider {
     }
 
     private async systemctl(command: string) {
-        const execFile = util.promisify(childProcess.execFile);
-        await execFile('systemctl', [command]);
+        await this.execFile('systemctl', [command]);
     }
 }
 

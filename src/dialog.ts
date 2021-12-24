@@ -12,7 +12,7 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
     resizable: false,
     fullscreenable: false,
     icon: asset(osProvider.icon),
-    // TODO: Consider on Windows: titleBarStyle
+    type: 'toolbar',
     webPreferences: {
       preload: path.join(__dirname, `${options.filePrefix}-preload.js`),
       enablePreferredSizeMode: true,
@@ -23,7 +23,9 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
   win.removeMenu();
   // win.webContents.openDevTools();
   win.webContents.on('preferred-size-changed', (_event, preferredSize: Size) => {
-    win.setBounds({ height: preferredSize.height });
+    win.setBounds({ height: preferredSize.height + EXTRA_HEIGHT });
     win.center();
   });
 }
+
+const EXTRA_HEIGHT = process.platform == 'win32' ? 29 : 0;
