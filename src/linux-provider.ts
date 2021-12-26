@@ -1,8 +1,8 @@
-import { OSProvider } from "./os-provider";
+import { execFile, OSProvider } from "./os-provider";
 import { Script } from "./script";
-import { WindowsDisplay } from "./state";
+import { Display } from "./state";
 
-function rebootToWindowsWithDisplay(display: WindowsDisplay): Script {
+function rebootToWindowsWithDisplay(display: Display): Script {
   return {
     nextBootOperatingSystem: 'windows',
     nextWindowsBootDisplay: display,
@@ -35,8 +35,10 @@ class LinuxProvider extends OSProvider {
   }
 
   private async systemctl(command: string) {
-    await this.execFile('systemctl', [command]);
+    await execFile('systemctl', [command]);
   }
+
+  override currentDisplay = undefined;
 }
 
 export default new LinuxProvider();

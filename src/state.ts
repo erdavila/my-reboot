@@ -14,11 +14,11 @@ export function operatingSystemText(operatingSystem: OperatingSystem | undefined
   }
 }
 
-const WindowsDisplays = ['monitor', 'tv'] as const;
-export type WindowsDisplay = typeof WindowsDisplays[number];
-export const WINDOWS_DISPLAYS: ReadonlyArray<WindowsDisplay> = WindowsDisplays;
-export function windowsDisplayText(windowsDisplay: WindowsDisplay | undefined) {
-  switch (windowsDisplay) {
+const Displays = ['monitor', 'tv'] as const;
+export type Display = typeof Displays[number];
+export const DISPLAYS: ReadonlyArray<Display> = Displays;
+export function displayText(display: Display | undefined) {
+  switch (display) {
     case "monitor": return chalk.green.bold("monitor");
     case "tv": return chalk.blueBright.bold("TV");
     case undefined: return chalk.red.bold("indefinida");
@@ -74,11 +74,11 @@ export class State {
     return result;
   }
 
-  async getWindowsDisplay(): Promise<WindowsDisplay | undefined> {
-    return await this.withOptions((options) => options.get(WINDOWS_DISPLAY_KEY) as WindowsDisplay | undefined);
+  async getWindowsDisplay(): Promise<Display | undefined> {
+    return await this.withOptions((options) => options.get(WINDOWS_DISPLAY_KEY) as Display | undefined);
   }
 
-  async setWindowsDisplay(display: WindowsDisplay): Promise<void> {
+  async setWindowsDisplay(display: Display): Promise<void> {
     await this.changeOptions(options => options.set(WINDOWS_DISPLAY_KEY, display));
   }
 

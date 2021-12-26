@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { OSProvider } from './os-provider';
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
-import { operatingSystemText, State, windowsDisplayText } from './state';
+import { operatingSystemText, State, displayText } from './state';
 import { showBasicDialog } from './basic-dialog';
 import { showAdvancedDialog } from './advanced-dialog';
 
@@ -105,10 +105,13 @@ function showState() {
     const state = new State(osProvider.stateDir);
     const os = await state.getOperatingSystem();
     const display = await state.getWindowsDisplay();
-    // TODO: identify current Window display
+    const currentDisplay = await osProvider.currentDisplay?.get();
 
     console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(os));
-    console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, windowsDisplayText(display));
+    console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, displayText(display));
+    if (currentDisplay !== undefined) {
+      console.log("Tela atual:", displayText(currentDisplay));
+    }
 
     process.exit()
   })

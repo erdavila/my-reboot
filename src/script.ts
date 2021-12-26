@@ -1,5 +1,5 @@
 import { OSProvider } from "./os-provider";
-import { OperatingSystem, operatingSystemText, State, WindowsDisplay, windowsDisplayText } from "./state";
+import { OperatingSystem, operatingSystemText, State, Display, displayText } from "./state";
 import chalk = require("chalk");
 
 export const NEXT_BOOT_OPERATING_SYSTEM_SENTENCE = "Sistema operacional a ser iniciado na próxima inicialização do computador";
@@ -10,7 +10,7 @@ type RebootAction = typeof RebootActions[number];
 export const REBOOT_ACTIONS: ReadonlyArray<RebootAction> = RebootActions;
 export interface Script {
     readonly nextBootOperatingSystem?: OperatingSystem | "unset";
-    readonly nextWindowsBootDisplay?: WindowsDisplay | "unset";
+    readonly nextWindowsBootDisplay?: Display | "unset";
     readonly rebootAction?: RebootAction;
 }
 
@@ -33,7 +33,7 @@ export class ScriptExecutor {
       script.nextWindowsBootDisplay,
       state => state.setWindowsDisplay,
       state => state.unsetWindowsDisplay,
-      display => `${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} foi atualizada para ${windowsDisplayText(display)}.`,
+      display => `${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} foi atualizada para ${displayText(display)}.`,
     );
 
     if (script.rebootAction) {

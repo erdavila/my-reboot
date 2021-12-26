@@ -1,5 +1,5 @@
 import { Properties } from "./properties";
-import { OperatingSystem, OPERATING_SYSTEMS } from "./state";
+import { Display, DISPLAYS, OperatingSystem, OPERATING_SYSTEMS } from "./state";
 
 export class ConfigurationError extends Error {
   constructor(message: string, providerOperatingSystem: 'Linux' | 'Windows') {
@@ -36,6 +36,25 @@ export class Configs {
       return grubEntry;
     } else {
       throw new ConfigurationError(`Configuração '${key}' não encontrada`, 'Linux');
+    }
+  }
+
+  getDisplayByDeviceId(deviceId: string): Display {
+    const display = DISPLAYS.find(display => this.getDeviceId(display) == deviceId);
+    if (display !== undefined) {
+      return display;
+    } else {
+      throw new ConfigurationError(`Configuração com valor ${deviceId} não encontrada`, 'Windows');
+    }
+  }
+
+  getDeviceId(display: Display): string {
+    const key = `${display}.deviceId`;
+    const deviceId = this.props.get(key);
+    if (deviceId !== undefined) {
+      return deviceId;
+    } else {
+      throw new ConfigurationError(`Configuração '${key}' não encontrada`, 'Windows');
     }
   }
 }

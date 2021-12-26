@@ -13,8 +13,9 @@ export class Properties {
       .forEach(line => {
         const index = line.indexOf('=');
         const key = line.substring(0, index);
-        const value = line.substring(index + 1);
+        const escapedValue = line.substring(index + 1);
         if (key.length > 0) {
+          const value = escapedValue.replaceAll('\\\\', '\\');
           map.set(key, value);
         }
       });
@@ -42,7 +43,8 @@ export class Properties {
   async save(): Promise<void> {
     const lines: string[] = [];
     this.map.forEach((value, key) => {
-      lines.push(`${key}=${value}\n`);
+      const escapedValue = value.replaceAll('\\', '\\\\')
+      lines.push(`${key}=${escapedValue}\n`);
     });
     const content = lines.sort().join('');
     await fsPromises.writeFile(this.path, content);

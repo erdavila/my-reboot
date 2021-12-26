@@ -1,4 +1,7 @@
-import { OSProvider } from "./os-provider";
+import { execFile, OSProvider } from "./os-provider";
+import { Display } from "./state";
+import * as path from "path";
+import { Configs } from "./configs";
 
 class WindowsProvider extends OSProvider {
   override predefinedScripts = [
@@ -24,8 +27,24 @@ class WindowsProvider extends OSProvider {
   }
 
   private async shutdownNow(arg: string) {
-    await this.execFile('shutdown', [arg, '/t', '0']);
+    await execFile('shutdown', [arg, '/t', '0']);
   }
+
+  override currentDisplay = {
+    async get(): Promise<Display> {
+      const result = await execFile(path.join(__dirname, "get_active_display_device_id.exe"));
+      const deviceId = result.stdout.trimEnd();
+
+      const configs = await Configs.load(windowsProvider.stateDir);
+      return configs.getDisplayByDeviceId(deviceId);
+    },
+
+    async set(_display: Display): Promise<void> {
+      throw new Error("Not implemented: WindowsProvider.currentDisplay.set()");
+    },
+  };
 }
 
-export default new WindowsProvider();
+const windowsProvider = new WindowsProvider;
+
+export default windowsProvider;

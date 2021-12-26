@@ -1,9 +1,9 @@
 import { ipcRenderer } from "electron";
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, REBOOT_ACTIONS, Script } from "./script";
-import { OperatingSystem, OPERATING_SYSTEMS, WindowsDisplay, WINDOWS_DISPLAYS } from "./state";
+import { OperatingSystem, OPERATING_SYSTEMS, Display, DISPLAYS } from "./state";
 
 window.addEventListener("DOMContentLoaded", () => {
-  ipcRenderer.invoke('get-state').then(([os, display]: [OperatingSystem | undefined, WindowsDisplay | undefined]) => {
+  ipcRenderer.invoke('get-state').then(([os, display]: [OperatingSystem | undefined, Display | undefined]) => {
     function checkElement<T>(type: string, value: T | undefined) {
       const elementValue = value === undefined ? 'unset' : value
       const element = document.querySelector(`input[name=${type}][value=${elementValue}]`);
@@ -61,7 +61,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const nextBootOperatingSystem = getAndValidate('os', [...OPERATING_SYSTEMS, "unset"]);
-    const nextWindowsBootDisplay = getAndValidate('display', [...WINDOWS_DISPLAYS, "unset"]);
+    const nextWindowsBootDisplay = getAndValidate('display', [...DISPLAYS, "unset"]);
     const rebootAction = getAndValidateAndMapToUndefined('action', REBOOT_ACTIONS, "none");
 
     const script: Script = {
