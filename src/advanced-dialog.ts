@@ -8,7 +8,8 @@ export function showAdvancedDialog(osProvider: OSProvider) {
     const state = new State(osProvider.stateDir);
     const operatingSystem = await state.getOperatingSystem();
     const display = await state.getWindowsDisplay();
-    const values: [OperatingSystem | undefined, Display | undefined] = [operatingSystem, display];
+    const isSwitchDisplaySupported = osProvider.currentDisplay !== undefined;
+    const values: [OperatingSystem | undefined, Display | undefined, boolean] = [operatingSystem, display, isSwitchDisplaySupported];
     return values;
   });
 

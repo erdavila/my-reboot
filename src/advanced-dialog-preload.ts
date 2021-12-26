@@ -3,7 +3,7 @@ import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE
 import { OperatingSystem, OPERATING_SYSTEMS, Display, DISPLAYS } from "./state";
 
 window.addEventListener("DOMContentLoaded", () => {
-  ipcRenderer.invoke('get-state').then(([os, display]: [OperatingSystem | undefined, Display | undefined]) => {
+  ipcRenderer.invoke('get-state').then(([os, display, isSwitchDisplaySupported]: [OperatingSystem | undefined, Display | undefined, boolean]) => {
     function checkElement<T>(type: string, value: T | undefined) {
       const elementValue = value === undefined ? 'unset' : value
       const element = document.querySelector(`input[name=${type}][value=${elementValue}]`);
@@ -14,6 +14,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     checkElement('os', os);
     checkElement('display', display);
+
+    if (!isSwitchDisplaySupported) {
+      document.getElementById('switch-display')?.classList.add('hidden');
+    }
   });
 
   function setSentence(id: string, sentence: string) {
@@ -35,6 +39,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     function getValue(field: string): string {
       return (form[field] as RadioNodeList).value;
+    }
+
+    function isChecked(field: string): boolean {
+      return (form[field] as HTMLInputElement).checked;
     }
 
     function validate<T extends string>(value: string, validValues: ReadonlyArray<T>):T {
@@ -62,11 +70,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const nextBootOperatingSystem = getAndValidate('os', [...OPERATING_SYSTEMS, "unset"]);
     const nextWindowsBootDisplay = getAndValidate('display', [...DISPLAYS, "unset"]);
+    const switchDisplay = isChecked('switch-display');
     const rebootAction = getAndValidateAndMapToUndefined('action', REBOOT_ACTIONS, "none");
 
     const script: Script = {
       nextBootOperatingSystem,
       nextWindowsBootDisplay,
+      ...(switchDisplay ? { switchToDisplay: 'other' } : {}),
       ...(rebootAction !== undefined ? { rebootAction } : {}),
     };
 
