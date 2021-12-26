@@ -11,6 +11,7 @@ export const REBOOT_ACTIONS: ReadonlyArray<RebootAction> = RebootActions;
 export interface Script {
     readonly nextBootOperatingSystem?: OperatingSystem | "unset";
     readonly nextWindowsBootDisplay?: Display | "unset";
+    readonly switchToDisplay?: Display | "other" | "saved";
     readonly rebootAction?: RebootAction;
 }
 
@@ -36,15 +37,17 @@ export class ScriptExecutor {
       display => `${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} foi atualizada para ${displayText(display)}.`,
     );
 
-    if (script.rebootAction) {
-      switch (script.rebootAction) {
-        case "reboot":
-          await this.doRebootAction(osProvider => osProvider.reboot, "Reiniciando...");
-          break;
-        case "shutdown":
-          await this.doRebootAction(osProvider => osProvider.shutdown, "Desligando...");
-          break;
-      }
+    if (script.switchToDisplay) {
+      await this.switchToDisplay(script.switchToDisplay);
+    }
+
+    switch (script.rebootAction) {
+      case "reboot":
+        await this.doRebootAction(osProvider => osProvider.reboot, "Reiniciando...");
+        break;
+      case "shutdown":
+        await this.doRebootAction(osProvider => osProvider.shutdown, "Desligando...");
+        break;
     }
   }
 
@@ -62,6 +65,53 @@ export class ScriptExecutor {
         await set(state).call(state, value);
       }
       console.log(message(value === "unset" ? undefined : value));
+    }
+  }
+
+  private async switchToDisplay(display: Display | 'other' | 'saved') {
+    const osProvider = await OSProvider.get();
+    if (osProvider.currentDisplay === undefined) {
+      throw new Error("O sistema operacional atual não suporta troca de tela");
+    }
+
+    async function doSwitch(display: Display): Promise<void> {
+      console.log(`Trocando de tela para ${displayText(display)}...`);
+      await osProvider.currentDisplay?.set(display);
+    }
+
+    const currentDisplay = await osProvider.currentDisplay.get();
+
+    switch (display) {
+      case 'other':
+        switch(currentDisplay) {
+          case 'monitor':
+            await doSwitch('tv');
+            break;
+          case 'tv':
+            await doSwitch('monitor');
+            break;
+        }
+        break;
+      case 'saved': {
+        const state = await this.getState();
+        const savedDisplay = await state.getWindowsDisplay();
+        if (savedDisplay === undefined) {
+          console.log(`A ${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} é ${displayText(savedDisplay)}`);
+        } else if (savedDisplay == currentDisplay) {
+          console.log(`A ${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} é ${displayText(savedDisplay)}, que já é a tela atual`);
+        } else {
+          await doSwitch(savedDisplay);
+        }
+        break;
+      }
+      case 'monitor':
+      case 'tv':
+        if (display === currentDisplay) {
+          console.log(`${displayText(display)} já é a tela atual.`);
+        } else {
+          await doSwitch(display);
+        }
+        break;
     }
   }
 

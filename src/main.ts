@@ -156,6 +156,25 @@ function handleScriptArguments(arg: string | undefined, args: string[]) {
     }
   }
 
+  const SWITCH_PREFIX = 'switch:';
+  if (arg === 'switch') {
+    arg = `${SWITCH_PREFIX}other`;
+  }
+  if (arg?.startsWith(SWITCH_PREFIX)) {
+    const switchOption = arg.substring(SWITCH_PREFIX.length);
+    switch (switchOption) {
+      case 'other':
+      case 'monitor':
+      case 'tv':
+      case 'saved':
+        script = { ...script, switchToDisplay: switchOption };
+        arg = args.shift();
+        break;
+      default:
+        throw new ArgumentError("Parâmetro inválido", arg);
+    }
+  }
+
   switch (arg) {
     case 'reboot':
     case 'shutdown':
@@ -182,7 +201,7 @@ function showUsage(out: typeof console.log = console.log) {
   out("  my-reboot dialog -x");
   out("    Exibe diálogo avançado.");
   out();
-  out("  my-reboot [SO] [TELA] [AÇÃO]");
+  out("  my-reboot [SO] [TELA] [TROCA-DE-TELA] [AÇÃO]");
   out("    SO poder ser:");
   out("      [os:]windows - Inicia Windows na próxima inicialização do computador.");
   out("      [os:]linux - Inicia Linux na próxima inicialização do computador.");
@@ -192,6 +211,12 @@ function showUsage(out: typeof console.log = console.log) {
   out("      [display:]monitor - Usa o monitor na próxima inicialização do Windows.");
   out("      [display:]tv - Usa a TV na próxima inicialização do Windows.");
   out("      display:unset - Deixa o Windows decidir a tela na próxima inicialização do Windows.");
+  out();
+  out("    TROCA-DE-TELA poder ser (somente no Windows):");
+  out("      switch[:other] - Troca para a outra tela.");
+  out("      switch:monitor - Troca para o monitor.");
+  out("      switch:tv - Troca para a TV.");
+  out("      switch:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.");
   out();
   out("    AÇÃO poder ser:");
   out("      reboot - Reinicia o computador.");

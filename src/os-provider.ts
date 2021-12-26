@@ -24,7 +24,7 @@ export abstract class OSProvider {
 
   abstract shutdown(): Promise<void>;
 
-  abstract currentDisplay: CurrentDisplay | undefined;
+  abstract readonly currentDisplay: CurrentDisplay | undefined;
 
   static async get(): Promise<OSProvider> {
     const osProvider = await import(`./${process.platform}-provider`);

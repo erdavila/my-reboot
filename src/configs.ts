@@ -47,6 +47,7 @@ class ConfigHandler<T> {
 export class Configs {
   private readonly grubEntryHandler: ConfigHandler<OperatingSystem>;
   private readonly deviceIdHandler: ConfigHandler<Display>;
+  private readonly displaySwitchArgHandler: ConfigHandler<Display>;
 
   static async load(stateDir: string) {
     const props = await Properties.load(`${stateDir}/my-reboot-configs.properties`);
@@ -56,6 +57,7 @@ export class Configs {
   private constructor(props: Properties) {
     this.grubEntryHandler = new ConfigHandler<OperatingSystem>(props, 'grubEntry', OPERATING_SYSTEMS, 'Linux');
     this.deviceIdHandler = new ConfigHandler<Display>(props, 'deviceId', DISPLAYS, 'Windows');
+    this.displaySwitchArgHandler = new ConfigHandler<Display>(props, 'displaySwitchArg', DISPLAYS, 'Windows');
   }
 
   getOperatingSystemByGrubEntry(grubEntry: string): OperatingSystem {
@@ -72,5 +74,9 @@ export class Configs {
 
   getDeviceId(display: Display): string {
     return this.deviceIdHandler.getValue(display);
+  }
+
+  getDisplaySwitchArg(display: Display): string {
+    return this.displaySwitchArgHandler.getValue(display);
   }
 }
