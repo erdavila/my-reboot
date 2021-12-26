@@ -38,11 +38,18 @@
       "category": "System",
       "icon": "dist/icon.png"
     },
+    "win": {
+      "icon": "dist/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false
+    },
     "files": [
       "dist/*.js",
       "dist/*.html",
       "dist/*.css",
-      "dist/icon.*"
+      "dist/icon.*",
+      "dist/get_active_display_device_id.exe"
     ]
   },
   "dependencies": {
