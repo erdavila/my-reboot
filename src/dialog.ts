@@ -13,6 +13,7 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
     fullscreenable: false,
     icon: asset(osProvider.icon),
     type: 'toolbar',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, `${options.filePrefix}-preload.js`),
       enablePreferredSizeMode: true,
@@ -21,10 +22,15 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
 
   win.loadFile(asset(`${options.filePrefix}.html`));
   win.removeMenu();
-  // win.webContents.openDevTools();
+  // win.webContents.openDevTools({ mode: "undocked", activate: false });
+
   win.webContents.on('preferred-size-changed', (_event, preferredSize: Size) => {
     win.setBounds({ height: preferredSize.height + EXTRA_HEIGHT });
     win.center();
+  });
+
+  win.once('ready-to-show', () => {
+    win.show();
   });
 }
 
