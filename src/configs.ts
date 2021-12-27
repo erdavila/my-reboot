@@ -25,7 +25,7 @@ class ConfigHandler<T> {
   }
 
   getValue(object: T): string {
-    const key = `${object}.${this.attribute}`;
+    const key = this.keyFor(object);
     const value = this.props.get(key);
     if (value !== undefined) {
       return value;
@@ -42,19 +42,29 @@ class ConfigHandler<T> {
       throw new ConfigurationError(`Configuração com valor ${value} não encontrada`, this.configProviderOS);
     }
   }
+
+  setValue(object: T, value: string) {
+    const key = this.keyFor(object);
+    this.props.set(key, value);
+  }
+
+  private keyFor(object: T) {
+    return `${object}.${this.attribute}`;
+  }
 }
 
 export class Configs {
-  private readonly grubEntryHandler: ConfigHandler<OperatingSystem>;
+  protected readonly grubEntryHandler: ConfigHandler<OperatingSystem>;
   private readonly deviceIdHandler: ConfigHandler<Display>;
   private readonly displaySwitchArgHandler: ConfigHandler<Display>;
 
-  static async load(stateDir: string) {
-    const props = await Properties.load(`${stateDir}/my-reboot-configs.properties`);
-    return new Configs(props);
+  protected static readonly FILE = 'my-reboot-configs.properties';
+
+  static async load(stateDir: string): Promise<Configs> {
+    return await ConfigsWriter.load(stateDir);
   }
 
-  private constructor(props: Properties) {
+  protected constructor(props: Properties) {
     this.grubEntryHandler = new ConfigHandler<OperatingSystem>(props, 'grubEntry', OPERATING_SYSTEMS, 'Linux');
     this.deviceIdHandler = new ConfigHandler<Display>(props, 'deviceId', DISPLAYS, 'Windows');
     this.displaySwitchArgHandler = new ConfigHandler<Display>(props, 'displaySwitchArg', DISPLAYS, 'Windows');
@@ -78,5 +88,27 @@ export class Configs {
 
   getDisplaySwitchArg(display: Display): string {
     return this.displaySwitchArgHandler.getValue(display);
+  }
+}
+
+export class ConfigsWriter extends Configs {
+  static override async load(stateDir: string): Promise<ConfigsWriter> {
+    const props = await Properties.load(`${stateDir}/${Configs.FILE}`);
+    return new ConfigsWriter(props);
+  }
+
+  private readonly props: Properties;
+
+  private constructor(props: Properties) {
+    super(props);
+    this.props = props;
+  }
+
+  setGrubEntry(operatingSystem: OperatingSystem, value: string) {
+    this.grubEntryHandler.setValue(operatingSystem, value);
+  }
+
+  async save() {
+    await this.props.save();
   }
 }

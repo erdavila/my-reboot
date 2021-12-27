@@ -6,17 +6,28 @@ export class Properties {
 
   static async load(path: string) {
     const map = new Map<string, string>();
-    const content = await fsPromises.readFile(path, 'ascii');
-    content
-      .split(/\r?\n/)
-      .filter(line => !line.startsWith('#'))
-      .forEach(line => {
-        const index = line.indexOf('=');
-        const key = line.substring(0, index);
-        const escapedValue = line.substring(index + 1);
-        if (key.length > 0) {
-          const value = escapedValue.replaceAll('\\\\', '\\');
-          map.set(key, value);
+
+    await fsPromises.readFile(path, 'ascii')
+      .then(content => {
+        content
+          .split(/\r?\n/)
+          .filter(line => !line.startsWith('#'))
+          .forEach(line => {
+            const index = line.indexOf('=');
+            const key = line.substring(0, index);
+            const escapedValue = line.substring(index + 1);
+            if (key.length > 0) {
+              const value = escapedValue.replaceAll('\\\\', '\\');
+              map.set(key, value);
+            }
+          });
+      })
+      .catch(e => {
+        if (e.code === 'ENOENT') {
+          console.warn(`Arquivo ${path} não encontrado. Prosseguindo com conteúdo vazio.`);
+        } else {
+          console.error("Erro desconhecido:", e);
+          process.exit(1);
         }
       });
 

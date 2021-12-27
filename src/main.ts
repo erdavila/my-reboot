@@ -5,6 +5,7 @@ import { operatingSystemText, State, displayText } from './state';
 import { showBasicDialog } from './basic-dialog';
 import { showAdvancedDialog } from './advanced-dialog';
 import { ExecuteScriptMessage, ReplaceDialogMessage } from './messages';
+import { configure } from './configure';
 
 class ArgumentError extends Error {
   constructor(message: string, arg: string) {
@@ -93,6 +94,12 @@ function handleArguments(args: string[]) {
     case "show": {
       noMoreArguments(args);
       showState();
+      break;
+    }
+
+    case "configure": {
+      noMoreArguments(args);
+      configure().then(() => process.exit());
       break;
     }
 
@@ -226,6 +233,9 @@ function showUsage(out: typeof console.log = console.log) {
   out();
   out("  my-reboot script NÚMERO");
   out("    Executa o script correspondente às ações disponíveis no diálogo básico do S.O. atual.");
+  out();
+  out("  my-reboot configure");
+  out("    Configura. Deve ser executado no Linux e no Windows ao menos uma vez.");
   out();
   out("  my-reboot -h|--help");
   out("    Exibe este conteúdo.");
