@@ -103,8 +103,8 @@ function handleArguments(args: string[]) {
 function showState() {
   OSProvider.get().then(async osProvider => {
     const state = new State(osProvider.stateDir);
-    const os = await state.getOperatingSystem();
-    const display = await state.getWindowsDisplay();
+    const os = await state.getNextBootOperatingSystem();
+    const display = await state.getNextWindowsBootDisplay();
     const currentDisplay = await osProvider.currentDisplayHandling?.get();
 
     console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(os));

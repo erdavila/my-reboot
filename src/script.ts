@@ -25,15 +25,15 @@ export class ScriptExecutor {
   async execute(script: Script) {
     await this.updateStateWith(
       script.nextBootOperatingSystem,
-      state => state.setOperatingSystem,
-      state => state.unsetOperatingSystem,
+      state => state.setNextBootOperatingSystem,
+      state => state.unsetNextBootOperatingSystem,
       os => `${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE} foi atualizado para ${operatingSystemText(os)}.`,
     );
 
     await this.updateStateWith(
       script.nextWindowsBootDisplay,
-      state => state.setWindowsDisplay,
-      state => state.unsetWindowsDisplay,
+      state => state.setNextWindowsBootDisplay,
+      state => state.unsetNextWindowsBootDisplay,
       display => `${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} foi atualizada para ${displayText(display)}.`,
     );
 
@@ -94,7 +94,7 @@ export class ScriptExecutor {
         break;
       case 'saved': {
         const state = await this.getState();
-        const savedDisplay = await state.getWindowsDisplay();
+        const savedDisplay = await state.getNextWindowsBootDisplay();
         if (savedDisplay === undefined) {
           console.log(`A ${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} é ${displayText(savedDisplay)}`);
         } else if (savedDisplay == currentDisplay) {

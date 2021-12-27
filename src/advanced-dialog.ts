@@ -6,8 +6,8 @@ import { showDialog } from "./dialog";
 export function showAdvancedDialog(osProvider: OSProvider) {
   ipcMain.handleOnce('get-state', async () => {
     const state = new State(osProvider.stateDir);
-    const operatingSystem = await state.getOperatingSystem();
-    const display = await state.getWindowsDisplay();
+    const operatingSystem = await state.getNextBootOperatingSystem();
+    const display = await state.getNextWindowsBootDisplay();
     const isSwitchDisplaySupported = osProvider.currentDisplayHandling !== undefined;
     const values: [OperatingSystem | undefined, Display | undefined, boolean] = [operatingSystem, display, isSwitchDisplaySupported];
     return values;

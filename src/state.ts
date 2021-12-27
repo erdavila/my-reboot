@@ -35,7 +35,7 @@ export class State {
     this.stateDir = stateDir;
   }
 
-  async getOperatingSystem(): Promise<OperatingSystem | undefined> {
+  async getNextBootOperatingSystem(): Promise<OperatingSystem | undefined> {
     const grubEntry = await this.withGrubenv(grubenv => grubenv.get(GRUB_ENTRY));
     if (grubEntry) {
       const configs = await Configs.load(this.stateDir);
@@ -45,12 +45,12 @@ export class State {
     }
   }
 
-  async setOperatingSystem(operatingSystem: OperatingSystem): Promise<void> {
+  async setNextBootOperatingSystem(operatingSystem: OperatingSystem): Promise<void> {
     const grubEntry = await this.getGrubEntryConfigFor(operatingSystem);
     await this.changeGrubenv(grubenv => grubenv.set(GRUB_ENTRY, grubEntry));
   }
 
-  async unsetOperatingSystem(): Promise<void>  {
+  async unsetNextBootOperatingSystem(): Promise<void>  {
     await this.changeGrubenv(grubenv => grubenv.clear(GRUB_ENTRY));
   }
 
@@ -74,15 +74,15 @@ export class State {
     return result;
   }
 
-  async getWindowsDisplay(): Promise<Display | undefined> {
+  async getNextWindowsBootDisplay(): Promise<Display | undefined> {
     return await this.withOptions((options) => options.get(WINDOWS_DISPLAY_KEY) as Display | undefined);
   }
 
-  async setWindowsDisplay(display: Display): Promise<void> {
+  async setNextWindowsBootDisplay(display: Display): Promise<void> {
     await this.changeOptions(options => options.set(WINDOWS_DISPLAY_KEY, display));
   }
 
-  async unsetWindowsDisplay(): Promise<void> {
+  async unsetNextWindowsBootDisplay(): Promise<void> {
     await this.changeOptions(options => options.clear(WINDOWS_DISPLAY_KEY));
   }
 
