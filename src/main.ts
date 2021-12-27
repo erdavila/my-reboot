@@ -1,11 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 import { OSProvider } from './os-provider';
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
-import { operatingSystemText, State, displayText } from './state';
+import { operatingSystemText, State, displayText, DISPLAYS } from './state';
 import { showBasicDialog } from './basic-dialog';
 import { showAdvancedDialog } from './advanced-dialog';
 import { ExecuteScriptMessage, ReplaceDialogMessage } from './messages';
-import { configure } from './configure';
+import { linuxConfigure, windowsConfigure } from './configure';
 
 class ArgumentError extends Error {
   constructor(message: string, arg: string) {
@@ -98,8 +98,22 @@ function handleArguments(args: string[]) {
     }
 
     case "configure": {
-      noMoreArguments(args);
-      configure().then(() => process.exit());
+      switch (process.platform) {
+        case 'linux':
+          noMoreArguments(args);
+          linuxConfigure().then(() => process.exit());
+          break;
+        case 'win32': {
+          const arg = args.shift();
+          const initialDisplay = DISPLAYS.find(display => display == arg);
+          if (initialDisplay === undefined  &&  arg !== undefined) {
+            exceedingArgument(arg);
+          }
+          noMoreArguments(args);
+          windowsConfigure(initialDisplay).then(() => process.exit());
+          break;
+        }
+      }
       break;
     }
 

@@ -55,8 +55,8 @@ class ConfigHandler<T> {
 
 export class Configs {
   protected readonly grubEntryHandler: ConfigHandler<OperatingSystem>;
-  private readonly deviceIdHandler: ConfigHandler<Display>;
-  private readonly displaySwitchArgHandler: ConfigHandler<Display>;
+  protected readonly deviceIdHandler: ConfigHandler<Display>;
+  protected readonly displaySwitchArgHandler: ConfigHandler<Display>;
 
   protected static readonly FILE = 'my-reboot-configs.properties';
 
@@ -106,6 +106,14 @@ export class ConfigsWriter extends Configs {
 
   setGrubEntry(operatingSystem: OperatingSystem, value: string) {
     this.grubEntryHandler.setValue(operatingSystem, value);
+  }
+
+  setDeviceId(display: Display, value: string) {
+    this.deviceIdHandler.setValue(display, value);
+  }
+
+  setDisplaySwitchArg(display: Display, value: string) {
+    this.displaySwitchArgHandler.setValue(display, value);
   }
 
   async save() {

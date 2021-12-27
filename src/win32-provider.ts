@@ -1,5 +1,5 @@
 import { execFile, CurrentDisplayHandling, OSProvider } from "./os-provider";
-import { Display, displayText } from "./state";
+import { Display } from "./state";
 import * as path from "path";
 import { Configs } from "./configs";
 
@@ -30,10 +30,10 @@ class WindowsProvider extends OSProvider {
     await execFile('shutdown', [arg, '/t', '0']);
   }
 
-  override currentDisplayHandling = new WindowsCurrentDisplay(this.stateDir);
+  override currentDisplayHandling = new WindowsCurrentDisplayHandling(this.stateDir);
 }
 
-class WindowsCurrentDisplay implements CurrentDisplayHandling {
+export class WindowsCurrentDisplayHandling implements CurrentDisplayHandling {
   private configs?: Configs = undefined;
   private readonly stateDir: string;
 
@@ -42,9 +42,7 @@ class WindowsCurrentDisplay implements CurrentDisplayHandling {
   }
 
   async get(): Promise<Display> {
-    const result = await execFile(path.join(__dirname, "get_active_display_device_id.exe"));
-    const deviceId = result.stdout.trimEnd();
-
+    const deviceId = await this.getActiveDisplayDeviceId();
     const configs = await this.getConfigs();
     return configs.getDisplayByDeviceId(deviceId);
   }
@@ -53,16 +51,26 @@ class WindowsCurrentDisplay implements CurrentDisplayHandling {
     const WAIT_SECONDS = 10;
     const configs = await this.getConfigs();
     const displaySwitchArg = configs.getDisplaySwitchArg(display);
-    await execFile("DisplaySwitch.exe", [displaySwitchArg]);
-    for (let i = 0; i < WAIT_SECONDS; i++) {
+    await this.executeDisplaySwitch(displaySwitchArg, WAIT_SECONDS);
+  }
+
+  async executeDisplaySwitch(arg: string, waitSeconds: number): Promise<boolean> {
+    const deviceIdBefore = await this.getActiveDisplayDeviceId();
+    await execFile("DisplaySwitch.exe", [arg]);
+    for (let i = 0; i < waitSeconds; i++) {
       await this.sleep(1000);
-      const currentDisplay = await this.get();
-      if (currentDisplay === display) {
-        return;
+      const deviceId = await this.getActiveDisplayDeviceId();
+      if (deviceId !== deviceIdBefore) {
+        return true;
       }
     }
 
-    console.error(`A tela não mudou para ${displayText(display)} em ${WAIT_SECONDS} segundos!`);
+    return false;
+  }
+
+  async getActiveDisplayDeviceId(): Promise<string> {
+    const result = await execFile(path.join(__dirname, "get_active_display_device_id.exe"));
+    return result.stdout.trimEnd();
   }
 
   private async sleep(ms: number) {

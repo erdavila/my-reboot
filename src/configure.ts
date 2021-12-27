@@ -1,23 +1,10 @@
 import * as fsPromises from 'fs/promises';
 import { ConfigsWriter } from './configs';
 import { OSProvider } from './os-provider';
-import { OperatingSystem, OPERATING_SYSTEMS } from './state';
+import { Display, DISPLAYS, OperatingSystem, OPERATING_SYSTEMS } from './state';
+import { WindowsCurrentDisplayHandling } from './win32-provider';
 
-export async function configure(): Promise<void> {
-  switch (process.platform) {
-    case 'linux':
-      await linuxConfigure();
-      break;
-    case 'win32':
-      await windowsConfigure();
-      break;
-  }
-
-  console.log("Configuração finalizada.");
-  process.exit();
-}
-
-async function linuxConfigure() {
+export async function linuxConfigure() {
   const GRUB_CFG = '/boot/grub/grub.cfg';
   const GRUB_ENTRY_RE = /.*'([a-zA-Z0-9_-]+)'\s*\{.*/;
 
@@ -55,8 +42,60 @@ async function linuxConfigure() {
   });
 
   await configsWriter.save();
+
+  configurationDone();
 }
 
-async function windowsConfigure() {
-  throw new Error("Not implemented: windowsConfigure()");
+export async function windowsConfigure(initialDisplay: Display | undefined) {
+  if (initialDisplay === undefined) {
+    console.log('Execute:');
+    console.log('  my-reboot configure TELA');
+    console.log(`onde TELA é a tela atual (${DISPLAYS.map(d => `"${d}"`).join(' ou ')}).`);
+    console.log();
+    console.log('Será testada a troca de telas. A configuração termina ao retornar para a tela inicial.');
+    process.exit();
+  }
+
+  const osProvider = await OSProvider.get();
+  const currentDisplayHandling = osProvider.currentDisplayHandling as WindowsCurrentDisplayHandling;
+
+  const DISPLAY_SWITCH_ARGS = ["/internal", "/external"] as const;
+  type DisplaySwitchArg = typeof DISPLAY_SWITCH_ARGS[number];
+
+  const initialDisplayDeviceId = await currentDisplayHandling.getActiveDisplayDeviceId();
+  const otherDisplay = initialDisplay === "tv" ? "monitor" : "tv";
+  let initialDisplaySwitchArg: DisplaySwitchArg;
+
+  let otherDisplayDeviceId: string;
+  let otherDisplaySwitchArg: DisplaySwitchArg;
+
+  console.log("Trocando de tela...");
+  const switched = await currentDisplayHandling.executeDisplaySwitch(DISPLAY_SWITCH_ARGS[0], 5);
+  if (switched) {
+    initialDisplaySwitchArg = DISPLAY_SWITCH_ARGS[1];
+    otherDisplayDeviceId = await currentDisplayHandling.getActiveDisplayDeviceId();
+    otherDisplaySwitchArg = DISPLAY_SWITCH_ARGS[0];
+  } else {
+    initialDisplaySwitchArg = DISPLAY_SWITCH_ARGS[0];
+    await currentDisplayHandling.executeDisplaySwitch(DISPLAY_SWITCH_ARGS[1], 5);
+    otherDisplayDeviceId = await currentDisplayHandling.getActiveDisplayDeviceId();
+    otherDisplaySwitchArg = DISPLAY_SWITCH_ARGS[1];
+  }
+
+  console.log("Voltando para a tela inicial...");
+  await currentDisplayHandling.executeDisplaySwitch(initialDisplaySwitchArg, 5);
+
+  const configsWriter = await ConfigsWriter.load(osProvider.stateDir);
+  configsWriter.setDeviceId(initialDisplay, initialDisplayDeviceId);
+  configsWriter.setDisplaySwitchArg(initialDisplay, initialDisplaySwitchArg);
+  configsWriter.setDeviceId(otherDisplay, otherDisplayDeviceId);
+  configsWriter.setDisplaySwitchArg(otherDisplay, otherDisplaySwitchArg);
+  await configsWriter.save();
+
+  configurationDone();
+}
+
+function configurationDone() {
+  console.log("Configuração finalizada.");
+  process.exit();
 }
