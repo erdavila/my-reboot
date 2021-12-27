@@ -12,7 +12,7 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
     resizable: false,
     fullscreenable: false,
     icon: asset(osProvider.icon),
-    type: 'toolbar',
+    ...(process.platform == 'win32' ? { type: 'toolbar' } : {}),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, `${options.filePrefix}-preload.js`),
