@@ -1,10 +1,10 @@
 import { OSProvider } from "./os-provider";
-import { ipcMain } from "electron";
 import { State } from "./state";
 import { showDialog } from "./dialog";
+import { GetStateMessage } from "./messages";
 
 export function showAdvancedDialog(osProvider: OSProvider) {
-  ipcMain.handleOnce('get-state', async () => {
+  GetStateMessage.receive(async () => {
     const state = new State(osProvider.stateDir);
     return await state.getValues();
   });

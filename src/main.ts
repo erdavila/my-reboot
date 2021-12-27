@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { OSProvider } from './os-provider';
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, Script, ScriptExecutor } from './script';
 import { operatingSystemText, State, displayText } from './state';
 import { showBasicDialog } from './basic-dialog';
 import { showAdvancedDialog } from './advanced-dialog';
+import { ExecuteScriptMessage, ReplaceDialogMessage } from './messages';
 
 class ArgumentError extends Error {
   constructor(message: string, arg: string) {
@@ -263,7 +264,7 @@ function showDialog(options: { advanced: boolean }) {
       }
     }
 
-    ipcMain.handle('replace-dialog', (_event, options: { advanced: boolean }) => {
+    ReplaceDialogMessage.receive(options => {
       BrowserWindow.getAllWindows().forEach(win => {
         win.close();
       });
@@ -271,10 +272,10 @@ function showDialog(options: { advanced: boolean }) {
       show(options.advanced);
     });
 
-    ipcMain.once('execute-script', async (_event, script: Script) => {
+    ExecuteScriptMessage.receive(async script => {
       await ScriptExecutor.get().execute(script);
       app.quit();
-    })
+    });
 
     show(options.advanced);
   });

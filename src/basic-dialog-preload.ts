@@ -1,8 +1,7 @@
-import { ipcRenderer } from "electron";
-import { PredefinedScript } from "./os-provider";
+import { ExecuteScriptMessage, GetPredefinedScripts, ReplaceDialogMessage } from "./messages";
 
 window.addEventListener("DOMContentLoaded", () => {
-  ipcRenderer.invoke('get-predefined-scripts').then((predefinedScripts: PredefinedScript[]) => {
+  GetPredefinedScripts.send().then(predefinedScripts => {
     const advancedBlock = document.getElementById('footer');
 
     predefinedScripts.forEach((predefScript) => {
@@ -10,7 +9,7 @@ window.addEventListener("DOMContentLoaded", () => {
       button.classList.add('script-button');
       button.append(document.createTextNode(predefScript.buttonLabel));
       button.addEventListener('click', () => {
-        ipcRenderer.send('execute-script', predefScript.script);
+        ExecuteScriptMessage.send(predefScript.script);
       });
 
       const div = document.createElement('div');
@@ -20,6 +19,6 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById('switch-mode')?.addEventListener('click', () => {
-    ipcRenderer.invoke('replace-dialog', { advanced: true });
+    ReplaceDialogMessage.send({ advanced: true });
   });
 });

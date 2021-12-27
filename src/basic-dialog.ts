@@ -1,9 +1,9 @@
-import { ipcMain } from "electron";
 import { OSProvider } from "./os-provider";
 import { showDialog } from "./dialog";
+import { GetPredefinedScripts } from "./messages";
 
 export function showBasicDialog(osProvider: OSProvider) {
-  ipcMain.handleOnce('get-predefined-scripts', () =>
+  GetPredefinedScripts.receive(() =>
     osProvider.predefinedScripts
   );
 

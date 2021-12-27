@@ -1,9 +1,9 @@
-import { ipcRenderer } from "electron";
+import { ExecuteScriptMessage, GetStateMessage, ReplaceDialogMessage } from "./messages";
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, REBOOT_ACTIONS, Script } from "./script";
-import { OPERATING_SYSTEMS, DISPLAYS, StateValues } from "./state";
+import { OPERATING_SYSTEMS, DISPLAYS } from "./state";
 
 window.addEventListener("DOMContentLoaded", () => {
-  ipcRenderer.invoke('get-state').then((stateValues: StateValues) => {
+  GetStateMessage.send().then(stateValues => {
     function checkElement<T>(type: string, value: T | undefined) {
       const elementValue = value === undefined ? 'unset' : value
       const element = document.querySelector(`input[name=${type}][value=${elementValue}]`);
@@ -82,10 +82,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     console.log("script:", script);
 
-    ipcRenderer.send('execute-script', script);
+    ExecuteScriptMessage.send(script);
   });
 
   document.getElementById('switch-mode')?.addEventListener('click', () => {
-    ipcRenderer.invoke('replace-dialog', { advanced: false });
+    ReplaceDialogMessage.send({ advanced: false });
   });
 });
