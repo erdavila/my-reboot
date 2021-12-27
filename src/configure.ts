@@ -1,6 +1,7 @@
+import { app } from 'electron';
 import * as fsPromises from 'fs/promises';
 import { ConfigsWriter } from './configs';
-import { OSProvider } from './os-provider';
+import { execFile, OSProvider } from './os-provider';
 import { Display, DISPLAYS, OperatingSystem, OPERATING_SYSTEMS } from './state';
 import { WindowsCurrentDisplayHandling } from './win32-provider';
 
@@ -91,6 +92,14 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
   configsWriter.setDeviceId(otherDisplay, otherDisplayDeviceId);
   configsWriter.setDisplaySwitchArg(otherDisplay, otherDisplaySwitchArg);
   await configsWriter.save();
+
+  console.log("Registrando troca de tela ao iniciar o Windows...");
+  await execFile('REG', [
+    'ADD', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
+    '/v', 'My Reboot Display Switch',
+    '/d', `"${app.getPath('exe')}" -- switch:saved`,
+    '/f'
+  ]);
 
   configurationDone();
 }
