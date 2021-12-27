@@ -1,9 +1,9 @@
 import { ipcRenderer } from "electron";
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, REBOOT_ACTIONS, Script } from "./script";
-import { OperatingSystem, OPERATING_SYSTEMS, Display, DISPLAYS } from "./state";
+import { OPERATING_SYSTEMS, DISPLAYS, StateValues } from "./state";
 
 window.addEventListener("DOMContentLoaded", () => {
-  ipcRenderer.invoke('get-state').then(([os, display, isSwitchDisplaySupported]: [OperatingSystem | undefined, Display | undefined, boolean]) => {
+  ipcRenderer.invoke('get-state').then((stateValues: StateValues) => {
     function checkElement<T>(type: string, value: T | undefined) {
       const elementValue = value === undefined ? 'unset' : value
       const element = document.querySelector(`input[name=${type}][value=${elementValue}]`);
@@ -12,10 +12,10 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    checkElement('os', os);
-    checkElement('display', display);
+    checkElement('os', stateValues.nextBootOperatingSystem);
+    checkElement('display', stateValues.nextWindowsBootDisplay);
 
-    if (!isSwitchDisplaySupported) {
+    if (!stateValues.currentDisplay) {
       document.getElementById('switch-display')?.classList.add('hidden');
     }
   });

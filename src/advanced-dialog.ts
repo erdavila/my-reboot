@@ -1,16 +1,12 @@
 import { OSProvider } from "./os-provider";
 import { ipcMain } from "electron";
-import { OperatingSystem, State, Display } from "./state";
+import { State } from "./state";
 import { showDialog } from "./dialog";
 
 export function showAdvancedDialog(osProvider: OSProvider) {
   ipcMain.handleOnce('get-state', async () => {
     const state = new State(osProvider.stateDir);
-    const operatingSystem = await state.getNextBootOperatingSystem();
-    const display = await state.getNextWindowsBootDisplay();
-    const isSwitchDisplaySupported = osProvider.currentDisplayHandling !== undefined;
-    const values: [OperatingSystem | undefined, Display | undefined, boolean] = [operatingSystem, display, isSwitchDisplaySupported];
-    return values;
+    return await state.getValues();
   });
 
   showDialog(osProvider, {

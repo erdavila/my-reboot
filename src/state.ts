@@ -1,6 +1,7 @@
 import chalk = require("chalk");
 import { Configs } from "./configs";
 import { Grubenv } from "./grubenv";
+import { OSProvider } from "./os-provider";
 import { Properties } from "./properties";
 
 const OperatingSystems = ['windows', 'linux'] as const;
@@ -27,6 +28,12 @@ export function displayText(display: Display | undefined) {
 
 const GRUB_ENTRY = 'saved_entry';
 const WINDOWS_DISPLAY_KEY = 'windows.display';
+
+export interface StateValues {
+  readonly nextBootOperatingSystem: OperatingSystem | undefined;
+  readonly nextWindowsBootDisplay: Display | undefined;
+  readonly currentDisplay: Display | undefined;
+}
 
 export class State {
   private readonly stateDir: string;
@@ -99,5 +106,14 @@ export class State {
     const options = await Properties.load(`${this.stateDir}/my-reboot-options.properties`);
     const result = operation(options);
     return result;
+  }
+
+  async getValues(): Promise<StateValues> {
+    const osProvider = await OSProvider.get();
+    return {
+      nextBootOperatingSystem: await this.getNextBootOperatingSystem(),
+      nextWindowsBootDisplay: await this.getNextWindowsBootDisplay(),
+      currentDisplay: await osProvider.currentDisplayHandling?.get(),
+    };
   }
 }

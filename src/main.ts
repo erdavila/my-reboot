@@ -103,14 +103,12 @@ function handleArguments(args: string[]) {
 function showState() {
   OSProvider.get().then(async osProvider => {
     const state = new State(osProvider.stateDir);
-    const os = await state.getNextBootOperatingSystem();
-    const display = await state.getNextWindowsBootDisplay();
-    const currentDisplay = await osProvider.currentDisplayHandling?.get();
+    const stateValues = await state.getValues();
 
-    console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(os));
-    console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, displayText(display));
-    if (currentDisplay !== undefined) {
-      console.log("Tela atual:", displayText(currentDisplay));
+    console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(stateValues.nextBootOperatingSystem));
+    console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, displayText(stateValues.nextWindowsBootDisplay));
+    if (stateValues.currentDisplay) {
+      console.log("Tela atual:", displayText(stateValues.currentDisplay));
     }
 
     process.exit()
