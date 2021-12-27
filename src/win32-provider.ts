@@ -1,4 +1,4 @@
-import { execFile, CurrentDisplay, OSProvider } from "./os-provider";
+import { execFile, CurrentDisplayHandling, OSProvider } from "./os-provider";
 import { Display, displayText } from "./state";
 import * as path from "path";
 import { Configs } from "./configs";
@@ -30,10 +30,10 @@ class WindowsProvider extends OSProvider {
     await execFile('shutdown', [arg, '/t', '0']);
   }
 
-  override currentDisplay = new WindowsCurrentDisplay(this.stateDir);
+  override currentDisplayHandling = new WindowsCurrentDisplay(this.stateDir);
 }
 
-class WindowsCurrentDisplay implements CurrentDisplay {
+class WindowsCurrentDisplay implements CurrentDisplayHandling {
   private configs?: Configs = undefined;
   private readonly stateDir: string;
 

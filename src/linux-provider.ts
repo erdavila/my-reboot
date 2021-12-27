@@ -38,7 +38,7 @@ class LinuxProvider extends OSProvider {
     await execFile('systemctl', [command]);
   }
 
-  override currentDisplay = undefined;
+  override currentDisplayHandling = undefined;
 }
 
 export default new LinuxProvider();

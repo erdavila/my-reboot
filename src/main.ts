@@ -105,7 +105,7 @@ function showState() {
     const state = new State(osProvider.stateDir);
     const os = await state.getOperatingSystem();
     const display = await state.getWindowsDisplay();
-    const currentDisplay = await osProvider.currentDisplay?.get();
+    const currentDisplay = await osProvider.currentDisplayHandling?.get();
 
     console.log(`${NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}:`, operatingSystemText(os));
     console.log(`${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}:`, displayText(display));

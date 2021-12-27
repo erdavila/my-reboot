@@ -70,16 +70,16 @@ export class ScriptExecutor {
 
   private async switchToDisplay(display: Display | 'other' | 'saved') {
     const osProvider = await OSProvider.get();
-    if (osProvider.currentDisplay === undefined) {
+    if (osProvider.currentDisplayHandling === undefined) {
       throw new Error("O sistema operacional atual não suporta troca de tela");
     }
 
     async function doSwitch(display: Display): Promise<void> {
       console.log(`Trocando de tela para ${displayText(display)}...`);
-      await osProvider.currentDisplay?.set(display);
+      await osProvider.currentDisplayHandling?.set(display);
     }
 
-    const currentDisplay = await osProvider.currentDisplay.get();
+    const currentDisplay = await osProvider.currentDisplayHandling.get();
 
     switch (display) {
       case 'other':

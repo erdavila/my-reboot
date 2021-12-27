@@ -8,7 +8,7 @@ export interface PredefinedScript {
   readonly buttonLabel: string;
 }
 
-export interface CurrentDisplay {
+export interface CurrentDisplayHandling {
   get(): Promise<Display>;
   set(display: Display): Promise<void>;
 }
@@ -24,7 +24,7 @@ export abstract class OSProvider {
 
   abstract shutdown(): Promise<void>;
 
-  abstract readonly currentDisplay: CurrentDisplay | undefined;
+  abstract readonly currentDisplayHandling: CurrentDisplayHandling | undefined;
 
   static async get(): Promise<OSProvider> {
     const osProvider = await import(`./${process.platform}-provider`);
