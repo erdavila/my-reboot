@@ -288,11 +288,11 @@ function showDialog(options: { advanced: boolean }) {
       }
     }
 
-    CloseDialogMessage.receive(async () => {
+    CloseDialogMessage.once(async () => {
       app.quit();
     });
 
-    ReplaceDialogMessage.receive(options => {
+    ReplaceDialogMessage.handle(options => {
       BrowserWindow.getAllWindows().forEach(win => {
         win.close();
       });
@@ -300,7 +300,7 @@ function showDialog(options: { advanced: boolean }) {
       show(options.advanced);
     });
 
-    ExecuteScriptMessage.receive(async script => {
+    ExecuteScriptMessage.once(async script => {
       await ScriptExecutor.get().execute(script);
       app.quit();
     });

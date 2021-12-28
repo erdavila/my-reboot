@@ -3,68 +3,62 @@ import { PredefinedScript } from "./os-provider";
 import { Script } from "./script";
 import { StateValues } from "./state";
 
-export const CloseDialogMessage = {
-  CHANNEL: 'close-dialog',
+class MessageWithoutResponse<Args extends unknown[]> {
+  private readonly channel: string;
 
-  send() {
-    return ipcRenderer.send(this.CHANNEL);
-  },
+  constructor(channel: string) {
+    this.channel = channel;
+  }
 
-  receive(callback: () => Promise<void>) {
-    ipcMain.once(this.CHANNEL, async () =>
-      await callback()
+  send(...args: Args) {
+    ipcRenderer.send(this.channel, args);
+  }
+
+  on(callback: (...args: Args) => Promise<void>) {
+    this.receive(false, callback);
+  }
+
+  once(callback: (...args: Args) => Promise<void>) {
+    this.receive(true, callback);
+  }
+
+  private receive(once: boolean, callback: (...args: Args) => Promise<void>) {
+    const receive = once ? ipcMain.once : ipcMain.on;
+    receive.call(ipcMain, this.channel, async (_event, args: Args) =>
+      await callback(...args)
     );
-  },
+  }
 }
 
-export const ExecuteScriptMessage = {
-  CHANNEL: 'execute-script',
+class MessageWithResponse<Args extends unknown[], Response> {
+  private readonly channel: string;
 
-  send(script: Script) {
-    return ipcRenderer.send(this.CHANNEL, script);
-  },
+  constructor(channel: string) {
+    this.channel = channel;
+  }
 
-  receive(callback: (script: Script) => Promise<void>) {
-    ipcMain.once(this.CHANNEL, async (_event, script: Script) =>
-      await callback(script)
+  invoke(...args: Args): Promise<Response> {
+    return ipcRenderer.invoke(this.channel, args)
+  }
+
+  handle(callback: (...args: Args) => (Response | Promise<Response>)) {
+    this.receive(false, callback);
+  }
+
+  handleOnce(callback: (...args: Args) => (Response | Promise<Response>)) {
+    this.receive(true, callback);
+  }
+
+  private receive(once: boolean, callback: (...args: Args) => (Response | Promise<Response>)) {
+    const receive = once ? ipcMain.handleOnce : ipcMain.handle;
+    receive.call(ipcMain, this.channel, (_event, args) =>
+      callback(...args)
     );
-  },
-};
-
-export const GetPredefinedScripts = {
-  CHANNEL: 'get-predefined-scripts',
-
-  send(): Promise<PredefinedScript[]> {
-    return ipcRenderer.invoke(this.CHANNEL);
-  },
-
-  receive(callback: () => PredefinedScript[]) {
-    ipcMain.handleOnce(this.CHANNEL, callback);
-  },
+  }
 }
 
-export const GetStateMessage = {
-  CHANNEL: 'get-state',
-
-  send(): Promise<StateValues> {
-    return ipcRenderer.invoke(this.CHANNEL);
-  },
-
-  receive(callback: () => Promise<StateValues>) {
-    ipcMain.handleOnce(this.CHANNEL, callback);
-  },
-};
-
-export const ReplaceDialogMessage = {
-  CHANNEL: 'replace-dialog',
-
-  send(options: { advanced: boolean }) {
-    ipcRenderer.invoke(this.CHANNEL, options);
-  },
-
-  receive(callback: (options: { advanced: boolean }) => void) {
-    ipcMain.handle(this.CHANNEL, (_event, options: { advanced: boolean }) =>
-      callback(options)
-    );
-  },
-};
+export const CloseDialogMessage = new MessageWithoutResponse<[]>('close-dialog');
+export const ExecuteScriptMessage = new MessageWithoutResponse<[script: Script]>('execute-script');
+export const GetPredefinedScripts = new MessageWithResponse<[], PredefinedScript[]>('get-predefined-scripts');
+export const GetStateValuesMessage = new MessageWithResponse<[], StateValues>('get-state-values');
+export const ReplaceDialogMessage = new MessageWithResponse<[options: { advanced: boolean }], void>('replace-dialog');

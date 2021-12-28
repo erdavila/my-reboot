@@ -3,7 +3,7 @@ import { showDialog } from "./dialog";
 import { GetPredefinedScripts } from "./messages";
 
 export function showBasicDialog(osProvider: OSProvider) {
-  GetPredefinedScripts.receive(() =>
+  GetPredefinedScripts.handleOnce(() =>
     osProvider.predefinedScripts
   );
 

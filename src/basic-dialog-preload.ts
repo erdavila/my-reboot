@@ -2,7 +2,7 @@ import { preloadCommon } from "./dialog-preload";
 import { ExecuteScriptMessage, GetPredefinedScripts } from "./messages";
 
 window.addEventListener("DOMContentLoaded", () => {
-  GetPredefinedScripts.send().then(predefinedScripts => {
+  GetPredefinedScripts.invoke().then(predefinedScripts => {
     const advancedBlock = document.getElementById('footer');
 
     predefinedScripts.forEach((predefScript) => {
