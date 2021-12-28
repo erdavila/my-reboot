@@ -32,17 +32,16 @@ export async function linuxConfigure() {
     });
 
   const osProvider = await OSProvider.get()
-  const configsWriter = await ConfigsWriter.load(osProvider.stateDir);
-  OPERATING_SYSTEMS.forEach(os => {
-    const grubEntry = entries[os];
-    if (grubEntry === undefined) {
-      throw new Error(`Entrada não encontrada para ${os}!`);
-    }
+  await saveConfigs(osProvider, writer => {
+    OPERATING_SYSTEMS.forEach(os => {
+      const grubEntry = entries[os];
+      if (grubEntry === undefined) {
+        throw new Error(`Entrada não encontrada para ${os}!`);
+      }
 
-    configsWriter.setGrubEntry(os, grubEntry);
+      writer.setGrubEntry(os, grubEntry);
+    });
   });
-
-  await configsWriter.save();
 
   configurationDone();
 }
@@ -86,12 +85,12 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
   console.log("Voltando para a tela inicial...");
   await currentDisplayHandling.executeDisplaySwitch(initialDisplaySwitchArg, 5);
 
-  const configsWriter = await ConfigsWriter.load(osProvider.stateDir);
-  configsWriter.setDeviceId(initialDisplay, initialDisplayDeviceId);
-  configsWriter.setDisplaySwitchArg(initialDisplay, initialDisplaySwitchArg);
-  configsWriter.setDeviceId(otherDisplay, otherDisplayDeviceId);
-  configsWriter.setDisplaySwitchArg(otherDisplay, otherDisplaySwitchArg);
-  await configsWriter.save();
+  await saveConfigs(osProvider, writer => {
+    writer.setDeviceId(initialDisplay, initialDisplayDeviceId);
+    writer.setDisplaySwitchArg(initialDisplay, initialDisplaySwitchArg);
+    writer.setDeviceId(otherDisplay, otherDisplayDeviceId);
+    writer.setDisplaySwitchArg(otherDisplay, otherDisplaySwitchArg);
+  });
 
   console.log("Registrando troca de tela ao iniciar o Windows...");
   await execFile('REG', [
@@ -102,6 +101,13 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
   ]);
 
   configurationDone();
+}
+
+async function saveConfigs(osProvider: OSProvider, set: (configsWriter: ConfigsWriter) => void) {
+  const configsWriter = await ConfigsWriter.load(osProvider.stateDir);
+  set(configsWriter);
+  console.log("Salvando configurações...");
+  await configsWriter.save();
 }
 
 function configurationDone() {
