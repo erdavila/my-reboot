@@ -1,4 +1,5 @@
-import { ExecuteScriptMessage, GetStateMessage, ReplaceDialogMessage } from "./messages";
+import { preloadCommon } from "./dialog-preload";
+import { ExecuteScriptMessage, GetStateMessage } from "./messages";
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, REBOOT_ACTIONS, Script } from "./script";
 import { OPERATING_SYSTEMS, DISPLAYS } from "./state";
 
@@ -85,7 +86,5 @@ window.addEventListener("DOMContentLoaded", () => {
     ExecuteScriptMessage.send(script);
   });
 
-  document.getElementById('switch-mode')?.addEventListener('click', () => {
-    ReplaceDialogMessage.send({ advanced: false });
-  });
+  preloadCommon({ advancedDialog: true });
 });

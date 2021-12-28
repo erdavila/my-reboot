@@ -1,4 +1,5 @@
-import { ExecuteScriptMessage, GetPredefinedScripts, ReplaceDialogMessage } from "./messages";
+import { preloadCommon } from "./dialog-preload";
+import { ExecuteScriptMessage, GetPredefinedScripts } from "./messages";
 
 window.addEventListener("DOMContentLoaded", () => {
   GetPredefinedScripts.send().then(predefinedScripts => {
@@ -18,7 +19,5 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById('switch-mode')?.addEventListener('click', () => {
-    ReplaceDialogMessage.send({ advanced: true });
-  });
+  preloadCommon({ advancedDialog: false });
 });

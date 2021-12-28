@@ -4,7 +4,7 @@ import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE
 import { operatingSystemText, State, displayText, DISPLAYS } from './state';
 import { showBasicDialog } from './basic-dialog';
 import { showAdvancedDialog } from './advanced-dialog';
-import { ExecuteScriptMessage, ReplaceDialogMessage } from './messages';
+import { CloseDialogMessage, ExecuteScriptMessage, ReplaceDialogMessage } from './messages';
 import { linuxConfigure, windowsConfigure } from './configure';
 
 class ArgumentError extends Error {
@@ -287,6 +287,10 @@ function showDialog(options: { advanced: boolean }) {
         showBasicDialog(osProvider);
       }
     }
+
+    CloseDialogMessage.receive(async () => {
+      app.quit();
+    });
 
     ReplaceDialogMessage.receive(options => {
       BrowserWindow.getAllWindows().forEach(win => {

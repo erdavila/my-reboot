@@ -3,6 +3,20 @@ import { PredefinedScript } from "./os-provider";
 import { Script } from "./script";
 import { StateValues } from "./state";
 
+export const CloseDialogMessage = {
+  CHANNEL: 'close-dialog',
+
+  send() {
+    return ipcRenderer.send(this.CHANNEL);
+  },
+
+  receive(callback: () => Promise<void>) {
+    ipcMain.once(this.CHANNEL, async () =>
+      await callback()
+    );
+  },
+}
+
 export const ExecuteScriptMessage = {
   CHANNEL: 'execute-script',
 
