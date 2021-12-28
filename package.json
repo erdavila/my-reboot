@@ -35,20 +35,18 @@
     "productName": "My Reboot",
     "linux": {
       "target": "deb",
-      "category": "System",
-      "icon": "dist/icon.png"
+      "category": "System;Utility;",
+      "icon": "dist/assets"
     },
     "win": {
-      "icon": "dist/icon.ico"
+      "icon": "dist/assets/icon.ico"
     },
     "nsis": {
       "oneClick": false
     },
     "files": [
       "dist/*.js",
-      "dist/*.html",
-      "dist/*.css",
-      "dist/icon.*",
+      "dist/assets/*",
       "dist/get_active_display_device_id.exe"
     ]
   },

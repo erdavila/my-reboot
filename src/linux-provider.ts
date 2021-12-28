@@ -24,7 +24,7 @@ class LinuxProvider extends OSProvider {
 
   override stateDir = '/boot/grub/grubenv.dir';
 
-  override icon = 'icon.png';
+  override icon = '128x128.png';
 
   override async reboot(): Promise<void> {
     await this.systemctl('reboot');

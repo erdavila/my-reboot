@@ -3,7 +3,7 @@ import * as path from "path";
 import { OSProvider } from "./os-provider";
 
 export function showDialog(osProvider: OSProvider, options: { width: number, filePrefix: string }) {
-  const asset = (file: string) => path.join(__dirname, file);
+  const asset = (file: string) => path.join(__dirname, 'assets', file);
 
   const win = new BrowserWindow({
     width: options.width,

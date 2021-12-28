@@ -1,6 +1,6 @@
 dist/*
 !dist/*.html
 !dist/*.css
-!dist/icon.*
+!dist/assets
 node_modules/
 *.exe
