@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "my-reboot",
-    "productName": "My Reboot",
+    "productName": "my-reboot",
     "linux": {
       "target": "deb",
       "category": "System;Utility;",
@@ -42,7 +42,13 @@
       "icon": "dist/assets/icon.ico"
     },
     "nsis": {
-      "oneClick": false
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "My Reboot",
+      "menuCategory": "My Reboot"
     },
     "files": [
       "dist/*.js",

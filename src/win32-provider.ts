@@ -34,6 +34,8 @@ class WindowsProvider extends OSProvider {
 }
 
 export class WindowsCurrentDisplayHandling implements CurrentDisplayHandling {
+  static readonly DISPLAY_SWITCH_PATH = 'C:\\Windows\\system32\\DisplaySwitch.exe';
+
   private configs?: Configs = undefined;
   private readonly stateDir: string;
 
@@ -56,7 +58,7 @@ export class WindowsCurrentDisplayHandling implements CurrentDisplayHandling {
 
   async executeDisplaySwitch(arg: string, waitSeconds: number): Promise<boolean> {
     const deviceIdBefore = await this.getActiveDisplayDeviceId();
-    await execFile("DisplaySwitch.exe", [arg]);
+    await execFile(WindowsCurrentDisplayHandling.DISPLAY_SWITCH_PATH, [arg]);
     for (let i = 0; i < waitSeconds; i++) {
       await this.sleep(1000);
       const deviceId = await this.getActiveDisplayDeviceId();

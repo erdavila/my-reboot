@@ -1,5 +1,6 @@
 import { app } from 'electron';
-import * as fsPromises from 'fs/promises';
+import * as fsPromises from 'node:fs/promises';
+import * as path from "node:path";
 import { ConfigsWriter } from './configs';
 import { execFile, OSProvider } from './os-provider';
 import { Display, DISPLAYS, OperatingSystem, OPERATING_SYSTEMS } from './state';
@@ -56,6 +57,14 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
     process.exit();
   }
 
+  await detectDisplays(initialDisplay);
+  await setDisplaySwitchRunOnStartup();
+  await createDisplaySwitchShortcuts();
+
+  configurationDone();
+}
+
+async function detectDisplays(initialDisplay: Display) {
   const osProvider = await OSProvider.get();
   const currentDisplayHandling = osProvider.currentDisplayHandling as WindowsCurrentDisplayHandling;
 
@@ -63,9 +72,8 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
   type DisplaySwitchArg = typeof DISPLAY_SWITCH_ARGS[number];
 
   const initialDisplayDeviceId = await currentDisplayHandling.getActiveDisplayDeviceId();
-  const otherDisplay = initialDisplay === "tv" ? "monitor" : "tv";
   let initialDisplaySwitchArg: DisplaySwitchArg;
-
+  const otherDisplay = initialDisplay === "tv" ? "monitor" : "tv";
   let otherDisplayDeviceId: string;
   let otherDisplaySwitchArg: DisplaySwitchArg;
 
@@ -91,16 +99,47 @@ export async function windowsConfigure(initialDisplay: Display | undefined) {
     writer.setDeviceId(otherDisplay, otherDisplayDeviceId);
     writer.setDisplaySwitchArg(otherDisplay, otherDisplaySwitchArg);
   });
+}
 
+async function setDisplaySwitchRunOnStartup() {
   console.log("Registrando troca de tela ao iniciar o Windows...");
   await execFile('REG', [
     'ADD', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
     '/v', 'My Reboot Display Switch',
     '/d', `"${app.getPath('exe')}" -- switch:saved`,
-    '/f'
+    '/f',
   ]);
+}
 
-  configurationDone();
+async function createDisplaySwitchShortcuts() {
+  const script = `
+    Set WshShell = WScript.CreateObject("WScript.Shell")
+    Set oLink = WshShell.CreateShortcut(Wscript.Arguments(0) + "\\Trocar de Tela.lnk")
+    oLink.TargetPath = "${app.getPath('exe')}"
+    oLink.Arguments = "-- switch:other"
+    oLink.Description = "Trocar de Tela"
+    oLink.IconLocation = "${WindowsCurrentDisplayHandling.DISPLAY_SWITCH_PATH},2"
+    oLink.Hotkey = "ALT+CTRL+X"
+    oLink.Save
+  `;
+
+  const tempDir = await fsPromises.mkdtemp('my-reboot');
+  const scriptPath = path.join(tempDir, 'CreateShortcut.vbs');
+  try {
+    await fsPromises.writeFile(scriptPath, script);
+
+    const shortcuts = [
+      ['na Área de Trabalho', app.getPath('desktop')],
+      ['no menu Iniciar', path.join(app.getPath('appData'), 'Microsoft\\Windows\\Start Menu\\Programs\\My Reboot')],
+    ] as const;
+
+    for (const [where, shortcutPath] of shortcuts) {
+      console.log(`Criando atalho para Troca de Tela ${where}...`);
+      await execFile('cscript', [scriptPath, shortcutPath]);
+    }
+  } finally {
+    await fsPromises.rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 async function saveConfigs(osProvider: OSProvider, set: (configsWriter: ConfigsWriter) => void) {
