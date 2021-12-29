@@ -10,9 +10,9 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
     height: 100,
     center: true,
     resizable: false,
+    minimizable: false,
     fullscreenable: false,
     icon: asset(osProvider.icon),
-    ...(process.platform == 'win32' ? { type: 'toolbar' } : {}),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, `${options.filePrefix}-preload.js`),
