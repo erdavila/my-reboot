@@ -7,8 +7,6 @@ export function showDialog(osProvider: OSProvider, options: { width: number, fil
 
   const win = new BrowserWindow({
     width: options.width,
-    height: 100,
-    center: true,
     resizable: false,
     minimizable: false,
     fullscreenable: false,

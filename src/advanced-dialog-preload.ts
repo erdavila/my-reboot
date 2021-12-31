@@ -1,9 +1,9 @@
-import { preloadCommon } from "./dialog-preload";
+import { onDOMContentLoaded } from "./dialog-preload";
 import { ExecuteScriptMessage, GetStateValuesMessage } from "./messages";
 import { NEXT_BOOT_OPERATING_SYSTEM_SENTENCE, NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE, REBOOT_ACTIONS, Script } from "./script";
 import { OPERATING_SYSTEMS, DISPLAYS } from "./state";
 
-window.addEventListener("DOMContentLoaded", () => {
+onDOMContentLoaded({ advancedDialog: true }, () => {
   GetStateValuesMessage.invoke().then(stateValues => {
     function checkElement<T>(type: string, value: T | undefined) {
       const elementValue = value === undefined ? 'unset' : value
@@ -85,6 +85,4 @@ window.addEventListener("DOMContentLoaded", () => {
 
     ExecuteScriptMessage.send(script);
   });
-
-  preloadCommon({ advancedDialog: true });
 });

@@ -1,7 +1,7 @@
-import { preloadCommon } from "./dialog-preload";
+import { onDOMContentLoaded } from "./dialog-preload";
 import { ExecuteScriptMessage, GetPredefinedScripts } from "./messages";
 
-window.addEventListener("DOMContentLoaded", () => {
+onDOMContentLoaded({ advancedDialog: false }, () => {
   GetPredefinedScripts.invoke().then(predefinedScripts => {
     const advancedBlock = document.getElementById('footer');
 
@@ -18,6 +18,4 @@ window.addEventListener("DOMContentLoaded", () => {
       document.body.insertBefore(div, advancedBlock);
     });
   });
-
-  preloadCommon({ advancedDialog: false });
 });
