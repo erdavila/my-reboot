@@ -101,6 +101,7 @@ export class ScriptExecutor {
           console.log(`A ${NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE} é ${displayText(savedDisplay)}, que já é a tela atual`);
         } else {
           await doSwitch(savedDisplay);
+          await state.unsetNextWindowsBootDisplay();
         }
         break;
       }
