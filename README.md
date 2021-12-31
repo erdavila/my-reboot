@@ -1,6 +1,7 @@
 # My Reboot
 
-## No Windows
+## Instalação
+### No Windows
 ```bash
 yarn
 yarn build
@@ -19,7 +20,7 @@ dist/my-reboot\ Setup\ 2.0.0.exe
 /d/Users/erdavila/AppData/Local/Programs/my-reboot/my-reboot.exe -- configure
 ```
 
-## No Linux
+### No Linux
 ```bash
 yarn
 yarn build
@@ -33,3 +34,20 @@ sudo dpkg -i dist/my-reboot_2.0.0_amd64.deb
 # Configuração
 my-reboot -- configure
 ```
+
+## Desenvolmimento
+[Diagrama](https://docs.google.com/drawings/d/1_oHqDAIFwJa26Q6RdgqlxOEqs1K9uVLITYUuf2e6iwE/edit?usp=sharing)
+
+```bash
+yarn  # Baixa dependências
+yarn build  # Compila (gera *.js)
+yarn start PARÂMETROS  # Executa
+yarn lint [--fix]  # Analisa código
+```
+
+## Referências
+* [Node.js](https://nodejs.org/dist/latest-v16.x/docs/api/)
+* [Electron](https://www.electronjs.org/docs/)
+* [Electron Builder](https://www.electron.build/)
+* [EnumDisplayDevices (Win32 API)](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enumdisplaydevicesa)
+* [DisplaySwitch.exe](https://ss64.com/nt/displayswitch.html)
