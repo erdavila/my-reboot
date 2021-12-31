@@ -1,5 +1,5 @@
 import { BrowserWindow, Size } from "electron";
-import * as path from "path";
+import * as path from "node:path";
 import { OSProvider } from "./os-provider";
 
 export function showDialog(osProvider: OSProvider, options: { width: number, filePrefix: string }) {

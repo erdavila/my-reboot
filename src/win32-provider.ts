@@ -1,6 +1,6 @@
 import { execFile, CurrentDisplayHandling, OSProvider } from "./os-provider";
 import { Display } from "./state";
-import * as path from "path";
+import * as path from "node:path";
 import { Configs } from "./configs";
 
 class WindowsProvider extends OSProvider {
