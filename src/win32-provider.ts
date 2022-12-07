@@ -1,7 +1,9 @@
 import { execFile, CurrentDisplayHandling, OSProvider } from "./os-provider";
 import { Display } from "./state";
-import * as path from "node:path";
 import { Configs } from "./configs";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 
 class WindowsProvider extends OSProvider {
   override predefinedScripts = [
@@ -71,7 +73,10 @@ export class WindowsCurrentDisplayHandling implements CurrentDisplayHandling {
   }
 
   async getActiveDisplayDeviceId(): Promise<string> {
-    const result = await execFile(path.join(__dirname, "get_active_display_device_id.exe"));
+    const src = path.join(__dirname, "get_active_display_device_id.exe");
+    const dst = path.join(os.tmpdir(), "get_active_display_device_id.exe");
+    await fs.copyFile(src, dst);
+    const result = await execFile(dst);
     return result.stdout.trimEnd();
   }
 
