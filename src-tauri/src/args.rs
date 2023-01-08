@@ -5,6 +5,7 @@ use std::fmt::Display;
 pub enum ParsedArgs {
     None,
     Usage,
+    Temporary,
 }
 
 #[derive(Debug)]
@@ -35,6 +36,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
     let parsed_args = match args.next() {
         Some(arg) => match &arg[..] {
             "-h" | "--help" => ParsedArgs::Usage,
+            "-" => ParsedArgs::Temporary,
             _ => return Err(ArgError::new("Argumento inesperado", arg)),
         },
         None => ParsedArgs::None,
