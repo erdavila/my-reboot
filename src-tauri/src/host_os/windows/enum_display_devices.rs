@@ -1,6 +1,6 @@
+use std::mem::size_of;
 use std::ptr;
 use std::str::from_utf8;
-use std::mem::size_of;
 use windows_sys::Win32::Graphics::Gdi::EnumDisplayDevicesA;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICEA;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
@@ -33,7 +33,11 @@ fn enumerate_recursive(name: ::windows_sys::core::PCSTR, recurse: bool, indent_l
                 println!("{}String: {}", indent, from_utf8(&dd.DeviceString).unwrap());
                 println!("{}ID: {}", indent, from_utf8(&dd.DeviceID).unwrap());
                 println!("{}Key: {}", indent, from_utf8(&dd.DeviceKey).unwrap());
-                println!("{}Active: {}", indent, (dd.StateFlags & DISPLAY_DEVICE_ACTIVE) != 0);
+                println!(
+                    "{}Active: {}",
+                    indent,
+                    (dd.StateFlags & DISPLAY_DEVICE_ACTIVE) != 0
+                );
 
                 if recurse {
                     println!("{}Monitors:", indent);
