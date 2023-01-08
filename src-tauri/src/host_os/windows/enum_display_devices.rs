@@ -1,21 +1,15 @@
 use std::ptr;
+use std::str::from_utf8;
+use std::mem::size_of;
+use windows_sys::Win32::Graphics::Gdi::EnumDisplayDevicesA;
+use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICEA;
+use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
 
 pub fn enumerate() {
-    enumerate_recursive(ptr::null(), true, "");
+    enumerate_recursive(ptr::null(), true, 0)
 }
 
-#[cfg(not(windows))]
-fn enumerate_recursive(_: *const u8, _: bool, _: &str) {
-    println!("Not on Windows")
-}
-
-#[cfg(windows)]
-fn enumerate_recursive(name: ::windows_sys::core::PCSTR, recurse: bool, indent: &str) {
-    use std::{str::from_utf8, mem::size_of};
-    use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICEA;
-    use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
-    use windows_sys::Win32::Graphics::Gdi::EnumDisplayDevicesA;
-
+fn enumerate_recursive(name: ::windows_sys::core::PCSTR, recurse: bool, indent_level: u8) {
     let mut dd = DISPLAY_DEVICEA {
         cb: size_of::<DISPLAY_DEVICEA>() as u32,
         DeviceName: [0; 32],
@@ -33,6 +27,8 @@ fn enumerate_recursive(name: ::windows_sys::core::PCSTR, recurse: bool, indent: 
             result = r != 0;
 
             if result {
+                let indent = "  ".repeat(indent_level.into());
+
                 println!("{}Name: {}", indent, from_utf8(&dd.DeviceName).unwrap());
                 println!("{}String: {}", indent, from_utf8(&dd.DeviceString).unwrap());
                 println!("{}ID: {}", indent, from_utf8(&dd.DeviceID).unwrap());
@@ -41,11 +37,7 @@ fn enumerate_recursive(name: ::windows_sys::core::PCSTR, recurse: bool, indent: 
 
                 if recurse {
                     println!("{}Monitors:", indent);
-
-                    let mut i = String::from(indent);
-                    i += "  ";
-
-                    enumerate_recursive(dd.DeviceName.as_ptr(), false, &i);
+                    enumerate_recursive(dd.DeviceName.as_ptr(), false, indent_level + 1);
                 }
 
                 println!();

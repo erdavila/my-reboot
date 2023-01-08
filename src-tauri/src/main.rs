@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-mod enum_display_devices;
+mod host_os;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -12,7 +12,7 @@ fn greet(name: &str) -> String {
 }
 
 fn main() {
-    enum_display_devices::enumerate();
+    host_os::enumerate_display_devices();
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet])
