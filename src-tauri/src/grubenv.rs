@@ -4,6 +4,8 @@ use std::io;
 use std::iter;
 use std::path::PathBuf;
 
+use crate::file_content_as_hash_map::file_content_to_hash_map;
+use crate::file_content_as_hash_map::hash_map_to_file_content;
 use crate::host_os::STATE_DIR_PATH;
 
 const GRUBENV_CONTENT_LENGTH: usize = 1024;
@@ -15,21 +17,9 @@ pub struct Grubenv {
 impl Grubenv {
     pub fn load() -> io::Result<Grubenv> {
         let file_content = fs::read_to_string(Self::path())?;
-        Ok(Self::from_file_content(&file_content))
-    }
-
-    fn from_file_content(file_content: &str) -> Grubenv {
-        let entries = file_content
-            .lines()
-            .filter(|line| !line.starts_with('#'))
-            .map(|line| {
-                let (key, value) = line.split_once('=').unwrap();
-                (key.to_string(), value.to_string())
-            });
-
-        Grubenv {
-            content: HashMap::from_iter(entries),
-        }
+        Ok(Grubenv {
+            content: file_content_to_hash_map(&file_content),
+        })
     }
 
     pub fn get(&self, key: &str) -> Option<&String> {
@@ -46,11 +36,7 @@ impl Grubenv {
     }
 
     fn to_file_content(&self) -> String {
-        let mut content: String = self
-            .content
-            .iter()
-            .map(|(key, value)| format!("{key}={value}\n"))
-            .collect();
+        let mut content = hash_map_to_file_content(&self.content);
 
         if content.len() > GRUBENV_CONTENT_LENGTH {
             panic!("Grubenv content is too large!");
@@ -73,17 +59,6 @@ impl Grubenv {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn from_file_content() {
-        let file_content = "abc=xyz\n#ignored line\njjj=123";
-
-        let grubenv = Grubenv::from_file_content(&file_content);
-
-        assert_eq!(grubenv.content.len(), 2);
-        assert_eq!(grubenv.content["abc"], "xyz");
-        assert_eq!(grubenv.content["jjj"], "123");
-    }
 
     #[test]
     fn get() {

@@ -3,6 +3,8 @@ use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 
+use crate::file_content_as_hash_map::file_content_to_hash_map;
+use crate::file_content_as_hash_map::hash_map_to_file_content;
 use crate::host_os::STATE_DIR_PATH;
 
 pub struct Properties {
@@ -34,15 +36,15 @@ impl Properties {
     }
 
     fn hash_map_from_file_content(file_content: &str) -> HashMap<String, String> {
-        let entries = file_content
-            .lines()
-            .filter(|line| !line.starts_with('#'))
-            .map(|line| {
-                let (key, value) = line.split_once('=').unwrap();
-                (key.to_string(), value.to_string().replace(r"\\", r"\"))
-            });
+        let mut hash_map = file_content_to_hash_map(file_content);
+        Self::unescape_inline(&mut hash_map);
+        hash_map
+    }
 
-        HashMap::from_iter(entries)
+    fn unescape_inline(hash_map: &mut HashMap<String, String>) {
+        for value in hash_map.values_mut() {
+            *value = value.replace(r"\\", r"\");
+        }
     }
 
     pub fn get(&self, key: &str) -> Option<&String> {
@@ -59,10 +61,15 @@ impl Properties {
     }
 
     fn to_file_content(&self) -> String {
-        self.content
+        let hash_map = Self::escape(&self.content);
+        hash_map_to_file_content(&hash_map)
+    }
+
+    fn escape(hash_map: &HashMap<String, String>) -> HashMap<String, String> {
+        let entries = hash_map
             .iter()
-            .map(|(key, value)| format!("{key}={}\n", value.replace('\\', r"\\")))
-            .collect()
+            .map(|(key, value)| (key.clone(), value.replace('\\', r"\\")));
+        HashMap::from_iter(entries)
     }
 
     fn path(filename: &str) -> PathBuf {

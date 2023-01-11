@@ -4,6 +4,7 @@
 )]
 
 mod args;
+mod file_content_as_hash_map;
 mod grubenv;
 mod host_os;
 mod properties;
