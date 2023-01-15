@@ -4,15 +4,18 @@
 )]
 
 mod args;
+mod configs;
 mod file_content_as_hash_map;
 mod grubenv;
 mod host_os;
+mod options_types;
 mod properties;
 
 use std::env;
 use std::error::Error;
 
 use crate::args::ParsedArgs;
+use crate::configs::Configs;
 use crate::grubenv::Grubenv;
 use crate::properties::Properties;
 
@@ -40,6 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             let properties = Properties::load("my-reboot-options.properties", true).unwrap();
             let windows_display = properties.get("windows.display").unwrap();
             println!("windows_display = {windows_display}");
+
+            let configs = Configs::load(true).unwrap();
+            let os = configs.get_operating_system_by_grub_entry("osprober-efi-320C-82D6");
+            println!("Windows grub entry: {os}");
 
             if false {
                 let mut grubenv = grubenv;

@@ -78,7 +78,7 @@ impl Properties {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     #[test]
@@ -135,6 +135,13 @@ mod tests {
 
         Properties {
             content,
+            path: PathBuf::new(),
+        }
+    }
+
+    pub fn create_empty_properties() -> Properties {
+        Properties {
+            content: HashMap::new(),
             path: PathBuf::new(),
         }
     }
