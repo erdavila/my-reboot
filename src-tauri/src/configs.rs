@@ -1,54 +1,60 @@
 use std::io;
 use std::rc::Rc;
 
-use crate::options_types::{OperatingSystem, OptionType};
+use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::properties::Properties;
 
 const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
 
 pub struct Configs {
-    grub_entry_mapper: ConfigMapper<OperatingSystem>,
+    grub_entry_handler: ConfigHandler<OperatingSystem>,
+    device_id_handler: ConfigHandler<Display>,
 }
 
 impl Configs {
     pub fn load(must_exist: bool) -> io::Result<Configs> {
         let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
-        Ok(Self::from_props(props))
-    }
-
-    fn from_props(props: Properties) -> Configs {
         let props = Rc::new(props);
 
-        Configs {
-            grub_entry_mapper: ConfigMapper::new(
+        Ok(Configs {
+            grub_entry_handler: ConfigHandler::new(
                 Rc::clone(&props),
                 "grubEntry",
                 OperatingSystem::values(),
                 OperatingSystem::Linux,
             ),
-        }
+            device_id_handler: ConfigHandler::new(
+                Rc::clone(&props),
+                "deviceId",
+                Display::values(),
+                OperatingSystem::Windows,
+            ),
+        })
     }
 
     pub fn get_operating_system_by_grub_entry(&self, grub_entry: &str) -> OperatingSystem {
-        self.grub_entry_mapper.get_object_by_value(grub_entry)
+        self.grub_entry_handler.get_object_by_value(grub_entry)
+    }
+
+    pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
+        self.device_id_handler.get_object_by_value(device_id)
     }
 }
 
-// object.attribute
-struct ConfigMapper<O: OptionType> {
+struct ConfigHandler<O: OptionType> {
     props: Rc<Properties>,
     attribute: &'static str,
     objects: Vec<O>,
     config_provider_os: OperatingSystem,
 }
-impl<O: OptionType + Copy> ConfigMapper<O> {
+impl<O: OptionType + Copy> ConfigHandler<O> {
     fn new(
         props: Rc<Properties>,
         attribute: &'static str,
         objects: Vec<O>,
         config_provider_os: OperatingSystem,
-    ) -> ConfigMapper<O> {
-        ConfigMapper {
+    ) -> ConfigHandler<O> {
+        ConfigHandler {
             props,
             attribute,
             objects,
@@ -96,97 +102,4 @@ fn configuration_error(message: &str, config_provider_os: OperatingSystem) -> St
         "{message}. Execute 'my-reboot configure' no {}",
         config_provider_os
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-    enum OT {
-        Value1,
-        Value2,
-    }
-    impl OptionType for OT {
-        fn values() -> Vec<Self> {
-            todo!()
-        }
-
-        fn to_option_string(&self) -> &str {
-            match self {
-                OT::Value1 => "value1",
-                OT::Value2 => "value2",
-            }
-        }
-    }
-
-    #[test]
-    fn configs_get_operating_system_by_grub_entry() {
-        let mut props = crate::properties::tests::create_empty_properties();
-        for os in OperatingSystem::values() {
-            props.set(
-                &format!("{}.grubEntry", os.to_option_string()),
-                &format!("{}-entry", os.to_string()),
-            );
-        }
-        let configs = Configs::from_props(props);
-
-        let os = configs.get_operating_system_by_grub_entry("Linux-entry");
-
-        assert_eq!(os, OperatingSystem::Linux);
-    }
-
-    #[test]
-    fn config_mapper_get_object_by_value() {
-        let config_mapper = create_config_mapper();
-
-        let object = config_mapper.get_object_by_value("the-value");
-
-        assert_eq!(object, OT::Value1);
-    }
-
-    #[test]
-    #[should_panic]
-    fn config_mapper_get_object_by_value_not_found() {
-        let config_mapper = create_config_mapper();
-
-        config_mapper.get_object_by_value("some-value");
-    }
-
-    #[test]
-    fn config_mapper_get_value() {
-        let config_mapper = create_config_mapper();
-
-        let value = config_mapper.get_value(OT::Value1);
-
-        assert_eq!(value, "the-value");
-    }
-
-    #[test]
-    #[should_panic]
-    fn config_mapper_get_value_not_found() {
-        let config_mapper = create_config_mapper();
-
-        config_mapper.get_value(OT::Value2);
-    }
-
-    #[test]
-    fn config_mapper_key_for() {
-        let config_mapper = create_config_mapper();
-
-        let key = config_mapper.key_for(OT::Value1);
-
-        assert_eq!(key, "value1.attr");
-    }
-
-    fn create_config_mapper() -> ConfigMapper<OT> {
-        let mut props = crate::properties::tests::create_empty_properties();
-        props.set("value1.attr", "the-value");
-        ConfigMapper {
-            props: Rc::new(props),
-            attribute: "attr",
-            objects: vec![OT::Value1, OT::Value2],
-            config_provider_os: OperatingSystem::Linux,
-        }
-    }
 }

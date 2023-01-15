@@ -11,7 +11,7 @@ pub trait OptionType: Copy {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum OperatingSystem {
     Windows,
     Linux,
@@ -36,6 +36,35 @@ impl std::fmt::Display for OperatingSystem {
             match self {
                 OperatingSystem::Windows => "Windows",
                 OperatingSystem::Linux => "Linux",
+            }
+        )
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Display {
+    Monitor,
+    TV,
+}
+impl OptionType for Display {
+    fn values() -> Vec<Self> {
+        vec![Display::Monitor, Display::TV]
+    }
+    fn to_option_string(&self) -> &str {
+        match self {
+            Display::Monitor => "monitor",
+            Display::TV => "tv",
+        }
+    }
+}
+impl std::fmt::Display for Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Display::Monitor => "monitor",
+                Display::TV => "TV",
             }
         )
     }

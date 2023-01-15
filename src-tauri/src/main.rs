@@ -10,14 +10,18 @@ mod grubenv;
 mod host_os;
 mod options_types;
 mod properties;
+mod state;
+mod text;
+
+use crate::args::ParsedArgs;
+use crate::grubenv::Grubenv;
+use crate::properties::Properties;
+use crate::state::StateProvider;
+use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
+use crate::text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE;
 
 use std::env;
 use std::error::Error;
-
-use crate::args::ParsedArgs;
-use crate::configs::Configs;
-use crate::grubenv::Grubenv;
-use crate::properties::Properties;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -27,6 +31,7 @@ fn greet(name: &str) -> String {
 
 fn main() -> Result<(), Box<dyn Error>> {
     match args::parse()? {
+        ParsedArgs::ShowState => show_state(),
         ParsedArgs::None => {
             host_os::enumerate_display_devices();
 
@@ -36,24 +41,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .expect("error while running tauri application");
         }
         ParsedArgs::Temporary => {
-            let grubenv = Grubenv::load().unwrap();
-            let saved_entry = grubenv.get("saved_entry").unwrap();
-            println!("saved_entry = {saved_entry}");
-
-            let properties = Properties::load("my-reboot-options.properties", true).unwrap();
-            let windows_display = properties.get("windows.display").unwrap();
-            println!("windows_display = {windows_display}");
-
-            let configs = Configs::load(true).unwrap();
-            let os = configs.get_operating_system_by_grub_entry("osprober-efi-320C-82D6");
-            println!("Windows grub entry: {os}");
-
             if false {
-                let mut grubenv = grubenv;
+                let mut grubenv = Grubenv::load().unwrap();
                 grubenv.set("dummy", "dummy");
                 grubenv.save()?;
 
-                let mut properties = properties;
+                let mut properties =
+                    Properties::load("my-reboot-options.properties", true).unwrap();
                 properties.set("windows.display", "tv");
                 properties.save().unwrap();
             }
@@ -62,4 +56,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+fn show_state() {
+    let provider = StateProvider::new().unwrap();
+    let state = provider.get_state();
+
+    println!(
+        "{NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}: {}",
+        text::operating_system_text(state.next_boot_operating_system)
+    );
+    println!(
+        "{NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}: {}",
+        text::display_text(state.next_windows_boot_display)
+    );
+    if state.current_display.is_some() {
+        println!("Tela atual: {}", text::display_text(state.current_display));
+    }
 }
