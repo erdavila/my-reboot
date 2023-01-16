@@ -33,8 +33,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     match args::parse()? {
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::None => {
-            host_os::enumerate_display_devices();
-
             tauri::Builder::default()
                 .invoke_handler(tauri::generate_handler![greet])
                 .run(tauri::generate_context!())
