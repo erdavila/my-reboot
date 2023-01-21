@@ -1326,6 +1326,7 @@ name = "my-reboot"
 version = "3.0.0"
 dependencies = [
  "ansi_term",
+ "anyhow",
  "enum_display_devices",
  "serde",
  "serde_json",

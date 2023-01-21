@@ -20,8 +20,8 @@ use crate::state::StateProvider;
 use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
 use crate::text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE;
 
+use anyhow::{Context, Result};
 use std::env;
-use std::error::Error;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -29,8 +29,10 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    match args::parse()? {
+fn main() -> Result<()> {
+    let args = args::parse()
+        .with_context(|| "Argumentos inválidos.\nPara ajuda, execute: my-reboot --help")?;
+    match args {
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::None => {
             tauri::Builder::default()

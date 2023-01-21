@@ -15,6 +15,7 @@ tauri-build = {version = "1.2", features = [] }
 
 [dependencies]
 ansi_term = "0.12.1"
+anyhow = "1.0"
 enum_display_devices = { path = "../src-enum_display_devices" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
