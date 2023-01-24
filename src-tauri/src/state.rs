@@ -47,6 +47,17 @@ impl StateProvider {
             .map(|grub_entry| self.configs.get_operating_system_by_grub_entry(grub_entry))
     }
 
+    pub fn set_next_boot_operating_system(&mut self, os: OperatingSystem) {
+        let grub_entry = self.configs.get_grub_entry(os);
+        self.grubenv.set(GRUB_ENTRY, grub_entry);
+        self.grubenv.save().unwrap();
+    }
+
+    pub fn unset_next_boot_operating_system(&mut self) {
+        self.grubenv.unset(GRUB_ENTRY);
+        self.grubenv.save().unwrap();
+    }
+
     fn get_next_windows_boot_display(&self) -> Option<Display> {
         self.options
             .get(WINDOWS_DISPLAY_KEY)

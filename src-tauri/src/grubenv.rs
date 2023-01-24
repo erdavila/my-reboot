@@ -30,6 +30,10 @@ impl Grubenv {
         self.content.insert(key.to_string(), value.to_string());
     }
 
+    pub fn unset(&mut self, key: &str) {
+        self.content.remove(key);
+    }
+
     pub fn save(&self) -> io::Result<()> {
         let file_content = self.to_file_content();
         fs::write(Self::path(), file_content)
@@ -79,6 +83,16 @@ mod tests {
         assert_eq!(grubenv.content["abc"], "xyz");
         assert_eq!(grubenv.content["jjj"], "999");
         assert_eq!(grubenv.content["@@@"], "###");
+    }
+
+    #[test]
+    fn unset() {
+        let mut grubenv = create_grubenv();
+
+        grubenv.unset("abc");
+
+        assert_eq!(grubenv.content.len(), 1);
+        assert_eq!(grubenv.content["jjj"], "123");
     }
 
     #[test]

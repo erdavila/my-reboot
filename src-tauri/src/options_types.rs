@@ -11,7 +11,7 @@ pub trait OptionType: Copy {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum OperatingSystem {
     Windows,
     Linux,

@@ -10,17 +10,18 @@ mod grubenv;
 mod host_os;
 mod options_types;
 mod properties;
+mod script;
 mod state;
 mod text;
 
 use crate::args::ParsedArgs;
-use crate::grubenv::Grubenv;
 use crate::properties::Properties;
 use crate::state::StateProvider;
 use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
 use crate::text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE;
 
 use anyhow::{Context, Result};
+use script::Script;
 use std::env;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -33,6 +34,7 @@ fn main() -> Result<()> {
     let args = args::parse()
         .with_context(|| "Argumentos inválidos.\nPara ajuda, execute: my-reboot --help")?;
     match args {
+        ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::None => {
             tauri::Builder::default()
@@ -42,10 +44,6 @@ fn main() -> Result<()> {
         }
         ParsedArgs::Temporary => {
             if false {
-                let mut grubenv = Grubenv::load().unwrap();
-                grubenv.set("dummy", "dummy");
-                grubenv.save()?;
-
                 let mut properties =
                     Properties::load("my-reboot-options.properties", true).unwrap();
                 properties.set("windows.display", "tv");
@@ -56,6 +54,10 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn execute_script(script: Script) {
+    script.execute();
 }
 
 fn show_state() {

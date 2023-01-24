@@ -36,6 +36,10 @@ impl Configs {
         self.grub_entry_handler.get_object_by_value(grub_entry)
     }
 
+    pub fn get_grub_entry(&self, os: OperatingSystem) -> &str {
+        self.grub_entry_handler.get_value(os)
+    }
+
     pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
         self.device_id_handler.get_object_by_value(device_id)
     }
