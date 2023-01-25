@@ -64,6 +64,17 @@ impl StateProvider {
             .and_then(|code| Display::from_option_string(code))
     }
 
+    pub fn set_next_windows_boot_display(&mut self, display: Display) {
+        self.options
+            .set(WINDOWS_DISPLAY_KEY, display.to_option_string());
+        self.options.save().unwrap();
+    }
+
+    pub fn unset_next_windows_boot_display(&mut self) {
+        self.options.unset(WINDOWS_DISPLAY_KEY);
+        self.options.save().unwrap();
+    }
+
     fn get_current_display(&self) -> Option<Display> {
         host_os::get_active_display_id().map(|id| self.configs.get_display_by_device_id(&id))
     }

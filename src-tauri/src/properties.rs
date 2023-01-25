@@ -55,6 +55,10 @@ impl Properties {
         self.content.insert(key.to_string(), value.to_string());
     }
 
+    pub fn unset(&mut self, key: &str) {
+        self.content.remove(key);
+    }
+
     pub fn save(&self) -> io::Result<()> {
         let file_content = self.to_file_content();
         fs::write(&self.path, file_content)
@@ -111,6 +115,16 @@ mod tests {
         assert_eq!(properties.content["abc"], "xyz");
         assert_eq!(properties.content["jjj"], "999");
         assert_eq!(properties.content["@@@"], "###");
+    }
+
+    #[test]
+    fn unset() {
+        let mut properties = create_properties();
+
+        properties.unset("jjj");
+
+        assert_eq!(properties.content.len(), 1);
+        assert_eq!(properties.content["abc"], "xyz");
     }
 
     #[test]

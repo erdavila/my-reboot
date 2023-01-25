@@ -1,33 +1,96 @@
-use crate::options_types::OperatingSystem;
+use ansi_term::ANSIString;
+use anyhow::{Ok, Result};
+
+use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::state::StateProvider;
 use crate::text;
-use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
 
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
+    pub next_windows_boot_display: Option<SetOrUnset<Display>>,
 }
 impl Script {
     pub fn new() -> Self {
         Script {
             next_boot_operating_system: None,
+            next_windows_boot_display: None,
         }
     }
 
-    pub fn execute(&self) {
-        let mut state_provider = StateProvider::new().unwrap();
+    pub fn execute(&self) -> Result<()> {
+        let mut executor = ScriptExecutor {
+            state_provider: StateProvider::new()?,
+        };
+
+        executor.execute(self)
+    }
+}
+
+struct ScriptExecutor {
+    state_provider: StateProvider,
+}
+impl ScriptExecutor {
+    fn execute(&mut self, script: &Script) -> Result<()> {
+        if let Some(os_option) = &script.next_boot_operating_system {
+            self.apply_next_boot_operating_system(os_option);
+        }
+
+        if let Some(display_option) = &script.next_windows_boot_display {
+            self.apply_next_windows_boot_display(display_option);
+        }
+
+        Ok(())
+    }
+
+    fn apply_next_boot_operating_system(&mut self, os_option: &SetOrUnset<OperatingSystem>) {
+        self.apply_option(
+            os_option,
+            StateProvider::set_next_boot_operating_system,
+            StateProvider::unset_next_boot_operating_system,
+            text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE,
+            "foi atualizado para",
+            text::operating_system_text,
+        );
+    }
+
+    fn apply_next_windows_boot_display(&mut self, display_option: &SetOrUnset<Display>) {
+        self.apply_option(
+            display_option,
+            StateProvider::set_next_windows_boot_display,
+            StateProvider::unset_next_windows_boot_display,
+            text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE,
+            "foi atualizada para",
+            text::display_text,
+        );
+    }
+
+    fn apply_option<T, S, U, V>(
+        &mut self,
+        option: &SetOrUnset<T>,
+        set: S,
+        unset: U,
+        description: &str,
+        was_updated_to: &str,
+        value_text: V,
+    ) where
+        T: OptionType,
+        S: FnOnce(&mut StateProvider, T),
+        U: FnOnce(&mut StateProvider),
+        V: Fn(Option<T>) -> ANSIString<'static>,
+    {
         use SetOrUnset::*;
 
-        if let Some(os_option) = &self.next_boot_operating_system {
-            match os_option {
-                Set(os) => state_provider.set_next_boot_operating_system(*os),
-                Unset => state_provider.unset_next_boot_operating_system(),
-            }
-
-            println!(
-                "{NEXT_BOOT_OPERATING_SYSTEM_SENTENCE} foi atualizado para {}.",
-                text::operating_system_text(os_option.to_option())
-            );
+        match option {
+            Set(value) => set(&mut self.state_provider, *value),
+            Unset => unset(&mut self.state_provider),
         }
+
+        println!(
+            "{} {} {}.",
+            description,
+            was_updated_to,
+            value_text(option.to_option())
+        );
     }
 }
 

@@ -12,7 +12,6 @@ pub enum ParsedArgs {
     Script(Script),
     None,
     Usage,
-    Temporary,
 }
 
 pub fn parse() -> Result<ParsedArgs, ArgError> {
@@ -23,7 +22,6 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
         Some(arg) => match &arg[..] {
             "show" => ParsedArgs::ShowState,
             "-h" | "--help" => ParsedArgs::Usage,
-            "-" => ParsedArgs::Temporary,
             _ => match script_args::parse(&arg, &mut args)? {
                 Some(script) => ParsedArgs::Script(script),
                 None => return errors::unknown_argument_error(&arg),
@@ -38,11 +36,16 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
 
 pub const USAGE: &str = "\
 Usos:
-  my-reboot SO
+  my-reboot (SO | TELA)+
     SO poder ser:
       [os:]windows - Inicia Windows na próxima inicialização do computador.
       [os:]linux - Inicia Linux na próxima inicialização do computador.
       os:unset - Deixa o Grub decidir o S.O. na próxima inicialização do computador.
+
+    TELA poder ser:
+      [display:]monitor - Usa o monitor na próxima inicialização do Windows.
+      [display:]tv - Usa a TV na próxima inicialização do Windows.
+      display:unset - Deixa o Windows decidir a tela na próxima inicialização do Windows.
 
   my-reboot show
     Exibe as opções atuais para inicialização.
