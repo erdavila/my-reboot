@@ -39,7 +39,9 @@ pub mod display {
         pub const NOT_SUPPORTED: &str =
             "A troca de tela não é suportada no sistema operacional atual";
         pub const TO: &str = "Trocando de tela para";
+        #[cfg(windows)]
         pub const TAKING_TOO_LONG: &str = "A tela não trocou no tempo limite";
+        #[cfg(windows)]
         pub const FAILED: &str = "A troca de tela falhou";
         pub const IS_ALREADY_CURRENT: &str = "já é a tela atual";
     }

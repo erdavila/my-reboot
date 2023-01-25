@@ -1,14 +1,18 @@
 use std::io;
 use std::rc::Rc;
 
-use crate::options_types::{Display, OperatingSystem, OptionType};
+#[cfg(windows)]
+use crate::options_types::Display;
+use crate::options_types::{OperatingSystem, OptionType};
 use crate::properties::Properties;
 
 const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
 
 pub struct Configs {
     grub_entry_handler: ConfigHandler<OperatingSystem>,
+    #[cfg(windows)]
     device_id_handler: ConfigHandler<Display>,
+    #[cfg(windows)]
     display_switch_arg_handler: ConfigHandler<Display>,
 }
 
@@ -24,12 +28,14 @@ impl Configs {
                 OperatingSystem::values(),
                 OperatingSystem::Linux,
             ),
+            #[cfg(windows)]
             device_id_handler: ConfigHandler::new(
                 Rc::clone(&props),
                 "deviceId",
                 Display::values(),
                 OperatingSystem::Windows,
             ),
+            #[cfg(windows)]
             display_switch_arg_handler: ConfigHandler::new(
                 Rc::clone(&props),
                 "displaySwitchArg",
@@ -47,10 +53,12 @@ impl Configs {
         self.grub_entry_handler.get_value(os)
     }
 
+    #[cfg(windows)]
     pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
         self.device_id_handler.get_object_by_value(device_id)
     }
 
+    #[cfg(windows)]
     pub fn get_display_switch_arg(&self, display: Display) -> &str {
         self.display_switch_arg_handler.get_value(display)
     }
