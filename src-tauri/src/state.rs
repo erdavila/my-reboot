@@ -1,10 +1,13 @@
 use std::io;
 
+use anyhow::{anyhow, Result};
+
 use crate::configs::Configs;
 use crate::grubenv::Grubenv;
 use crate::host_os;
 use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::properties::Properties;
+use crate::text;
 
 const GRUB_ENTRY: &str = "saved_entry";
 const WINDOWS_DISPLAY_KEY: &str = "windows.display";
@@ -58,7 +61,7 @@ impl StateProvider {
         self.grubenv.save().unwrap();
     }
 
-    fn get_next_windows_boot_display(&self) -> Option<Display> {
+    pub fn get_next_windows_boot_display(&self) -> Option<Display> {
         self.options
             .get(WINDOWS_DISPLAY_KEY)
             .and_then(|code| Display::from_option_string(code))
@@ -75,7 +78,14 @@ impl StateProvider {
         self.options.save().unwrap();
     }
 
-    fn get_current_display(&self) -> Option<Display> {
-        host_os::get_active_display_id().map(|id| self.configs.get_display_by_device_id(&id))
+    pub fn get_current_display(&self) -> Option<Display> {
+        host_os::get_current_display_handler(&self.configs).map(|handler| handler.get())
+    }
+
+    pub fn set_current_display(&self, display: Display) -> Result<()> {
+        let handler = host_os::get_current_display_handler(&self.configs)
+            .ok_or_else(|| anyhow!(text::display::switching::NOT_SUPPORTED))?;
+        handler.switch_to(display)?;
+        Ok(())
     }
 }

@@ -35,6 +35,15 @@ pub mod display {
 
     pub const WAS_UPDATED_TO: &str = "foi atualizada para";
 
+    pub mod switching {
+        pub const NOT_SUPPORTED: &str =
+            "A troca de tela não é suportada no sistema operacional atual";
+        pub const TO: &str = "Trocando de tela para";
+        pub const TAKING_TOO_LONG: &str = "A tela não trocou no tempo limite";
+        pub const FAILED: &str = "A troca de tela falhou";
+        pub const IS_ALREADY_CURRENT: &str = "já é a tela atual";
+    }
+
     pub fn value_text(display: Option<Display>) -> ANSIString<'static> {
         super::two_values_option_value_text(display, Display::TV, Display::Monitor, "indefinida")
     }

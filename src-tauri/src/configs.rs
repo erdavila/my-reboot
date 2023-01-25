@@ -9,6 +9,7 @@ const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
 pub struct Configs {
     grub_entry_handler: ConfigHandler<OperatingSystem>,
     device_id_handler: ConfigHandler<Display>,
+    display_switch_arg_handler: ConfigHandler<Display>,
 }
 
 impl Configs {
@@ -29,6 +30,12 @@ impl Configs {
                 Display::values(),
                 OperatingSystem::Windows,
             ),
+            display_switch_arg_handler: ConfigHandler::new(
+                Rc::clone(&props),
+                "displaySwitchArg",
+                Display::values(),
+                OperatingSystem::Windows,
+            ),
         })
     }
 
@@ -42,6 +49,10 @@ impl Configs {
 
     pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
         self.device_id_handler.get_object_by_value(device_id)
+    }
+
+    pub fn get_display_switch_arg(&self, display: Display) -> &str {
+        self.display_switch_arg_handler.get_value(display)
     }
 }
 

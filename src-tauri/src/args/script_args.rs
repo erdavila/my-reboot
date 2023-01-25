@@ -1,5 +1,5 @@
-use crate::options_types::OptionType;
-use crate::script::{Script, SetOrUnset};
+use crate::options_types::{Display, OptionType};
+use crate::script::{Script, SetOrUnset, SwitchToDisplay};
 use crate::text;
 
 use super::errors::{self, ArgError};
@@ -31,6 +31,10 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     }
 
     if parse_next_windows_boot_display(arg, script)? {
+        return Ok(true);
+    }
+
+    if parse_switch_to_display(arg, script)? {
         return Ok(true);
     }
 
@@ -87,6 +91,26 @@ fn parse_boot_option<T: OptionType>(
     }
 }
 
+fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
+    let option = match arg.strip_prefix("switch:") {
+        Some("saved") => Some(SwitchToDisplay::Saved),
+        Some("other") => Some(SwitchToDisplay::Other),
+        Some(string) => match Display::from_option_string(string) {
+            Some(display) => Some(SwitchToDisplay::Display(display)),
+            None => return errors::unknown_argument_error(arg),
+        },
+        None if arg == "switch" => Some(SwitchToDisplay::Other),
+        None => return Ok(false),
+    };
+
+    if script.switch_to_display.is_none() {
+        script.switch_to_display = option;
+        Ok(true)
+    } else {
+        repeated_option_error("troca de tela", arg)
+    }
+}
+
 fn repeated_option_error<T>(option: &str, arg: &str) -> Result<T, ArgError> {
     Err(ArgError::new(
         &format!("A opção de {option} não pode ser usada mais de uma vez"),
@@ -99,6 +123,7 @@ mod tests {
     use std::iter;
 
     use crate::options_types::{Display, OperatingSystem};
+    use crate::script::SwitchToDisplay;
 
     use super::*;
     use SetOrUnset::*;
@@ -183,6 +208,20 @@ mod tests {
         assert_eq!(
             script.next_windows_boot_display,
             Some(Set(Display::Monitor))
+        );
+    }
+
+    #[test]
+    fn test_parse_single_switch() {
+        let mut script = Script::new();
+
+        let result = parse_single("switch:monitor", &mut script);
+
+        let success = result.expect("result should be Ok(_)");
+        assert!(success);
+        assert_eq!(
+            script.switch_to_display,
+            Some(SwitchToDisplay::Display(Display::Monitor))
         );
     }
 
@@ -301,6 +340,56 @@ mod tests {
         script.next_windows_boot_display = Some(Unset);
 
         let result = parse_next_windows_boot_display("display:monitor", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_switch_to_display() {
+        let cases = [
+            ("switch", SwitchToDisplay::Other),
+            ("switch:other", SwitchToDisplay::Other),
+            ("switch:monitor", SwitchToDisplay::Display(Display::Monitor)),
+            ("switch:tv", SwitchToDisplay::Display(Display::TV)),
+            ("switch:saved", SwitchToDisplay::Saved),
+        ];
+
+        for (arg, expected) in cases {
+            let mut script = Script::new();
+
+            let success = parse_switch_to_display(arg, &mut script)
+                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
+            assert!(success);
+            assert_eq!(script.switch_to_display, Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_parse_switch_to_display_invalid() {
+        let mut script = Script::new();
+
+        let result = parse_switch_to_display("switch:blah", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_switch_to_display_no_switch_arg() {
+        let mut script = Script::new();
+        let arg = "blah";
+
+        let result = parse_switch_to_display(arg, &mut script);
+
+        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
+        assert!(!success);
+    }
+
+    #[test]
+    fn test_parse_switch_to_display_already_set() {
+        let mut script = Script::new();
+        script.switch_to_display = Some(SwitchToDisplay::Other);
+
+        let result = parse_switch_to_display("switch:saved", &mut script);
 
         assert!(result.is_err());
     }

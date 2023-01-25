@@ -1,5 +1,5 @@
 use ansi_term::ANSIString;
-use anyhow::{Ok, Result};
+use anyhow::{anyhow, Ok, Result};
 
 use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::state::StateProvider;
@@ -8,12 +8,14 @@ use crate::text;
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
+    pub switch_to_display: Option<SwitchToDisplay>,
 }
 impl Script {
     pub fn new() -> Self {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_display: None,
+            switch_to_display: None,
         }
     }
 
@@ -37,6 +39,10 @@ impl ScriptExecutor {
 
         if let Some(display_option) = &script.next_windows_boot_display {
             self.apply_next_windows_boot_display(display_option);
+        }
+
+        if let Some(switch_to) = &script.switch_to_display {
+            self.apply_switch_to_display(switch_to)?;
         }
 
         Ok(())
@@ -92,6 +98,67 @@ impl ScriptExecutor {
             value_text(option.to_option())
         );
     }
+
+    fn apply_switch_to_display(&mut self, switch_to: &SwitchToDisplay) -> Result<()> {
+        let from_display = self
+            .state_provider
+            .get_current_display()
+            .ok_or_else(|| anyhow!(text::display::switching::NOT_SUPPORTED))?;
+
+        match switch_to {
+            SwitchToDisplay::Other => {
+                let to_display: Vec<_> = Display::values()
+                    .into_iter()
+                    .filter(|d| *d != from_display)
+                    .collect();
+                assert_eq!(to_display.len(), 1);
+                let to_display = to_display[0];
+
+                self.switch_display_to(to_display)?;
+            }
+            SwitchToDisplay::Display(to_display) => {
+                if *to_display == from_display {
+                    println!(
+                        "{} {}",
+                        text::display::value_text(Some(*to_display)),
+                        text::display::switching::IS_ALREADY_CURRENT
+                    );
+                } else {
+                    self.switch_display_to(*to_display)?;
+                }
+            }
+            SwitchToDisplay::Saved => match self.state_provider.get_next_windows_boot_display() {
+                Some(to_display) => {
+                    if to_display == from_display {
+                        println!(
+                            "A {} é {}, que já é a tela atual",
+                            text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+                            text::display::value_text(Some(to_display))
+                        )
+                    } else {
+                        self.switch_display_to(to_display)?;
+                        self.state_provider.unset_next_windows_boot_display();
+                    }
+                }
+                None => println!(
+                    "A {} é {}",
+                    text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+                    text::display::value_text(None)
+                ),
+            },
+        }
+
+        Ok(())
+    }
+
+    fn switch_display_to(&self, display: Display) -> Result<()> {
+        println!(
+            "{} {}",
+            text::display::switching::TO,
+            text::display::value_text(Some(display))
+        );
+        self.state_provider.set_current_display(display)
+    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -106,4 +173,11 @@ impl<T: Copy> SetOrUnset<T> {
             SetOrUnset::Unset => None,
         }
     }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum SwitchToDisplay {
+    Other,
+    Display(Display),
+    Saved,
 }

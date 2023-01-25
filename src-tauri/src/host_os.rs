@@ -7,3 +7,12 @@ pub use linux::*;
 mod windows;
 #[cfg(windows)]
 pub use windows::*;
+
+use anyhow::Result;
+
+use crate::options_types::Display;
+
+pub trait CurrentDisplayHandler {
+    fn get(&self) -> Display;
+    fn switch_to(&self, display: Display) -> Result<()>;
+}
