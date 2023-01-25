@@ -47,9 +47,9 @@ impl ScriptExecutor {
             os_option,
             StateProvider::set_next_boot_operating_system,
             StateProvider::unset_next_boot_operating_system,
-            text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE,
-            "foi atualizado para",
-            text::operating_system_text,
+            text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
+            text::operating_system::WAS_UPDATED_TO,
+            text::operating_system::value_text,
         );
     }
 
@@ -58,9 +58,9 @@ impl ScriptExecutor {
             display_option,
             StateProvider::set_next_windows_boot_display,
             StateProvider::unset_next_windows_boot_display,
-            text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE,
-            "foi atualizada para",
-            text::display_text,
+            text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+            text::display::WAS_UPDATED_TO,
+            text::display::value_text,
         );
     }
 

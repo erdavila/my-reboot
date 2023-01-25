@@ -16,8 +16,6 @@ mod text;
 
 use crate::args::ParsedArgs;
 use crate::state::StateProvider;
-use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
-use crate::text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE;
 
 use anyhow::{Context, Result};
 use script::Script;
@@ -57,15 +55,21 @@ fn show_state() -> Result<()> {
     let state = provider.get_state();
 
     println!(
-        "{NEXT_BOOT_OPERATING_SYSTEM_SENTENCE}: {}",
-        text::operating_system_text(state.next_boot_operating_system)
+        "{}: {}",
+        text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
+        text::operating_system::value_text(state.next_boot_operating_system)
     );
     println!(
-        "{NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE}: {}",
-        text::display_text(state.next_windows_boot_display)
+        "{}: {}",
+        text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+        text::display::value_text(state.next_windows_boot_display)
     );
     if state.current_display.is_some() {
-        println!("Tela atual: {}", text::display_text(state.current_display));
+        println!(
+            "{}: {}",
+            text::display::CURRENT,
+            text::display::value_text(state.current_display)
+        );
     }
 
     Ok(())

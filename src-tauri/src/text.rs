@@ -1,27 +1,46 @@
 use ansi_term::ANSIString;
 use ansi_term::Color::{Blue, Green, Red};
 
-use crate::options_types::{Display, OperatingSystem, OptionType};
+use crate::options_types::OptionType;
 
-pub const NEXT_BOOT_OPERATING_SYSTEM_SENTENCE: &str =
-    "Sistema operacional a ser iniciado na próxima inicialização do computador";
-pub const NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE: &str =
-    "Tela a ser usada na próxima inicialização do Windows";
+pub mod operating_system {
+    use ansi_term::ANSIString;
 
-pub fn operating_system_text(os: Option<OperatingSystem>) -> ANSIString<'static> {
-    two_values_option_option_text(
-        os,
-        OperatingSystem::Windows,
-        OperatingSystem::Linux,
-        "indefinido",
-    )
+    use crate::options_types::OperatingSystem;
+
+    pub const ON_NEXT_BOOT_DESCRIPTION: &str =
+        "sistema operacional a ser iniciado na próxima inicialização do computador";
+
+    pub const WAS_UPDATED_TO: &str = "foi atualizado para";
+
+    pub fn value_text(os: Option<OperatingSystem>) -> ANSIString<'static> {
+        super::two_values_option_value_text(
+            os,
+            OperatingSystem::Windows,
+            OperatingSystem::Linux,
+            "indefinido",
+        )
+    }
 }
 
-pub fn display_text(display: Option<Display>) -> ANSIString<'static> {
-    two_values_option_option_text(display, Display::TV, Display::Monitor, "indefinida")
+pub mod display {
+    use ansi_term::ANSIString;
+
+    use crate::options_types::Display;
+
+    pub const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
+        "tela a ser usada na próxima inicialização do Windows";
+
+    pub const CURRENT: &str = "tela atual";
+
+    pub const WAS_UPDATED_TO: &str = "foi atualizada para";
+
+    pub fn value_text(display: Option<Display>) -> ANSIString<'static> {
+        super::two_values_option_value_text(display, Display::TV, Display::Monitor, "indefinida")
+    }
 }
 
-fn two_values_option_option_text<T: OptionType + PartialEq + ToString>(
+fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
     current_value: Option<T>,
     value1: T,
     value2: T,

@@ -1,7 +1,6 @@
 use crate::options_types::OptionType;
 use crate::script::{Script, SetOrUnset};
-use crate::text::NEXT_BOOT_OPERATING_SYSTEM_SENTENCE;
-use crate::text::NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE;
+use crate::text;
 
 use super::errors::{self, ArgError};
 
@@ -43,7 +42,7 @@ fn parse_next_boot_operating_system(arg: &str, script: &mut Script) -> Result<bo
         arg,
         &mut script.next_boot_operating_system,
         "os:",
-        NEXT_BOOT_OPERATING_SYSTEM_SENTENCE,
+        text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
     )
 }
 
@@ -52,7 +51,7 @@ fn parse_next_windows_boot_display(arg: &str, script: &mut Script) -> Result<boo
         arg,
         &mut script.next_windows_boot_display,
         "display:",
-        NEXT_WINDOWS_BOOT_DISPLAY_SENTENCE,
+        text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
     )
 }
 
