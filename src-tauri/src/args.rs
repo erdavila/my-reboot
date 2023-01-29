@@ -36,7 +36,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
 
 pub const USAGE: &str = "\
 Usos:
-  my-reboot (SO | TELA | TROCA-DE-TELA)+
+  my-reboot (SO | TELA | TROCA-DE-TELA | AÇÃO)+
     SO poder ser:
       [os:]windows - Inicia Windows na próxima inicialização do computador.
       [os:]linux - Inicia Linux na próxima inicialização do computador.
@@ -52,6 +52,10 @@ Usos:
       switch:monitor - Troca para o monitor.
       switch:tv - Troca para a TV.
       switch:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.
+
+    AÇÃO poder ser:
+      reboot - Reinicia o computador.
+      shutdown - Desliga o computador.
 
   my-reboot show
     Exibe as opções atuais para inicialização.

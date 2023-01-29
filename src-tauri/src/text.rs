@@ -51,6 +51,10 @@ pub mod display {
     }
 }
 
+pub mod reboot_action {
+    pub const FAILED: &str = "A ação de reinicialização falhou";
+}
+
 fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
     current_value: Option<T>,
     value1: T,

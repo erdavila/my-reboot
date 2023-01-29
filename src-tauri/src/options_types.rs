@@ -69,3 +69,21 @@ impl std::fmt::Display for Display {
         )
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RebootAction {
+    Reboot,
+    Shutdown,
+}
+impl OptionType for RebootAction {
+    fn values() -> Vec<Self> {
+        vec![RebootAction::Reboot, RebootAction::Shutdown]
+    }
+
+    fn to_option_string(&self) -> &str {
+        match self {
+            RebootAction::Reboot => "reboot",
+            RebootAction::Shutdown => "shutdown",
+        }
+    }
+}

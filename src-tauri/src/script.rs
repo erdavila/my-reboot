@@ -1,14 +1,17 @@
-use ansi_term::ANSIString;
+use std::env;
+
+use ansi_term::{ANSIString, Color};
 use anyhow::{anyhow, Ok, Result};
 
-use crate::options_types::{Display, OperatingSystem, OptionType};
+use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::state::StateProvider;
-use crate::text;
+use crate::{host_os, text};
 
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
     pub switch_to_display: Option<SwitchToDisplay>,
+    pub reboot_action: Option<RebootAction>,
 }
 impl Script {
     pub fn new() -> Self {
@@ -16,6 +19,7 @@ impl Script {
             next_boot_operating_system: None,
             next_windows_boot_display: None,
             switch_to_display: None,
+            reboot_action: None,
         }
     }
 
@@ -43,6 +47,10 @@ impl ScriptExecutor {
 
         if let Some(switch_to) = &script.switch_to_display {
             self.apply_switch_to_display(switch_to)?;
+        }
+
+        if let Some(reboot_action) = &script.reboot_action {
+            self.apply_reboot_action(reboot_action)?;
         }
 
         Ok(())
@@ -158,6 +166,23 @@ impl ScriptExecutor {
             text::display::value_text(Some(display))
         );
         self.state_provider.set_current_display(display)
+    }
+
+    fn apply_reboot_action(&self, reboot_action: &RebootAction) -> Result<()> {
+        match reboot_action {
+            RebootAction::Reboot => self.do_reboot_action(host_os::reboot, "Reiniciando"),
+            RebootAction::Shutdown => self.do_reboot_action(host_os::shutdown, "Desligando"),
+        }
+    }
+
+    fn do_reboot_action(&self, method: fn() -> Result<()>, message: &str) -> Result<()> {
+        println!("{}...", message);
+        if env::var("NO_REBOOT_ACTION").is_ok() {
+            println!("{} 😬", Color::Yellow.paint("...mas não de verdade!"));
+            Ok(())
+        } else {
+            method()
+        }
     }
 }
 

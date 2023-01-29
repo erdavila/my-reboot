@@ -12,6 +12,27 @@ mod get_active_display_id;
 
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
+pub fn reboot() -> Result<()> {
+    shutdown_now("/g")
+}
+
+pub fn shutdown() -> Result<()> {
+    shutdown_now("/sg")
+}
+
+fn shutdown_now(arg: &str) -> Result<()> {
+    let status = Command::new("shutdown")
+        .arg(arg)
+        .args(["/t", "0"])
+        .status()?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        bail!(text::reboot_action::FAILED);
+    }
+}
+
 pub fn get_current_display_handler<'a>(
     configs: &'a Configs,
 ) -> Option<Box<dyn CurrentDisplayHandler + 'a>> {

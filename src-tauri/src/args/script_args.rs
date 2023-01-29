@@ -1,4 +1,4 @@
-use crate::options_types::{Display, OptionType};
+use crate::options_types::{Display, OptionType, RebootAction};
 use crate::script::{Script, SetOrUnset, SwitchToDisplay};
 use crate::text;
 
@@ -38,6 +38,10 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
         return Ok(true);
     }
 
+    if parse_reboot_action(arg, script)? {
+        return Ok(true);
+    }
+
     Ok(false)
 }
 
@@ -67,47 +71,58 @@ fn parse_boot_option<T: OptionType>(
 ) -> Result<bool, ArgError> {
     let option = if let Some(string) = arg.strip_prefix(prefix) {
         if string == UNSET_OPTION {
-            Some(SetOrUnset::<T>::Unset)
+            SetOrUnset::<T>::Unset
         } else {
-            let option = T::from_option_string(string).map(SetOrUnset::Set);
-            if option.is_none() {
-                return errors::unknown_argument_error(arg);
+            match T::from_option_string(string).map(SetOrUnset::Set) {
+                Some(option) => option,
+                None => return errors::unknown_argument_error(arg),
             }
-            option
         }
     } else {
-        let option = T::from_option_string(arg).map(SetOrUnset::Set);
-        if option.is_none() {
-            return Ok(false);
+        match T::from_option_string(arg).map(SetOrUnset::Set) {
+            Some(option) => option,
+            None => return Ok(false),
         }
-        option
     };
 
-    if value.is_none() {
-        *value = option;
-        Ok(true)
-    } else {
-        repeated_option_error(descr, arg)
-    }
+    set_if_none(value, option, arg, descr)
 }
 
 fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     let option = match arg.strip_prefix("switch:") {
-        Some("saved") => Some(SwitchToDisplay::Saved),
-        Some("other") => Some(SwitchToDisplay::Other),
+        Some("saved") => SwitchToDisplay::Saved,
+        Some("other") => SwitchToDisplay::Other,
         Some(string) => match Display::from_option_string(string) {
-            Some(display) => Some(SwitchToDisplay::Display(display)),
+            Some(display) => SwitchToDisplay::Display(display),
             None => return errors::unknown_argument_error(arg),
         },
-        None if arg == "switch" => Some(SwitchToDisplay::Other),
+        None if arg == "switch" => SwitchToDisplay::Other,
         None => return Ok(false),
     };
 
-    if script.switch_to_display.is_none() {
-        script.switch_to_display = option;
+    set_if_none(&mut script.switch_to_display, option, arg, "troca de tela")
+}
+
+fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
+    let option = match RebootAction::from_option_string(arg) {
+        Some(option) => option,
+        None => return Ok(false),
+    };
+
+    set_if_none(&mut script.reboot_action, option, arg, "ação")
+}
+
+fn set_if_none<T>(
+    current: &mut Option<T>,
+    new: T,
+    arg: &str,
+    descr: &str,
+) -> Result<bool, ArgError> {
+    if current.is_none() {
+        current.replace(new);
         Ok(true)
     } else {
-        repeated_option_error("troca de tela", arg)
+        repeated_option_error(descr, arg)
     }
 }
 
@@ -223,6 +238,17 @@ mod tests {
             script.switch_to_display,
             Some(SwitchToDisplay::Display(Display::Monitor))
         );
+    }
+
+    #[test]
+    fn test_parse_single_reboot_action() {
+        let mut script = Script::new();
+
+        let result = parse_single("reboot", &mut script);
+
+        let success = result.expect("result should be Ok(_)");
+        assert!(success);
+        assert_eq!(script.reboot_action, Some(RebootAction::Reboot));
     }
 
     #[test]
@@ -390,6 +416,44 @@ mod tests {
         script.switch_to_display = Some(SwitchToDisplay::Other);
 
         let result = parse_switch_to_display("switch:saved", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_reboot_action() {
+        let cases = [
+            ("reboot", RebootAction::Reboot),
+            ("shutdown", RebootAction::Shutdown),
+        ];
+
+        for (arg, expected) in cases {
+            let mut script = Script::new();
+
+            let success = parse_reboot_action(arg, &mut script)
+                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
+            assert!(success);
+            assert_eq!(script.reboot_action, Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_parse_reboot_action_no_switch_arg() {
+        let mut script = Script::new();
+        let arg = "blah";
+
+        let result = parse_reboot_action(arg, &mut script);
+
+        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
+        assert!(!success);
+    }
+
+    #[test]
+    fn test_parse_reboot_action_already_set() {
+        let mut script = Script::new();
+        script.reboot_action = Some(RebootAction::Reboot);
+
+        let result = parse_reboot_action("shutdown", &mut script);
 
         assert!(result.is_err());
     }
