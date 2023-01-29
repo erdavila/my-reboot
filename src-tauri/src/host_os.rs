@@ -8,9 +8,25 @@ mod windows;
 #[cfg(windows)]
 pub use windows::*;
 
-use anyhow::Result;
+use std::process::ExitStatus;
+
+use anyhow::{bail, Result};
 
 use crate::options_types::Display;
+
+pub trait SuccessOr {
+    fn success_or(self, message: &'static str) -> Result<()>;
+}
+
+impl SuccessOr for ExitStatus {
+    fn success_or(self, message: &'static str) -> Result<()> {
+        if self.success() {
+            Ok(())
+        } else {
+            bail!(message)
+        }
+    }
+}
 
 pub trait CurrentDisplayHandler {
     fn get(&self) -> Display;

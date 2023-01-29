@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{bail, Result};
 
-use crate::{configs::Configs, options_types::Display, text};
+use crate::{configs::Configs, host_os::SuccessOr, options_types::Display, text};
 
 use super::CurrentDisplayHandler;
 
@@ -21,16 +21,11 @@ pub fn shutdown() -> Result<()> {
 }
 
 fn shutdown_now(arg: &str) -> Result<()> {
-    let status = Command::new("shutdown")
+    Command::new("shutdown")
         .arg(arg)
         .args(["/t", "0"])
-        .status()?;
-
-    if status.success() {
-        Ok(())
-    } else {
-        bail!(text::reboot_action::FAILED);
-    }
+        .status()?
+        .success_or(text::reboot_action::FAILED)
 }
 
 pub fn get_current_display_handler<'a>(
@@ -46,15 +41,10 @@ impl<'a> WindowsCurrentDisplayHandler<'a> {
     const DISPLAY_SWITCH_PATH: &str = r"C:\Windows\system32\DisplaySwitch.exe"; // TODO: is full path needed?
 
     fn execute_display_switch(&self, display_switch_arg: &str) -> Result<()> {
-        let status = Command::new(Self::DISPLAY_SWITCH_PATH)
+        Command::new(Self::DISPLAY_SWITCH_PATH)
             .arg(display_switch_arg)
-            .status()?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            bail!(text::display::switching::FAILED)
-        }
+            .status()?
+            .success_or(text::display::switching::FAILED)
     }
 }
 impl<'a> CurrentDisplayHandler for WindowsCurrentDisplayHandler<'a> {
