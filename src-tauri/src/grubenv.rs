@@ -9,6 +9,7 @@ use crate::file_content_as_hash_map::hash_map_to_file_content;
 use crate::host_os::STATE_DIR_PATH;
 
 const GRUBENV_CONTENT_LENGTH: usize = 1024;
+const GRUBENV_HEADER_LINE: &str = "# GRUB Environment Block\n";
 
 pub struct Grubenv {
     content: HashMap<String, String>,
@@ -40,7 +41,8 @@ impl Grubenv {
     }
 
     fn to_file_content(&self) -> String {
-        let mut content = hash_map_to_file_content(&self.content);
+        let mut content = String::from(GRUBENV_HEADER_LINE);
+        content += &hash_map_to_file_content(&self.content);
 
         if content.len() > GRUBENV_CONTENT_LENGTH {
             panic!("Grubenv content is too large!");
@@ -99,21 +101,24 @@ mod tests {
     fn to_file_content() {
         const EXPECTED_LINE_1: &str = "abc=xyz\n";
         const EXPECTED_LINE_2: &str = "jjj=123\n";
-        let expected_prefix_1 = format!("{EXPECTED_LINE_1}{EXPECTED_LINE_2}");
-        let expected_prefix_2 = format!("{EXPECTED_LINE_2}{EXPECTED_LINE_1}");
-        assert_eq!(expected_prefix_1.len(), expected_prefix_2.len());
+        let expected_lines_1_and_2 = format!("{EXPECTED_LINE_1}{EXPECTED_LINE_2}");
+        let expected_lines_2_and_1 = format!("{EXPECTED_LINE_2}{EXPECTED_LINE_1}");
+        assert_eq!(expected_lines_1_and_2.len(), expected_lines_2_and_1.len());
 
         let grubenv = create_grubenv();
 
         let file_content = grubenv.to_file_content();
 
         assert_eq!(file_content.len(), GRUBENV_CONTENT_LENGTH);
+        assert!(file_content.starts_with(GRUBENV_HEADER_LINE));
+
+        let remaining = &file_content[GRUBENV_HEADER_LINE.len()..];
         assert!(
-            file_content.starts_with(&expected_prefix_1)
-                || file_content.starts_with(&expected_prefix_2)
+            remaining.starts_with(&expected_lines_1_and_2)
+                || remaining.starts_with(&expected_lines_2_and_1)
         );
 
-        let remaining = &file_content[expected_prefix_1.len()..];
+        let remaining = &remaining[expected_lines_1_and_2.len()..];
         assert!(!remaining.contains(|c| c != '#'));
     }
 
