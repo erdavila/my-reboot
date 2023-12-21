@@ -38,7 +38,7 @@ struct WindowsCurrentDisplayHandler<'a> {
     configs: &'a Configs,
 }
 impl<'a> WindowsCurrentDisplayHandler<'a> {
-    const DISPLAY_SWITCH_PATH: &str = r"C:\Windows\system32\DisplaySwitch.exe"; // TODO: is full path needed?
+    const DISPLAY_SWITCH_PATH: &'static str = r"C:\Windows\system32\DisplaySwitch.exe"; // TODO: is full path needed?
 
     fn execute_display_switch(&self, display_switch_arg: &str) -> Result<()> {
         Command::new(Self::DISPLAY_SWITCH_PATH)

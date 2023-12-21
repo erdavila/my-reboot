@@ -13,10 +13,13 @@ pub(crate) fn file_content_to_hash_map(file_content: &str) -> HashMap<String, St
 }
 
 pub(crate) fn hash_map_to_file_content(hash_map: &HashMap<String, String>) -> String {
-    hash_map
-        .iter()
-        .map(|(key, value)| format!("{key}={value}\n"))
-        .collect()
+    use std::fmt::Write;
+
+    let mut output = String::new();
+    for (key, value) in hash_map.iter() {
+        let _ = writeln!(output, "{key}={value}");
+    }
+    output
 }
 
 #[cfg(test)]
