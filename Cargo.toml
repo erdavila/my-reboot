@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "src-tauri",
-    "src-enum_display_devices",
+    "my_reboot",
+    "enum_display_devices",
 ]
 resolver = "2"

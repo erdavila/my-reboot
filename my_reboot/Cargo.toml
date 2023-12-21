@@ -1,0 +1,16 @@
+[package]
+name = "my-reboot"
+version = "3.0.0"
+description = "An application to manage switch between Windows and Linux, and switching between TV and monitor on Windows"
+authors = ["Eduardo R. D'Avila <erdavila@gmail.com>"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.57"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi_term = "0.12.1"
+anyhow = "1.0"
+enum_display_devices = { path = "../enum_display_devices" }

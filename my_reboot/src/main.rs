@@ -19,13 +19,6 @@ use crate::state::StateProvider;
 
 use anyhow::{Context, Result};
 use script::Script;
-use std::env;
-
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 fn main() -> Result<()> {
     let args = args::parse()
@@ -34,12 +27,7 @@ fn main() -> Result<()> {
     match args {
         ParsedArgs::Script(script) => execute_script(script)?,
         ParsedArgs::ShowState => show_state()?,
-        ParsedArgs::None => {
-            tauri::Builder::default()
-                .invoke_handler(tauri::generate_handler![greet])
-                .run(tauri::generate_context!())
-                .expect("error while running tauri application");
-        }
+        ParsedArgs::None => todo!(),
         ParsedArgs::Usage => println!("{}", args::USAGE),
     }
 
