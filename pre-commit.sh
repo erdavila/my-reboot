@@ -2,5 +2,5 @@
 set -ex
 
 cargo fmt
-cargo clippy
-cargo test
+cargo clippy --workspace
+cargo test --workspace

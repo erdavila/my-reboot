@@ -2,6 +2,7 @@
 members = [
     "my_reboot",
     "enum_display_devices",
+    "is_windows_11_or_greater",
 ]
 default-members = ["my_reboot"]
 resolver = "2"
