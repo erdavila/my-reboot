@@ -1,10 +1,7 @@
-#[cfg(windows)]
 use enum_display_devices::DisplayDevice;
 
-#[cfg(windows)]
 use enum_display_devices::EnumDisplayDevices;
 
-#[cfg(windows)]
 fn main() {
     for dd1 in EnumDisplayDevices::new(None, false) {
         print_data(&dd1, 0);
@@ -24,7 +21,6 @@ fn main() {
     }
 }
 
-#[cfg(windows)]
 fn print_data(dd: &DisplayDevice, indent_level: u8) {
     let indent = "  ".repeat(indent_level.into());
 
@@ -33,9 +29,4 @@ fn print_data(dd: &DisplayDevice, indent_level: u8) {
     println!("{indent}ID: {}", &dd.device_id.to_str().unwrap());
     println!("{indent}Key: {}", &dd.device_key.to_str().unwrap());
     println!("{indent}Active: {}", dd.state_flags.active());
-}
-
-#[cfg(not(windows))]
-fn main() {
-    panic!("Disponível somente no Windows");
 }

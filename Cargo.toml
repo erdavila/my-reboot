@@ -3,4 +3,5 @@ members = [
     "my_reboot",
     "enum_display_devices",
 ]
+default-members = ["my_reboot"]
 resolver = "2"
