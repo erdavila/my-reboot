@@ -13,12 +13,14 @@ pub mod operating_system {
 
     pub const WAS_UPDATED_TO: &str = "foi atualizado para";
 
+    pub const UNDEFINED: &str = "indefinido";
+
     pub fn value_text(os: Option<OperatingSystem>) -> ANSIString<'static> {
         super::two_values_option_value_text(
             os,
             OperatingSystem::Windows,
             OperatingSystem::Linux,
-            "indefinido",
+            UNDEFINED,
         )
     }
 }
@@ -75,4 +77,32 @@ fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
         None => (Red, undefined_text.to_string()),
     };
     color.bold().paint(text)
+}
+
+pub trait Capitalize {
+    fn capitalize(self) -> String;
+}
+impl Capitalize for &str {
+    fn capitalize(self) -> String {
+        let mut output = String::new();
+
+        let mut chars = self.chars();
+        if let Some(ch) = chars.next() {
+            output.extend(ch.to_uppercase());
+        }
+        output.extend(chars);
+
+        output
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Capitalize;
+
+    #[test]
+    fn capitalize() {
+        assert_eq!("".to_string().capitalize(), "");
+        assert_eq!("hello world".to_string().capitalize(), "Hello world");
+    }
 }

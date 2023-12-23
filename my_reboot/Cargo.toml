@@ -13,6 +13,7 @@ rust-version = "1.57"
 [dependencies]
 ansi_term = "0.12.1"
 anyhow = "1.0"
+iced = { version = "0.10.0", features = [ "image" ] }
 
 [target."cfg(windows)".dependencies]
 enum_display_devices = { path = "../enum_display_devices" }

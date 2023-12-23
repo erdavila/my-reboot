@@ -5,6 +5,7 @@
 
 mod args;
 mod configs;
+mod dialog;
 mod file_content_as_hash_map;
 mod grubenv;
 mod host_os;
@@ -25,13 +26,18 @@ fn main() -> Result<()> {
         .with_context(|| "Argumentos inválidos.\nPara ajuda, execute: my-reboot --help")?;
 
     match args {
-        ParsedArgs::Script(script) => execute_script(script)?,
-        ParsedArgs::ShowState => show_state()?,
-        ParsedArgs::None => todo!(),
-        ParsedArgs::Usage => println!("{}", args::USAGE),
+        ParsedArgs::Dialog => show_dialog(),
+        ParsedArgs::Script(script) => execute_script(script),
+        ParsedArgs::ShowState => show_state(),
+        ParsedArgs::Usage => {
+            println!("{}", args::USAGE);
+            Ok(())
+        }
     }
+}
 
-    Ok(())
+fn show_dialog() -> Result<()> {
+    dialog::show_advanced()
 }
 
 fn execute_script(script: Script) -> Result<()> {

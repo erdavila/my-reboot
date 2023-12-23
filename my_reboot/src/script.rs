@@ -199,6 +199,14 @@ impl<T: Copy> SetOrUnset<T> {
         }
     }
 }
+impl<T> From<Option<T>> for SetOrUnset<T> {
+    fn from(option: Option<T>) -> Self {
+        match option {
+            Some(value) => Self::Set(value),
+            None => Self::Unset,
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum SwitchToDisplay {

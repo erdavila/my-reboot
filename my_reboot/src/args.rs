@@ -8,9 +8,9 @@ use crate::script::Script;
 use self::errors::ArgError;
 
 pub enum ParsedArgs {
+    Dialog,
     ShowState,
     Script(Script),
-    None,
     Usage,
 }
 
@@ -20,6 +20,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
 
     let parsed_args = match args.next() {
         Some(arg) => match &arg[..] {
+            "dialog" => ParsedArgs::Dialog,
             "show" => ParsedArgs::ShowState,
             "-h" | "--help" => ParsedArgs::Usage,
             _ => match script_args::parse(&arg, &mut args)? {
@@ -27,7 +28,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
                 None => return errors::unknown_argument_error(&arg),
             },
         },
-        None => ParsedArgs::None,
+        None => ParsedArgs::Dialog,
     };
 
     errors::check_no_more_arguments(&mut args)?;
@@ -36,6 +37,9 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
 
 pub const USAGE: &str = "\
 Usos:
+  my-reboot [dialog]
+    Exibe diálogo avançado.
+
   my-reboot (SO | TELA | TROCA-DE-TELA | AÇÃO)+
     SO poder ser:
       [os:]windows - Inicia Windows na próxima inicialização do computador.
