@@ -7,7 +7,7 @@ use iced::{
     Subscription, Theme,
 };
 
-use crate::options_types::{Display, OperatingSystem, OptionType};
+use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;
 
 pub fn show(options: Options) -> Result<Option<Options>> {
@@ -23,7 +23,7 @@ pub fn show(options: Options) -> Result<Option<Options>> {
     let settings = Settings::with_flags(NonNull::from(&mut flags));
     let settings = Settings {
         window: window::Settings {
-            size: (340, 302),
+            size: (340, 406),
             position: window::Position::Centered,
             resizable: false,
             icon: Some(window::icon::from_file_data(
@@ -47,7 +47,7 @@ pub struct Options {
     pub next_windows_boot_display: Option<Display>,
     // TODO
     // pub switch_display: bool, // On Windows only!
-    // pub reboot_action: Option<RebootAction>,
+    pub reboot_action: Option<RebootAction>,
 }
 
 #[derive(Default)]
@@ -60,6 +60,7 @@ struct Flags {
 enum Message {
     NextBootOperatingSystem(Option<OperatingSystem>),
     NextWindowsBootDisplay(Option<Display>),
+    Action(Option<RebootAction>),
     Confirm,
     Dismiss,
 }
@@ -148,6 +149,10 @@ impl Application for AdvancedDialog {
                 self.flags_mut().options.next_windows_boot_display = display;
                 Command::none()
             }
+            Message::Action(action) => {
+                self.flags_mut().options.reboot_action = action;
+                Command::none()
+            }
             Message::Confirm => {
                 self.flags_mut().confirmed = true;
                 window::close()
@@ -190,9 +195,25 @@ impl Application for AdvancedDialog {
         )
         .spacing(2);
 
+        let reboot_action_widgets = radio_group!(
+            RebootAction;
+            self.flags().options.reboot_action,
+            |op| match op {
+                RebootAction::Reboot => "reiniciar".to_string(),
+                RebootAction::Shutdown => "desligar".to_string(),
+            },
+            "continuar usando",
+            Message::Action,
+        )
+        .fold(column![bold_text!("Ação")], |column, radio| {
+            column.push(radio)
+        })
+        .spacing(2);
+
         column![
             next_boot_os_widgets,
             next_win_boot_display_widgets,
+            reboot_action_widgets,
             row![button("OK").on_press(Message::Confirm).padding([4, 30])]
         ]
         .spacing(16)

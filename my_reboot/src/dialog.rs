@@ -11,6 +11,7 @@ pub fn show_advanced() -> Result<()> {
     let options = advanced::Options {
         next_boot_operating_system: state.next_boot_operating_system,
         next_windows_boot_display: state.next_windows_boot_display,
+        reboot_action: None,
     };
 
     let outcome = advanced::show(options)?;
@@ -20,7 +21,7 @@ pub fn show_advanced() -> Result<()> {
             next_boot_operating_system: Some(options.next_boot_operating_system.into()),
             next_windows_boot_display: Some(options.next_windows_boot_display.into()),
             switch_to_display: None,
-            reboot_action: None,
+            reboot_action: options.reboot_action,
         };
         script.execute()?
     }
