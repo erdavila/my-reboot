@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use anyhow::Result;
 #[cfg(windows)]
 use iced::widget::checkbox;
-use iced::widget::{button, column, radio, row, text};
+use iced::widget::{button, column, container, radio, row, text};
 use iced::{
     executor, font, keyboard, subscription, window, Application, Command, Element, Event, Settings,
     Subscription, Theme,
@@ -120,6 +120,12 @@ macro_rules! radio_group {
     };
 }
 
+macro_rules! indented {
+    ($content:expr) => {
+        container($content).padding([0, 0, 0, 8])
+    };
+}
+
 impl Application for AdvancedDialog {
     type Executor = executor::Default;
     type Flags = NonNull<Flags>;
@@ -190,7 +196,7 @@ impl Application for AdvancedDialog {
             column![bold_text!(
                 crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION.capitalize()
             )],
-            |column, radio| column.push(radio),
+            |column, radio| column.push(indented!(radio)),
         )
         .spacing(2);
 
@@ -205,7 +211,7 @@ impl Application for AdvancedDialog {
             column![bold_text!(
                 crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION.capitalize()
             )],
-            |column, radio| column.push(radio),
+            |column, radio| column.push(indented!(radio)),
         )
         .spacing(2);
 
@@ -223,18 +229,16 @@ impl Application for AdvancedDialog {
             {
                 let column = column![bold_text!("Ação")];
                 #[cfg(windows)]
-                let column = column.push(
-                    checkbox(
-                        "trocar de tela antes",
-                        self.flags().options.switch_display,
-                        Message::SwitchDisplay,
-                    )
-                    .size(12)
-                    .spacing(6),
-                );
+                let column = column.push(indented!(checkbox(
+                    "trocar de tela antes",
+                    self.flags().options.switch_display,
+                    Message::SwitchDisplay,
+                )
+                .size(12)
+                .spacing(6)));
                 column
             },
-            |column, radio| column.push(radio),
+            |column, radio| column.push(indented!(radio)),
         )
         .spacing(2);
 
