@@ -1,6 +1,8 @@
 use std::ptr::NonNull;
 
 use anyhow::Result;
+#[cfg(windows)]
+use iced::widget::checkbox;
 use iced::widget::{button, column, radio, row, text};
 use iced::{
     executor, font, keyboard, subscription, window, Application, Command, Element, Event, Settings,
@@ -9,6 +11,11 @@ use iced::{
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;
+
+#[cfg(windows)]
+const WINDOW_HEIGHT: u32 = 428;
+#[cfg(not(windows))]
+const WINDOW_HEIGHT: u32 = 406;
 
 pub fn show(options: Options) -> Result<Option<Options>> {
     /*
@@ -23,7 +30,7 @@ pub fn show(options: Options) -> Result<Option<Options>> {
     let settings = Settings::with_flags(NonNull::from(&mut flags));
     let settings = Settings {
         window: window::Settings {
-            size: (340, 406),
+            size: (340, WINDOW_HEIGHT),
             position: window::Position::Centered,
             resizable: false,
             icon: Some(window::icon::from_file_data(
@@ -45,8 +52,8 @@ pub fn show(options: Options) -> Result<Option<Options>> {
 pub struct Options {
     pub next_boot_operating_system: Option<OperatingSystem>,
     pub next_windows_boot_display: Option<Display>,
-    // TODO
-    // pub switch_display: bool, // On Windows only!
+    #[cfg(windows)]
+    pub switch_display: bool,
     pub reboot_action: Option<RebootAction>,
 }
 
@@ -60,6 +67,8 @@ struct Flags {
 enum Message {
     NextBootOperatingSystem(Option<OperatingSystem>),
     NextWindowsBootDisplay(Option<Display>),
+    #[cfg(windows)]
+    SwitchDisplay(bool),
     Action(Option<RebootAction>),
     Confirm,
     Dismiss,
@@ -149,6 +158,11 @@ impl Application for AdvancedDialog {
                 self.flags_mut().options.next_windows_boot_display = display;
                 Command::none()
             }
+            #[cfg(windows)]
+            Message::SwitchDisplay(switch) => {
+                self.flags_mut().options.switch_display = switch;
+                Command::none()
+            }
             Message::Action(action) => {
                 self.flags_mut().options.reboot_action = action;
                 Command::none()
@@ -205,9 +219,23 @@ impl Application for AdvancedDialog {
             "continuar usando",
             Message::Action,
         )
-        .fold(column![bold_text!("Ação")], |column, radio| {
-            column.push(radio)
-        })
+        .fold(
+            {
+                let column = column![bold_text!("Ação")];
+                #[cfg(windows)]
+                let column = column.push(
+                    checkbox(
+                        "trocar de tela antes",
+                        self.flags().options.switch_display,
+                        Message::SwitchDisplay,
+                    )
+                    .size(12)
+                    .spacing(6),
+                );
+                column
+            },
+            |column, radio| column.push(radio),
+        )
         .spacing(2);
 
         column![
