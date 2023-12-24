@@ -88,16 +88,25 @@ impl AdvancedDialog {
     }
 }
 
-macro_rules! bold_text {
-    ($text:expr) => {
-        text($text).font(font::Font {
+macro_rules! create_option_group {
+    ($title:expr) => {
+        column![text($title).font(font::Font {
             weight: font::Weight::Bold,
             ..Default::default()
+        })]
+        .spacing(2)
+    };
+}
+
+macro_rules! add_to_option_group {
+    ($option_group:expr, $widgets:expr) => {
+        $widgets.into_iter().fold($option_group, |og, widget| {
+            og.push(indented!(widget.size(12).spacing(6)))
         })
     };
 }
 
-macro_rules! radio_group {
+macro_rules! option_radios {
     ($option_type:ident; $current_value:expr, $label:expr, $none_label:expr, $message:expr $(,)?) => {
         $option_type::values()
             .into_iter()
@@ -114,8 +123,6 @@ macro_rules! radio_group {
                     ($current_value == option).then_some(option),
                     $message,
                 )
-                .size(12)
-                .spacing(6)
             })
     };
 }
@@ -185,62 +192,63 @@ impl Application for AdvancedDialog {
     }
 
     fn view(&self) -> Element<Message> {
-        let next_boot_os_widgets = radio_group!(
-            OperatingSystem;
-            self.flags().options.next_boot_operating_system,
-            |op: OperatingSystem| op.to_string(),
-            crate::text::operating_system::UNDEFINED,
-            Message::NextBootOperatingSystem,
-        )
-        .fold(
-            column![bold_text!(
+        let next_boot_os_widgets = {
+            let widgets = create_option_group!(
                 crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION.capitalize()
-            )],
-            |column, radio| column.push(indented!(radio)),
-        )
-        .spacing(2);
+            );
+            add_to_option_group!(
+                widgets,
+                option_radios!(
+                    OperatingSystem;
+                    self.flags().options.next_boot_operating_system,
+                    |op: OperatingSystem| op.to_string(),
+                    crate::text::operating_system::UNDEFINED,
+                    Message::NextBootOperatingSystem,
+                )
+            )
+        };
 
-        let next_win_boot_display_widgets = radio_group!(
-            Display;
-            self.flags().options.next_windows_boot_display,
-            |op: Display| op.to_string(),
-            crate::text::display::UNDEFINED,
-            Message::NextWindowsBootDisplay,
-        )
-        .fold(
-            column![bold_text!(
+        let next_win_boot_display_widgets = {
+            let widgets = create_option_group!(
                 crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION.capitalize()
-            )],
-            |column, radio| column.push(indented!(radio)),
-        )
-        .spacing(2);
+            );
+            add_to_option_group!(
+                widgets,
+                option_radios!(
+                    Display;
+                    self.flags().options.next_windows_boot_display,
+                    |op: Display| op.to_string(),
+                    crate::text::display::UNDEFINED,
+                    Message::NextWindowsBootDisplay,
+                )
+            )
+        };
 
-        let reboot_action_widgets = radio_group!(
-            RebootAction;
-            self.flags().options.reboot_action,
-            |op| match op {
-                RebootAction::Reboot => "reiniciar".to_string(),
-                RebootAction::Shutdown => "desligar".to_string(),
-            },
-            "continuar usando",
-            Message::Action,
-        )
-        .fold(
-            {
-                let column = column![bold_text!("Ação")];
-                #[cfg(windows)]
-                let column = column.push(indented!(checkbox(
+        let reboot_action_widgets = {
+            let widgets = create_option_group!("Ação");
+            #[cfg(windows)]
+            let widgets = add_to_option_group!(
+                widgets,
+                [checkbox(
                     "trocar de tela antes",
                     self.flags().options.switch_display,
                     Message::SwitchDisplay,
+                )]
+            );
+            add_to_option_group!(
+                widgets,
+                option_radios!(
+                    RebootAction;
+                    self.flags().options.reboot_action,
+                    |op| match op {
+                        RebootAction::Reboot => "reiniciar".to_string(),
+                        RebootAction::Shutdown => "desligar".to_string(),
+                    },
+                    "continuar usando",
+                    Message::Action,
                 )
-                .size(12)
-                .spacing(6)));
-                column
-            },
-            |column, radio| column.push(indented!(radio)),
-        )
-        .spacing(2);
+            )
+        };
 
         column![
             next_boot_os_widgets,
