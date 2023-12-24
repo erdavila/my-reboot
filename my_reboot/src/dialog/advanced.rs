@@ -7,8 +7,7 @@ use iced::{
     Subscription, Theme,
 };
 
-use crate::options_types::OperatingSystem;
-use crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION;
+use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::text::Capitalize;
 
 pub fn show(options: Options) -> Result<Option<Options>> {
@@ -24,7 +23,7 @@ pub fn show(options: Options) -> Result<Option<Options>> {
     let settings = Settings::with_flags(NonNull::from(&mut flags));
     let settings = Settings {
         window: window::Settings {
-            size: (330, 190),
+            size: (340, 302),
             position: window::Position::Centered,
             resizable: false,
             icon: Some(window::icon::from_file_data(
@@ -45,8 +44,8 @@ pub fn show(options: Options) -> Result<Option<Options>> {
 #[derive(Default)]
 pub struct Options {
     pub next_boot_operating_system: Option<OperatingSystem>,
+    pub next_windows_boot_display: Option<Display>,
     // TODO
-    // pub next_windows_boot_display: Option<Display>,
     // pub switch_display: bool, // On Windows only!
     // pub reboot_action: Option<RebootAction>,
 }
@@ -60,6 +59,7 @@ struct Flags {
 #[derive(Debug, Clone, Copy)]
 enum Message {
     NextBootOperatingSystem(Option<OperatingSystem>),
+    NextWindowsBootDisplay(Option<Display>),
     Confirm,
     Dismiss,
 }
@@ -76,6 +76,38 @@ impl AdvancedDialog {
     fn flags_mut(&mut self) -> &mut Flags {
         unsafe { self.flags.as_mut() }
     }
+}
+
+macro_rules! bold_text {
+    ($text:expr) => {
+        text($text).font(font::Font {
+            weight: font::Weight::Bold,
+            ..Default::default()
+        })
+    };
+}
+
+macro_rules! radio_group {
+    ($option_type:ident; $current_value:expr, $label:expr, $none_label:expr, $message:expr $(,)?) => {
+        $option_type::values()
+            .into_iter()
+            .map(Some)
+            .chain(std::iter::once(None))
+            .map(|option| {
+                let label = $label;
+                radio(
+                    match option {
+                        Some(op) => label(op),
+                        None => $none_label.to_string(),
+                    },
+                    option,
+                    ($current_value == option).then_some(option),
+                    $message,
+                )
+                .size(12)
+                .spacing(6)
+            })
+    };
 }
 
 impl Application for AdvancedDialog {
@@ -112,6 +144,10 @@ impl Application for AdvancedDialog {
                 self.flags_mut().options.next_boot_operating_system = os;
                 Command::none()
             }
+            Message::NextWindowsBootDisplay(display) => {
+                self.flags_mut().options.next_windows_boot_display = display;
+                Command::none()
+            }
             Message::Confirm => {
                 self.flags_mut().confirmed = true;
                 window::close()
@@ -124,43 +160,42 @@ impl Application for AdvancedDialog {
     }
 
     fn view(&self) -> Element<Message> {
-        let next_boot_os_widgets = [
-            Some(OperatingSystem::Windows),
-            Some(OperatingSystem::Linux),
-            None,
-        ]
-        .into_iter()
+        let next_boot_os_widgets = radio_group!(
+            OperatingSystem;
+            self.flags().options.next_boot_operating_system,
+            |op: OperatingSystem| op.to_string(),
+            crate::text::operating_system::UNDEFINED,
+            Message::NextBootOperatingSystem,
+        )
         .fold(
-            column![
-                text(ON_NEXT_BOOT_DESCRIPTION.capitalize()).font(font::Font {
-                    weight: font::Weight::Bold,
-                    ..Default::default()
-                })
-            ],
-            |column, option| {
-                column.push(
-                    radio(
-                        match option {
-                            Some(os) => os.to_string(),
-                            None => crate::text::operating_system::UNDEFINED.to_string(),
-                        },
-                        option,
-                        (self.flags().options.next_boot_operating_system == option)
-                            .then_some(option),
-                        Message::NextBootOperatingSystem,
-                    )
-                    .size(12)
-                    .spacing(6),
-                )
-            },
+            column![bold_text!(
+                crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION.capitalize()
+            )],
+            |column, radio| column.push(radio),
+        )
+        .spacing(2);
+
+        let next_win_boot_display_widgets = radio_group!(
+            Display;
+            self.flags().options.next_windows_boot_display,
+            |op: Display| op.to_string(),
+            crate::text::display::UNDEFINED,
+            Message::NextWindowsBootDisplay,
+        )
+        .fold(
+            column![bold_text!(
+                crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION.capitalize()
+            )],
+            |column, radio| column.push(radio),
         )
         .spacing(2);
 
         column![
             next_boot_os_widgets,
+            next_win_boot_display_widgets,
             row![button("OK").on_press(Message::Confirm).padding([4, 30])]
         ]
-        .spacing(30)
+        .spacing(16)
         .padding([8, 12])
         .into()
     }

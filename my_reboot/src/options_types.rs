@@ -1,4 +1,4 @@
-pub trait OptionType: Copy {
+pub trait OptionType: Copy + Eq {
     fn values() -> Vec<Self>;
 
     fn to_option_string(&self) -> &str;

@@ -10,6 +10,7 @@ pub fn show_advanced() -> Result<()> {
     let state = provider.get_state();
     let options = advanced::Options {
         next_boot_operating_system: state.next_boot_operating_system,
+        next_windows_boot_display: state.next_windows_boot_display,
     };
 
     let outcome = advanced::show(options)?;
@@ -17,7 +18,7 @@ pub fn show_advanced() -> Result<()> {
     if let Some(options) = outcome {
         let script = Script {
             next_boot_operating_system: Some(options.next_boot_operating_system.into()),
-            next_windows_boot_display: None,
+            next_windows_boot_display: Some(options.next_windows_boot_display.into()),
             switch_to_display: None,
             reboot_action: None,
         };
