@@ -3,12 +3,13 @@ mod script_args;
 
 use std::env;
 
+use crate::dialog::Mode;
 use crate::script::Script;
 
 use self::errors::ArgError;
 
 pub enum ParsedArgs {
-    Dialog,
+    Dialog(Mode),
     ShowState,
     Script(Script),
     Usage,
@@ -20,7 +21,10 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
 
     let parsed_args = match args.next() {
         Some(arg) => match &arg[..] {
-            "dialog" => ParsedArgs::Dialog,
+            "dialog" => {
+                let mode = parse_dialog_args(&mut args)?;
+                ParsedArgs::Dialog(mode)
+            }
             "show" => ParsedArgs::ShowState,
             "-h" | "--help" => ParsedArgs::Usage,
             _ => match script_args::parse(&arg, &mut args)? {
@@ -28,16 +32,27 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
                 None => return errors::unknown_argument_error(&arg),
             },
         },
-        None => ParsedArgs::Dialog,
+        None => ParsedArgs::Dialog(Mode::Basic),
     };
 
     errors::check_no_more_arguments(&mut args)?;
     Ok(parsed_args)
 }
 
+fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
+    match args.next() {
+        None => Ok(Mode::Basic),
+        Some(arg) if arg == "-x" => Ok(Mode::Advanced),
+        Some(arg) => errors::unknown_argument_error(&arg)?,
+    }
+}
+
 pub const USAGE: &str = "\
 Usos:
   my-reboot [dialog]
+    Exibe diálogo básico.
+
+  my-reboot dialog -x
     Exibe diálogo avançado.
 
   my-reboot (SO | TELA | TROCA-DE-TELA | AÇÃO)+

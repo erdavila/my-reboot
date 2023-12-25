@@ -19,6 +19,7 @@ use crate::args::ParsedArgs;
 use crate::state::StateProvider;
 
 use anyhow::{Context, Result};
+use dialog::Mode;
 use script::Script;
 
 fn main() -> Result<()> {
@@ -26,7 +27,7 @@ fn main() -> Result<()> {
         .with_context(|| "Argumentos inválidos.\nPara ajuda, execute: my-reboot --help")?;
 
     match args {
-        ParsedArgs::Dialog => show_dialog(),
+        ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::Usage => {
@@ -36,8 +37,11 @@ fn main() -> Result<()> {
     }
 }
 
-fn show_dialog() -> Result<()> {
-    dialog::show_advanced()
+fn show_dialog(mode: Mode) -> Result<()> {
+    match mode {
+        Mode::Basic => dialog::show_basic(),
+        Mode::Advanced => dialog::show_advanced(),
+    }
 }
 
 fn execute_script(script: Script) -> Result<()> {

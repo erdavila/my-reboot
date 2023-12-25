@@ -13,6 +13,12 @@ use std::process::ExitStatus;
 use anyhow::{bail, Result};
 
 use crate::options_types::Display;
+use crate::script::Script;
+
+pub struct PredefinedScript {
+    pub button_label: &'static str,
+    pub script: Script,
+}
 
 pub trait SuccessOr {
     fn success_or(self, message: &'static str) -> Result<()>;

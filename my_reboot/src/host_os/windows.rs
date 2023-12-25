@@ -4,13 +4,24 @@ use std::time::{Duration, Instant};
 
 use anyhow::{bail, Result};
 
+use crate::options_types::{OperatingSystem, RebootAction};
+use crate::script::{Script, SetOrUnset};
 use crate::{configs::Configs, host_os::SuccessOr, options_types::Display, text};
 
-use super::CurrentDisplayHandler;
+use super::{CurrentDisplayHandler, PredefinedScript};
 
 mod get_active_display_id;
 
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
+
+pub const PREDEFINED_SCRIPTS: [PredefinedScript; 1] = [PredefinedScript {
+    button_label: "Reiniciar no Linux",
+    script: Script {
+        next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Linux)),
+        reboot_action: Some(RebootAction::Reboot),
+        ..Script::new()
+    },
+}];
 
 pub fn reboot() -> Result<()> {
     shutdown_now("/g")

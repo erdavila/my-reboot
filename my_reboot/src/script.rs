@@ -14,7 +14,7 @@ pub struct Script {
     pub reboot_action: Option<RebootAction>,
 }
 impl Script {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_display: None,
