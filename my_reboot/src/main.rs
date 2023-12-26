@@ -20,7 +20,10 @@ use crate::state::StateProvider;
 
 use anyhow::{Context, Result};
 use dialog::Mode;
+use host_os::PREDEFINED_SCRIPTS;
 use script::Script;
+#[cfg(windows)]
+use script::SwitchToDisplay;
 
 fn main() -> Result<()> {
     let args = args::parse()
@@ -38,9 +41,40 @@ fn main() -> Result<()> {
 }
 
 fn show_dialog(mode: Mode) -> Result<()> {
-    match mode {
-        Mode::Basic => dialog::show_basic(),
-        Mode::Advanced => dialog::show_advanced(),
+    let labels: Vec<_> = PREDEFINED_SCRIPTS
+        .iter()
+        .map(|ps| ps.button_label)
+        .collect();
+
+    let provider = StateProvider::new()?;
+    let state = provider.get_state();
+    let script_options = dialog::ScriptOptions {
+        next_boot_operating_system: state.next_boot_operating_system,
+        next_windows_boot_display: state.next_windows_boot_display,
+        #[cfg(windows)]
+        switch_display: false,
+        reboot_action: None,
+    };
+
+    let outcome = dialog::show(mode, labels, script_options)?;
+
+    match outcome {
+        Some(dialog::Outcome::PredefinedScriptIndex(index)) => {
+            PREDEFINED_SCRIPTS[index].script.execute()
+        }
+        Some(dialog::Outcome::ScriptOptions(options)) => {
+            let script = Script {
+                next_boot_operating_system: Some(options.next_boot_operating_system.into()),
+                next_windows_boot_display: Some(options.next_windows_boot_display.into()),
+                #[cfg(windows)]
+                switch_to_display: options.switch_display.then_some(SwitchToDisplay::Other),
+                #[cfg(not(windows))]
+                switch_to_display: None,
+                reboot_action: options.reboot_action,
+            };
+            script.execute()
+        }
+        None => Ok(()),
     }
 }
 

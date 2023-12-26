@@ -1,130 +1,51 @@
-use std::ptr::NonNull;
+use iced::widget::{button, column, horizontal_space, row, toggler};
+use iced::{alignment, Length, Theme};
 
-use anyhow::Result;
-use iced::widget::{button, column};
-use iced::{
-    executor, keyboard, subscription, window, Application, Command, Event, Settings, Subscription,
-    Theme,
-};
+use super::{Dialog, Outcome};
 
 const WINDOW_WIDTH: u16 = 340;
 const PADDING: u16 = 12;
 const BUTTON_HEIGHT: u16 = 32;
 
-pub fn show(labels: Vec<&'static str>) -> Result<Option<usize>> {
-    /*
-       Unfortunatelly there is no way to "return" an outcome from an iced window, so we have to pass
-       a pointer for the outcome as a flag, and use it after the window is closed.
-    */
-
-    let label_count = labels.len() as u32;
-
-    let mut user_choice = None;
-    let flags = Flags {
-        user_choice: NonNull::from(&mut user_choice),
-        labels,
-    };
-    let settings = Settings::with_flags(flags);
-    let settings = Settings {
-        window: window::Settings {
-            size: (
-                WINDOW_WIDTH as u32,
-                (BUTTON_HEIGHT + 1) as u32 * label_count + 23,
-            ),
-            position: window::Position::Centered,
-            resizable: false,
-            icon: Some(window::icon::from_file_data(
-                include_bytes!("../../../256x256.png"),
-                None,
-            )?),
-            ..Default::default()
-        },
-        ..settings
-    };
-
-    BasicDialog::run(settings)?;
-
-    Ok(user_choice)
+pub(crate) fn window_size(label_count: u32) -> (u32, u32) {
+    (
+        WINDOW_WIDTH as u32,
+        (BUTTON_HEIGHT + 1) as u32 * label_count + 23 + 34,
+    )
 }
 
-type UserChoice = Option<usize>;
-
-struct Flags {
-    user_choice: NonNull<UserChoice>,
-    labels: Vec<&'static str>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Message {
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum Message {
     Confirm(usize),
-    Dismiss,
 }
 
-struct BasicDialog {
-    flags: Flags,
-}
-
-impl BasicDialog {
-    fn user_choice_mut(&mut self) -> &mut UserChoice {
-        unsafe { self.flags.user_choice.as_mut() }
-    }
-}
-
-impl Application for BasicDialog {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = Flags;
-
-    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        (Self { flags }, Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("My Reboot")
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events_with(|event, _status| {
-            if let Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Escape,
-                ..
-            }) = event
-            {
-                return Some(Message::Dismiss);
-            }
-
-            None
-        })
-    }
-
-    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
-        match message {
-            Message::Confirm(index) => {
-                *self.user_choice_mut() = Some(index);
-                window::close()
-            }
-            Message::Dismiss => {
-                *self.user_choice_mut() = None;
-                window::close()
-            }
+pub(crate) fn update(dialog: &mut Dialog, message: Message) -> iced::Command<Message> {
+    match message {
+        Message::Confirm(index) => {
+            dialog.set_outcome_and_close_window(Some(Outcome::PredefinedScriptIndex(index)))
         }
     }
+}
 
-    fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let column =
-            self.flags
-                .labels
-                .iter()
-                .enumerate()
-                .fold(column![], |column, (index, label)| {
-                    let button = button(*label)
-                        .on_press(Message::Confirm(index))
-                        .height(BUTTON_HEIGHT)
-                        .width(WINDOW_WIDTH - 2 * PADDING);
-                    column.push(button)
-                });
+pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, iced::Renderer<Theme>> {
+    let buttons = dialog
+        .predefined_script_labels
+        .iter()
+        .enumerate()
+        .fold(column![], |column, (index, label)| {
+            let button = button(*label)
+                .on_press(super::Message::BasicDialog(Message::Confirm(index)))
+                .height(BUTTON_HEIGHT)
+                .width(WINDOW_WIDTH - 2 * PADDING);
+            column.push(button)
+        })
+        .spacing(1);
 
-        column.spacing(1).padding(PADDING).into()
-    }
+    column![
+        buttons,
+        row![horizontal_space(Length::Fill), mode_toggler!(false),],
+    ]
+    .spacing(16)
+    .padding(PADDING)
+    .into()
 }

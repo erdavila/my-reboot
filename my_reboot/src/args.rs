@@ -43,7 +43,7 @@ fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
     match args.next() {
         None => Ok(Mode::Basic),
         Some(arg) if arg == "-x" => Ok(Mode::Advanced),
-        Some(arg) => errors::unknown_argument_error(&arg)?,
+        Some(arg) => errors::unknown_argument_error(&arg),
     }
 }
 
