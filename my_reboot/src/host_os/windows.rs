@@ -68,7 +68,7 @@ impl<'a> CurrentDisplayHandler for WindowsCurrentDisplayHandler<'a> {
         let display_id_before = get_active_display_id::get_active_display_id();
 
         let display_switch_arg = self.configs.get_display_switch_arg(display);
-        self.execute_display_switch(display_switch_arg)?;
+        self.execute_display_switch(&display_switch_arg)?;
 
         const PROBE_INTERVAL: Duration = Duration::from_secs(1);
         const TOTAL_WAIT_TIME: Duration = Duration::from_secs(10);
@@ -83,4 +83,8 @@ impl<'a> CurrentDisplayHandler for WindowsCurrentDisplayHandler<'a> {
 
         bail!(text::display::switching::TAKING_TOO_LONG);
     }
+}
+
+pub fn configure() -> Result<()> {
+    todo!()
 }

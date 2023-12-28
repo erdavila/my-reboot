@@ -13,6 +13,7 @@ pub enum ParsedArgs {
     Dialog(Mode),
     ShowState,
     Script(Script),
+    Configure,
     Usage,
 }
 
@@ -31,6 +32,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
                 let index = parse_script_args(&mut args)?;
                 ParsedArgs::Script(PREDEFINED_SCRIPTS[index].script)
             }
+            "configure" => ParsedArgs::Configure,
             "-h" | "--help" => ParsedArgs::Usage,
             _ => match script_args::parse(&arg, &mut args)? {
                 Some(script) => ParsedArgs::Script(script),

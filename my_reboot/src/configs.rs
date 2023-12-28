@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
@@ -19,9 +20,13 @@ pub struct Configs {
 impl Configs {
     pub fn load(must_exist: bool) -> io::Result<Configs> {
         let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
-        let props = Rc::new(props);
+        let props = Rc::new(RefCell::new(props));
 
-        Ok(Configs {
+        Ok(Self::from_props(props))
+    }
+
+    fn from_props(props: Rc<RefCell<Properties>>) -> Self {
+        Configs {
             grub_entry_handler: ConfigHandler::new(
                 Rc::clone(&props),
                 "grubEntry",
@@ -42,14 +47,14 @@ impl Configs {
                 Display::values(),
                 OperatingSystem::Windows,
             ),
-        })
+        }
     }
 
     pub fn get_operating_system_by_grub_entry(&self, grub_entry: &str) -> OperatingSystem {
         self.grub_entry_handler.get_object_by_value(grub_entry)
     }
 
-    pub fn get_grub_entry(&self, os: OperatingSystem) -> &str {
+    pub fn get_grub_entry(&self, os: OperatingSystem) -> String {
         self.grub_entry_handler.get_value(os)
     }
 
@@ -59,20 +64,41 @@ impl Configs {
     }
 
     #[cfg(windows)]
-    pub fn get_display_switch_arg(&self, display: Display) -> &str {
+    pub fn get_display_switch_arg(&self, display: Display) -> String {
         self.display_switch_arg_handler.get_value(display)
     }
 }
 
+pub struct ConfigsWriter {
+    configs: Configs,
+    props: Rc<RefCell<Properties>>,
+}
+impl ConfigsWriter {
+    pub fn load(must_exist: bool) -> io::Result<ConfigsWriter> {
+        let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
+        let props = Rc::new(RefCell::new(props));
+        let configs = Configs::from_props(Rc::clone(&props));
+        Ok(Self { configs, props })
+    }
+
+    pub fn set_grub_entry(&mut self, os: OperatingSystem, value: &str) {
+        self.configs.grub_entry_handler.set_value(os, value);
+    }
+
+    pub fn save(&mut self) -> io::Result<()> {
+        self.props.borrow_mut().save()
+    }
+}
+
 struct ConfigHandler<O: OptionType> {
-    props: Rc<Properties>,
+    props: Rc<RefCell<Properties>>,
     attribute: &'static str,
     objects: Vec<O>,
     config_provider_os: OperatingSystem,
 }
 impl<O: OptionType + Copy> ConfigHandler<O> {
     fn new(
-        props: Rc<Properties>,
+        props: Rc<RefCell<Properties>>,
         attribute: &'static str,
         objects: Vec<O>,
         config_provider_os: OperatingSystem,
@@ -102,17 +128,27 @@ impl<O: OptionType + Copy> ConfigHandler<O> {
         *object
     }
 
-    fn get_value(&self, object: O) -> &str {
+    fn get_value(&self, object: O) -> String {
         let key = self.key_for(object);
-        self.props.get(&key).unwrap_or_else(|| {
-            panic!(
-                "{}",
-                configuration_error(
-                    &format!("Configuração '{key}' não encontrada"),
-                    self.config_provider_os,
+        self.props
+            .as_ref()
+            .borrow()
+            .get(&key)
+            .unwrap_or_else(|| {
+                panic!(
+                    "{}",
+                    configuration_error(
+                        &format!("Configuração '{key}' não encontrada"),
+                        self.config_provider_os,
+                    )
                 )
-            )
-        })
+            })
+            .to_string()
+    }
+
+    fn set_value(&mut self, object: O, value: &str) {
+        let key = self.key_for(object);
+        self.props.borrow_mut().set(&key, value);
     }
 
     fn key_for(&self, object: O) -> String {
