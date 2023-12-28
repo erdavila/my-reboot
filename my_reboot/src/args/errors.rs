@@ -36,3 +36,7 @@ fn exceeding_argument_error<T>(arg: &str) -> Result<T, ArgError> {
 pub fn unknown_argument_error<T>(arg: &str) -> Result<T, ArgError> {
     Err(ArgError::new("Argumento inesperado", arg))
 }
+
+pub fn missing_argument_error<T>(name: &str) -> Result<T, ArgError> {
+    Err(ArgError::new("Argumento faltando", name))
+}

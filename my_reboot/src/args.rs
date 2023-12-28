@@ -4,6 +4,7 @@ mod script_args;
 use std::env;
 
 use crate::dialog::Mode;
+use crate::host_os::PREDEFINED_SCRIPTS;
 use crate::script::Script;
 
 use self::errors::ArgError;
@@ -26,6 +27,10 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
                 ParsedArgs::Dialog(mode)
             }
             "show" => ParsedArgs::ShowState,
+            "script" => {
+                let index = parse_script_args(&mut args)?;
+                ParsedArgs::Script(PREDEFINED_SCRIPTS[index].script)
+            }
             "-h" | "--help" => ParsedArgs::Usage,
             _ => match script_args::parse(&arg, &mut args)? {
                 Some(script) => ParsedArgs::Script(script),
@@ -44,6 +49,22 @@ fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
         None => Ok(Mode::Basic),
         Some(arg) if arg == "-x" => Ok(Mode::Advanced),
         Some(arg) => errors::unknown_argument_error(&arg),
+    }
+}
+
+fn parse_script_args(args: &mut env::Args) -> Result<usize, ArgError> {
+    match args.next() {
+        Some(arg) => match arg.parse::<usize>() {
+            Ok(number) if number >= 1 && number <= PREDEFINED_SCRIPTS.len() => Ok(number - 1),
+            _ => Err(ArgError::new(
+                &format!(
+                    "Número inválido de script para o sistema operacional atual (mín: 1; máx: {})",
+                    PREDEFINED_SCRIPTS.len()
+                ),
+                &arg,
+            )),
+        },
+        None => errors::missing_argument_error("NÚMERO"),
     }
 }
 
@@ -78,6 +99,9 @@ Usos:
 
   my-reboot show
     Exibe as opções atuais para inicialização.
+
+  my-reboot script NÚMERO
+    Executa o script correspondente às ações disponíveis no diálogo básico do S.O. atual.
 
   my-reboot -h|--help
     Exibe este conteúdo.";

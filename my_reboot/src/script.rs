@@ -7,6 +7,7 @@ use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::state::StateProvider;
 use crate::{host_os, text};
 
+#[derive(Clone, Copy, Debug)]
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
@@ -186,15 +187,15 @@ impl ScriptExecutor {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SetOrUnset<T> {
     Set(T),
     Unset,
 }
 impl<T: Copy> SetOrUnset<T> {
-    fn to_option(&self) -> Option<T> {
+    fn to_option(self) -> Option<T> {
         match self {
-            SetOrUnset::Set(value) => Some(*value),
+            SetOrUnset::Set(value) => Some(value),
             SetOrUnset::Unset => None,
         }
     }
@@ -208,7 +209,7 @@ impl<T> From<Option<T>> for SetOrUnset<T> {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SwitchToDisplay {
     Other,
     Display(Display),
