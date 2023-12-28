@@ -52,7 +52,7 @@ impl StateProvider {
 
     pub fn set_next_boot_operating_system(&mut self, os: OperatingSystem) {
         let grub_entry = self.configs.get_grub_entry(os);
-        self.grubenv.set(GRUB_ENTRY, grub_entry);
+        self.grubenv.set(GRUB_ENTRY, &grub_entry);
         self.grubenv.save().unwrap();
     }
 

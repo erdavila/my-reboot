@@ -33,6 +33,7 @@ fn main() -> Result<()> {
         ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
+        ParsedArgs::Configure => configure(),
         ParsedArgs::Usage => {
             println!("{}", args::USAGE);
             Ok(())
@@ -105,4 +106,8 @@ fn show_state() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn configure() -> Result<()> {
+    host_os::configuration::configure()
 }

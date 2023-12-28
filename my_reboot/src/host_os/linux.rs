@@ -50,3 +50,72 @@ pub fn get_current_display_handler<'a>(
 ) -> Option<Box<dyn CurrentDisplayHandler + 'a>> {
     None
 }
+
+pub mod configuration {
+    use std::collections::HashMap;
+    use std::error::Error;
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+
+    use anyhow::Result;
+    use regex::Regex;
+
+    use crate::configs::ConfigsWriter;
+    use crate::options_types::{OperatingSystem, OptionType};
+
+    #[derive(Debug)]
+    struct GrubEntryNotFound(OperatingSystem);
+    impl std::fmt::Display for GrubEntryNotFound {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "Entrada não encontrada para {}", self.0)
+        }
+    }
+    impl Error for GrubEntryNotFound {}
+
+    pub fn configure() -> Result<()> {
+        const GRUB_CFG: &str = "/boot/grub/grub.cfg";
+
+        let grub_entry_re = Regex::new(r".*'([a-zA-Z0-9_-]+)'\s*\{.*")?;
+        let extract_os_and_grub_entry = |line: &str| -> Option<(OperatingSystem, String)> {
+            if !line.starts_with("menuentry ") {
+                return None;
+            }
+
+            let os = OperatingSystem::values()
+                .into_iter()
+                .find(|os| line.contains(&os.to_string()));
+
+            let grub_entry = grub_entry_re.captures(line).map(|caps| caps[1].to_string());
+
+            os.zip(grub_entry)
+        };
+
+        println!("Lendo {GRUB_CFG}...");
+        let reader = BufReader::new(File::open(GRUB_CFG)?);
+        let mut entries = HashMap::new();
+        for line in reader.lines() {
+            let line = line?;
+            if let Some((os, grub_entry)) = extract_os_and_grub_entry(&line) {
+                entries.insert(os, grub_entry);
+            }
+        }
+
+        let mut configs = ConfigsWriter::load(false)?;
+        for os in OperatingSystem::values() {
+            if let Some(grub_entry) = entries.get(&os) {
+                configs.set_grub_entry(os, grub_entry);
+            } else {
+                return Err(GrubEntryNotFound(os).into());
+            }
+        }
+
+        for (os, grub_entry) in entries {
+            configs.set_grub_entry(os, &grub_entry);
+        }
+        println!("Salvando configurações...");
+        configs.save()?;
+
+        println!("Configuração finalizada.");
+        Ok(())
+    }
+}
