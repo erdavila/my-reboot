@@ -33,7 +33,10 @@ fn main() -> Result<()> {
         ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
+        #[cfg(not(windows))]
         ParsedArgs::Configure => configure(),
+        #[cfg(windows)]
+        ParsedArgs::Configure { initial_display } => configure(initial_display),
         ParsedArgs::Usage => {
             println!("{}", args::USAGE);
             Ok(())
@@ -108,6 +111,14 @@ fn show_state() -> Result<()> {
     Ok(())
 }
 
+#[cfg(not(windows))]
 fn configure() -> Result<()> {
     host_os::configuration::configure()
+}
+
+#[cfg(windows)]
+use options_types::Display;
+#[cfg(windows)]
+fn configure(initial_display: Option<Display>) -> Result<()> {
+    host_os::configuration::configure(initial_display)
 }

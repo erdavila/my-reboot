@@ -81,8 +81,21 @@ impl ConfigsWriter {
         Ok(Self { configs, props })
     }
 
+    #[cfg(not(windows))]
     pub fn set_grub_entry(&mut self, os: OperatingSystem, value: &str) {
         self.configs.grub_entry_handler.set_value(os, value);
+    }
+
+    #[cfg(windows)]
+    pub fn set_device_id(&mut self, display: Display, value: &str) {
+        self.configs.device_id_handler.set_value(display, value);
+    }
+
+    #[cfg(windows)]
+    pub fn set_display_switch_arg(&mut self, display: Display, value: &str) {
+        self.configs
+            .display_switch_arg_handler
+            .set_value(display, value);
     }
 
     pub fn save(&mut self) -> io::Result<()> {

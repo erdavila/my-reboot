@@ -1424,6 +1424,7 @@ dependencies = [
  "anyhow",
  "enum_display_devices",
  "iced",
+ "is_windows_11_or_greater",
  "regex",
 ]
 

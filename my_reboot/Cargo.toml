@@ -20,3 +20,4 @@ regex = "1.10.2"
 
 [target."cfg(windows)".dependencies]
 enum_display_devices = { path = "../enum_display_devices" }
+is_windows_11_or_greater = { path = "../is_windows_11_or_greater" }
