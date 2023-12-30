@@ -50,7 +50,7 @@ pub struct WindowsCurrentDisplayHandler<'a> {
     configs: &'a Configs,
 }
 impl<'a> WindowsCurrentDisplayHandler<'a> {
-    const DISPLAY_SWITCH_PATH: &'static str = r"C:\Windows\system32\DisplaySwitch.exe"; // TODO: is full path needed?
+    const DISPLAY_SWITCH_PATH: &'static str = "DisplaySwitch.exe";
 
     fn execute_display_switch(display_switch_arg: &str, wait_seconds: u64) -> Result<bool> {
         let display_id_before = get_active_display_id::get_active_display_id();
