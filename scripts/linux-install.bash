@@ -15,10 +15,10 @@ function create_link() {
 }
 
 function install_launching_icon() {
-  local ICON_FILE='256x256.png'
+  local ICON_FILE='icon-256x256.png'
   local DESKTOP_FILE_PATH="$DEST_DIR"/my-reboot.desktop
   echo "* Instalando ícone..."
-  cp "$ICON_FILE" "$DEST_DIR"
+  cp assets/"$ICON_FILE" "$DEST_DIR"
   echo "[Desktop Entry]
 Version=3.0.0
 Type=Application

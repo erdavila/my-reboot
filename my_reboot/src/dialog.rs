@@ -62,7 +62,7 @@ pub fn show(
             position: window::Position::Centered,
             resizable: false,
             icon: Some(window::icon::from_file_data(
-                include_bytes!("../../256x256.png"),
+                include_bytes!("../../assets/icon-256x256.png"),
                 None,
             )?),
             ..Default::default()
