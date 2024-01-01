@@ -1,6 +1,5 @@
-use std::cell::RefCell;
 use std::io;
-use std::rc::Rc;
+use std::marker::PhantomData;
 
 #[cfg(windows)]
 use crate::options_types::Display;
@@ -10,6 +9,7 @@ use crate::properties::Properties;
 const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
 
 pub struct Configs {
+    props: Properties,
     grub_entry_handler: ConfigHandler<OperatingSystem>,
     #[cfg(windows)]
     device_id_handler: ConfigHandler<Display>,
@@ -20,115 +20,94 @@ pub struct Configs {
 impl Configs {
     pub fn load(must_exist: bool) -> io::Result<Configs> {
         let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
-        let props = Rc::new(RefCell::new(props));
-
-        Ok(Self::from_props(props))
-    }
-
-    fn from_props(props: Rc<RefCell<Properties>>) -> Self {
-        Configs {
-            grub_entry_handler: ConfigHandler::new(
-                Rc::clone(&props),
-                "grubEntry",
-                OperatingSystem::values(),
-                OperatingSystem::Linux,
-            ),
+        Ok(Configs {
+            props,
+            grub_entry_handler: ConfigHandler::new("grubEntry", OperatingSystem::Linux),
             #[cfg(windows)]
-            device_id_handler: ConfigHandler::new(
-                Rc::clone(&props),
-                "deviceId",
-                Display::values(),
-                OperatingSystem::Windows,
-            ),
+            device_id_handler: ConfigHandler::new("deviceId", OperatingSystem::Windows),
             #[cfg(windows)]
             display_switch_arg_handler: ConfigHandler::new(
-                Rc::clone(&props),
                 "displaySwitchArg",
-                Display::values(),
                 OperatingSystem::Windows,
             ),
-        }
+        })
     }
 
     pub fn get_operating_system_by_grub_entry(&self, grub_entry: &str) -> OperatingSystem {
-        self.grub_entry_handler.get_object_by_value(grub_entry)
+        self.grub_entry_handler
+            .get_object_by_value(grub_entry, &self.props)
     }
 
     pub fn get_grub_entry(&self, os: OperatingSystem) -> String {
-        self.grub_entry_handler.get_value(os)
+        self.grub_entry_handler.get_value(os, &self.props)
     }
 
     #[cfg(windows)]
     pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
-        self.device_id_handler.get_object_by_value(device_id)
+        self.device_id_handler
+            .get_object_by_value(device_id, &self.props)
     }
 
     #[cfg(windows)]
     pub fn get_display_switch_arg(&self, display: Display) -> String {
-        self.display_switch_arg_handler.get_value(display)
+        self.display_switch_arg_handler
+            .get_value(display, &self.props)
     }
 }
 
 pub struct ConfigsWriter {
     configs: Configs,
-    props: Rc<RefCell<Properties>>,
 }
 impl ConfigsWriter {
     pub fn load(must_exist: bool) -> io::Result<ConfigsWriter> {
-        let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
-        let props = Rc::new(RefCell::new(props));
-        let configs = Configs::from_props(Rc::clone(&props));
-        Ok(Self { configs, props })
+        let configs = Configs::load(must_exist)?;
+        Ok(Self { configs })
     }
 
     #[cfg(not(windows))]
     pub fn set_grub_entry(&mut self, os: OperatingSystem, value: &str) {
-        self.configs.grub_entry_handler.set_value(os, value);
+        self.configs
+            .grub_entry_handler
+            .set_value(os, value, &mut self.configs.props);
     }
 
     #[cfg(windows)]
     pub fn set_device_id(&mut self, display: Display, value: &str) {
-        self.configs.device_id_handler.set_value(display, value);
+        self.configs
+            .device_id_handler
+            .set_value(display, value, &mut self.configs.props);
     }
 
     #[cfg(windows)]
     pub fn set_display_switch_arg(&mut self, display: Display, value: &str) {
         self.configs
             .display_switch_arg_handler
-            .set_value(display, value);
+            .set_value(display, value, &mut self.configs.props);
     }
 
     pub fn save(&mut self) -> io::Result<()> {
-        self.props.borrow_mut().save()
+        self.configs.props.save()
     }
 }
 
 struct ConfigHandler<O: OptionType> {
-    props: Rc<RefCell<Properties>>,
     attribute: &'static str,
-    objects: Vec<O>,
     config_provider_os: OperatingSystem,
+    _option_type: PhantomData<O>,
 }
-impl<O: OptionType + Copy> ConfigHandler<O> {
-    fn new(
-        props: Rc<RefCell<Properties>>,
-        attribute: &'static str,
-        objects: Vec<O>,
-        config_provider_os: OperatingSystem,
-    ) -> ConfigHandler<O> {
-        ConfigHandler {
-            props,
+impl<O: OptionType> ConfigHandler<O> {
+    fn new(attribute: &'static str, config_provider_os: OperatingSystem) -> Self {
+        Self {
             attribute,
-            objects,
             config_provider_os,
+            _option_type: PhantomData,
         }
     }
 
-    fn get_object_by_value(&self, value: &str) -> O {
-        let object = self
-            .objects
-            .iter()
-            .find(|o| self.get_value(**o) == value)
+    fn get_object_by_value(&self, value: &str, props: &Properties) -> O {
+        O::values()
+            .into_iter()
+            .find(|o| self.get_value(*o, props) == value)
             .unwrap_or_else(|| {
                 panic!(
                     "{}",
@@ -137,15 +116,12 @@ impl<O: OptionType + Copy> ConfigHandler<O> {
                         self.config_provider_os,
                     )
                 )
-            });
-        *object
+            })
     }
 
-    fn get_value(&self, object: O) -> String {
+    fn get_value(&self, object: O, props: &Properties) -> String {
         let key = self.key_for(object);
-        self.props
-            .as_ref()
-            .borrow()
+        props
             .get(&key)
             .unwrap_or_else(|| {
                 panic!(
@@ -159,9 +135,9 @@ impl<O: OptionType + Copy> ConfigHandler<O> {
             .to_string()
     }
 
-    fn set_value(&mut self, object: O, value: &str) {
+    fn set_value(&mut self, object: O, value: &str, props: &mut Properties) {
         let key = self.key_for(object);
-        self.props.borrow_mut().set(&key, value);
+        props.set(&key, value);
     }
 
     fn key_for(&self, object: O) -> String {
