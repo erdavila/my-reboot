@@ -81,9 +81,10 @@ pub mod configuration {
                 return None;
             }
 
+            let uppercase_line = line.to_uppercase();
             let os = OperatingSystem::values()
                 .into_iter()
-                .find(|os| line.contains(&os.to_string()));
+                .find(|os| uppercase_line.contains(&os.to_string().to_uppercase()));
 
             let grub_entry = grub_entry_re.captures(line).map(|caps| caps[1].to_string());
 
