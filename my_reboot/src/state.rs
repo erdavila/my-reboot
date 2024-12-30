@@ -27,7 +27,7 @@ pub struct StateProvider {
 impl StateProvider {
     pub fn new() -> io::Result<StateProvider> {
         let grubenv = Grubenv::load()?;
-        let options = Properties::load(OPTIONS_FILENAME, true)?;
+        let options = Properties::load(OPTIONS_FILENAME, false)?;
         let configs = Configs::load(true)?;
         Ok(StateProvider {
             grubenv,
