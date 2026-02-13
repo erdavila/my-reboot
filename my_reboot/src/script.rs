@@ -1,7 +1,7 @@
 use std::env;
 
 use ansi_term::{ANSIString, Color};
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{Ok, Result, anyhow};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::state::StateProvider;

@@ -49,7 +49,7 @@ impl Grubenv {
         }
 
         if content.len() < GRUBENV_CONTENT_LENGTH {
-            let padding = iter::repeat('#').take(GRUBENV_CONTENT_LENGTH - content.len());
+            let padding = iter::repeat_n('#', GRUBENV_CONTENT_LENGTH - content.len());
             content.extend(padding);
             assert_eq!(content.len(), GRUBENV_CONTENT_LENGTH);
         }

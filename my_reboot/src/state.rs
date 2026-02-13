@@ -1,6 +1,6 @@
 use std::io;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use crate::configs::Configs;
 use crate::grubenv::Grubenv;
