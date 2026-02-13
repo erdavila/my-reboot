@@ -1,19 +1,18 @@
 use std::ptr::NonNull;
 
 use anyhow::Result;
-use iced::{
-    Application, Command, Event, Settings, Size, Theme, executor, keyboard, subscription, window,
-};
+use iced::{Application, Command, Event, Settings, Theme, event, executor, keyboard, window};
 
 pub use self::advanced::ScriptOptions;
 
 macro_rules! mode_toggler {
     ($is_checked:expr) => {
-        toggler(Some(String::from("Modo avançado")), $is_checked, |_| {
+        iced::widget::toggler(Some(String::from("Modo avançado")), $is_checked, |_| {
             $crate::dialog::Message::SwitchMode
         })
         .text_size(12)
-        .text_alignment(alignment::Horizontal::Right)
+        .text_alignment(iced::alignment::Horizontal::Right)
+        .width(140)
         .spacing(2)
     };
 }
@@ -43,7 +42,7 @@ pub fn show(
        a pointer for the outcome as a flag, and use it after the window is closed.
     */
 
-    let label_count = predefined_script_labels.len() as u32;
+    let label_count = predefined_script_labels.len();
 
     let mut outcome: Option<Outcome> = None;
     let flags = Flags {
@@ -100,7 +99,7 @@ struct Dialog {
 impl Dialog {
     fn set_outcome_and_close_window<M>(&mut self, outcome: Option<Outcome>) -> Command<M> {
         *unsafe { self.outcome.as_mut() } = outcome;
-        window::close()
+        window::close(window::Id::MAIN)
     }
 }
 
@@ -125,9 +124,9 @@ impl Application for Dialog {
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        subscription::events_with(|event, _status| {
+        event::listen_with(|event, _status| {
             if let Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Escape,
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
                 ..
             }) = event
             {
@@ -148,17 +147,14 @@ impl Application for Dialog {
                     Mode::Basic => (Mode::Advanced, advanced::window_size()),
                     Mode::Advanced => (
                         Mode::Basic,
-                        basic::window_size(self.predefined_script_labels.len() as u32),
+                        basic::window_size(self.predefined_script_labels.len()),
                     ),
                 };
 
                 self.mode = new_mode;
 
                 Command::batch([
-                    window::resize(Size {
-                        width: new_size.0,
-                        height: new_size.1,
-                    }),
+                    window::resize(window::Id::MAIN, new_size),
                     // TODO: reposition window (iced currently does not support it)
                 ])
             }
@@ -166,7 +162,7 @@ impl Application for Dialog {
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
+    fn view(&self) -> iced::Element<'_, Self::Message, Self::Theme, iced::Renderer> {
         match self.mode {
             Mode::Basic => basic::view(self),
             Mode::Advanced => advanced::view(self),
