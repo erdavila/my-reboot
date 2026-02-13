@@ -3,4 +3,4 @@ set -ex
 
 cargo test --workspace
 cargo fmt
-cargo clippy --workspace
+cargo clippy --workspace --no-deps

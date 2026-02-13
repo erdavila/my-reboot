@@ -1,7 +1,7 @@
 #[cfg(windows)]
 use iced::widget::checkbox;
-use iced::widget::{button, column, container, radio, row, text, toggler};
-use iced::{Command, Theme, alignment, font};
+use iced::widget::{button, column, container, horizontal_space, radio, row, text};
+use iced::{Command, Size, Theme, font};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;
@@ -18,12 +18,15 @@ pub struct ScriptOptions {
 }
 
 #[cfg(windows)]
-const WINDOW_HEIGHT: u32 = 428;
+const WINDOW_HEIGHT: f32 = 428.0;
 #[cfg(not(windows))]
-const WINDOW_HEIGHT: u32 = 406;
+const WINDOW_HEIGHT: f32 = 406.0;
 
-pub(crate) fn window_size() -> (u32, u32) {
-    (340, WINDOW_HEIGHT)
+pub(crate) fn window_size() -> Size {
+    Size {
+        width: 340.0,
+        height: WINDOW_HEIGHT,
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -106,7 +109,7 @@ macro_rules! indented {
     };
 }
 
-pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, iced::Renderer<Theme>> {
+pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, iced::Renderer> {
     let next_boot_os_widgets = {
         let widgets = create_option_group!(
             crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION.capitalize()
@@ -144,11 +147,11 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, iced::R
         #[cfg(windows)]
         let widgets = add_to_option_group!(
             widgets,
-            [checkbox(
-                "trocar de tela antes",
-                dialog.script_options.switch_display,
-                |switch| super::Message::AdvancedDialog(Message::SwitchDisplay(switch)),
-            )]
+            [
+                checkbox("trocar de tela antes", dialog.script_options.switch_display,).on_toggle(
+                    |switch| super::Message::AdvancedDialog(Message::SwitchDisplay(switch))
+                )
+            ]
         );
         add_to_option_group!(
             widgets,
@@ -173,6 +176,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, iced::R
             button("OK")
                 .on_press(super::Message::AdvancedDialog(Message::Confirm))
                 .padding([4, 30]),
+            horizontal_space(),
             mode_toggler!(true),
         ]
     ]
