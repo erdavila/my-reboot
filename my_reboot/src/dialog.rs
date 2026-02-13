@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use anyhow::Result;
 use iced::{
-    executor, keyboard, subscription, window, Application, Command, Event, Settings, Size, Theme,
+    Application, Command, Event, Settings, Size, Theme, executor, keyboard, subscription, window,
 };
 
 pub use self::advanced::ScriptOptions;

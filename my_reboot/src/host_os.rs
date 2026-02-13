@@ -10,7 +10,7 @@ pub use windows::*;
 
 use std::process::ExitStatus;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::options_types::Display;
 use crate::script::Script;

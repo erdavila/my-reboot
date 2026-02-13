@@ -4,7 +4,7 @@ use is_windows_11_or_greater::is_windows_11_or_greater;
 use crate::{
     configs::ConfigsWriter,
     host_os::{
-        windows::get_active_display_id::get_active_display_id, WindowsCurrentDisplayHandler,
+        WindowsCurrentDisplayHandler, windows::get_active_display_id::get_active_display_id,
     },
     options_types::{Display, OptionType},
 };

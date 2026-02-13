@@ -1,7 +1,7 @@
 #[cfg(windows)]
 use iced::widget::checkbox;
 use iced::widget::{button, column, container, radio, row, text, toggler};
-use iced::{alignment, font, Command, Theme};
+use iced::{Command, Theme, alignment, font};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;

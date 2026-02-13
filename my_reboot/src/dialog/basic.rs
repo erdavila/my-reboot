@@ -1,5 +1,5 @@
 use iced::widget::{button, column, horizontal_space, row, toggler};
-use iced::{alignment, Length, Theme};
+use iced::{Length, Theme, alignment};
 
 use super::{Dialog, Outcome};
 

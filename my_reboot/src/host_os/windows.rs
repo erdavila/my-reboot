@@ -2,7 +2,7 @@ use std::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::options_types::{OperatingSystem, RebootAction};
 use crate::script::{Script, SetOrUnset};

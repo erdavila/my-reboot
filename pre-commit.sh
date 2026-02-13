@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
 
+cargo test --workspace
 cargo fmt
 cargo clippy --workspace
-cargo test --workspace
