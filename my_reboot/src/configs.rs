@@ -132,7 +132,7 @@ impl<O: OptionType> ConfigHandler<O> {
                     )
                 )
             })
-            .to_string()
+            .clone()
     }
 
     fn set_value(&mut self, object: O, value: &str, props: &mut Properties) {
@@ -146,8 +146,5 @@ impl<O: OptionType> ConfigHandler<O> {
 }
 
 fn configuration_error(message: &str, config_provider_os: OperatingSystem) -> String {
-    format!(
-        "{message}. Execute 'my-reboot configure' no {}",
-        config_provider_os
-    )
+    format!("{message}. Execute 'my-reboot configure' no {config_provider_os}")
 }

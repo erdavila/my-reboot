@@ -14,6 +14,7 @@ const ADDITIONAL_WINDOW_HEIGHT: f32 = 94.0;
 pub(crate) fn window_size(label_count: usize) -> Size {
     Size {
         width: WINDOW_WIDTH,
+        #[expect(clippy::cast_precision_loss)]
         height: BUTTON_HEIGHT + 1.0 * label_count as f32 + ADDITIONAL_WINDOW_HEIGHT,
     }
 }

@@ -2,7 +2,7 @@ use std::env::Args;
 use std::error::Error;
 use std::fmt::Display;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ArgError {
     message: String,
     arg: String,

@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn capitalize() {
-        assert_eq!("".to_string().capitalize(), "");
+        assert_eq!(String::new().capitalize(), "");
         assert_eq!("hello world".to_string().capitalize(), "Hello world");
     }
 }

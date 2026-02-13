@@ -104,9 +104,8 @@ fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgEr
 }
 
 fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let option = match RebootAction::from_option_string(arg) {
-        Some(option) => option,
-        None => return Ok(false),
+    let Some(option) = RebootAction::from_option_string(arg) else {
+        return Ok(false);
     };
 
     set_if_none(&mut script.reboot_action, option, arg, "ação")
@@ -283,9 +282,9 @@ mod tests {
         for (arg, expected) in cases {
             let mut script = Script::new();
 
-            let result = parse_next_boot_operating_system(arg, &mut script)
-                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-            assert!(result);
+            let result = parse_next_boot_operating_system(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
             assert_eq!(script.next_boot_operating_system, Some(expected));
         }
     }
@@ -306,8 +305,7 @@ mod tests {
 
         let result = parse_next_boot_operating_system(&arg, &mut script);
 
-        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-        assert!(!success);
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
     }
 
     #[test]
@@ -333,9 +331,9 @@ mod tests {
         for (arg, expected) in cases {
             let mut script = Script::new();
 
-            let success = parse_next_windows_boot_display(arg, &mut script)
-                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-            assert!(success);
+            let result = parse_next_windows_boot_display(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
             assert_eq!(script.next_windows_boot_display, Some(expected));
         }
     }
@@ -356,8 +354,7 @@ mod tests {
 
         let result = parse_next_windows_boot_display(&arg, &mut script);
 
-        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-        assert!(!success);
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
     }
 
     #[test]
@@ -383,9 +380,9 @@ mod tests {
         for (arg, expected) in cases {
             let mut script = Script::new();
 
-            let success = parse_switch_to_display(arg, &mut script)
-                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-            assert!(success);
+            let result = parse_switch_to_display(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
             assert_eq!(script.switch_to_display, Some(expected));
         }
     }
@@ -406,8 +403,7 @@ mod tests {
 
         let result = parse_switch_to_display(arg, &mut script);
 
-        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-        assert!(!success);
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
     }
 
     #[test]
@@ -430,9 +426,9 @@ mod tests {
         for (arg, expected) in cases {
             let mut script = Script::new();
 
-            let success = parse_reboot_action(arg, &mut script)
-                .expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-            assert!(success);
+            let result = parse_reboot_action(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
             assert_eq!(script.reboot_action, Some(expected));
         }
     }
@@ -444,8 +440,7 @@ mod tests {
 
         let result = parse_reboot_action(arg, &mut script);
 
-        let success = result.expect(&format!("Result for argument \"{arg}\" should be Ok(_)"));
-        assert!(!success);
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
     }
 
     #[test]

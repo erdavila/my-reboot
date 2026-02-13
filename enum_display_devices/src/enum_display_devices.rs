@@ -16,21 +16,27 @@ pub struct DisplayDeviceFlags {
     value: u32,
 }
 impl DisplayDeviceFlags {
+    #[must_use]
     pub fn active(&self) -> bool {
         (self.value & DISPLAY_DEVICE_ACTIVE) != 0
     }
+    #[must_use]
     pub fn mirroring_driver(&self) -> bool {
         (self.value & DISPLAY_DEVICE_MIRRORING_DRIVER) != 0
     }
+    #[must_use]
     pub fn modes_pruned(&self) -> bool {
         (self.value & DISPLAY_DEVICE_MODESPRUNED) != 0
     }
+    #[must_use]
     pub fn primary_device(&self) -> bool {
         (self.value & DISPLAY_DEVICE_PRIMARY_DEVICE) != 0
     }
+    #[must_use]
     pub fn removable(&self) -> bool {
         (self.value & DISPLAY_DEVICE_REMOVABLE) != 0
     }
+    #[must_use]
     pub fn vga_compatible(&self) -> bool {
         (self.value & DISPLAY_DEVICE_VGA_COMPATIBLE) != 0
     }
@@ -63,6 +69,7 @@ pub struct EnumDisplayDevices {
     next_index: Option<u32>,
 }
 impl EnumDisplayDevices {
+    #[must_use]
     pub fn new(device: Option<CString>, get_device_interface_name: bool) -> EnumDisplayDevices {
         EnumDisplayDevices {
             device,
@@ -77,7 +84,7 @@ impl EnumDisplayDevices {
 
     fn device(&self) -> *const u8 {
         match self.device.as_ref() {
-            Some(device) => device.as_ptr() as *const u8,
+            Some(device) => device.as_ptr().cast(),
             None => ptr::null(),
         }
     }
@@ -87,11 +94,13 @@ impl Iterator for EnumDisplayDevices {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_index {
+            #[expect(clippy::cast_possible_truncation)]
             Some(index) => {
                 let mut dd: DISPLAY_DEVICEA = unsafe { mem::zeroed() };
                 dd.cb = mem::size_of_val(&dd) as u32;
 
-                let r = unsafe { EnumDisplayDevicesA(self.device(), index, &mut dd, self.flags) };
+                let r =
+                    unsafe { EnumDisplayDevicesA(self.device(), index, &raw mut dd, self.flags) };
                 let result = r != 0;
 
                 if result {

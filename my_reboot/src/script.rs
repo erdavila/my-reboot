@@ -24,7 +24,7 @@ impl Script {
         }
     }
 
-    pub fn execute(&self) -> Result<()> {
+    pub fn execute(self) -> Result<()> {
         let mut executor = ScriptExecutor {
             state_provider: StateProvider::new()?,
         };
@@ -37,29 +37,29 @@ struct ScriptExecutor {
     state_provider: StateProvider,
 }
 impl ScriptExecutor {
-    fn execute(&mut self, script: &Script) -> Result<()> {
-        if let Some(os_option) = &script.next_boot_operating_system {
+    fn execute(&mut self, script: Script) -> Result<()> {
+        if let Some(os_option) = script.next_boot_operating_system {
             self.apply_next_boot_operating_system(os_option);
         }
 
-        if let Some(display_option) = &script.next_windows_boot_display {
+        if let Some(display_option) = script.next_windows_boot_display {
             self.apply_next_windows_boot_display(display_option);
         }
 
-        if let Some(switch_to) = &script.switch_to_display {
+        if let Some(switch_to) = script.switch_to_display {
             self.apply_switch_to_display(switch_to)?;
         }
 
-        if let Some(reboot_action) = &script.reboot_action {
-            self.apply_reboot_action(reboot_action)?;
+        if let Some(reboot_action) = script.reboot_action {
+            Self::apply_reboot_action(reboot_action)?;
         }
 
         Ok(())
     }
 
-    fn apply_next_boot_operating_system(&mut self, os_option: &SetOrUnset<OperatingSystem>) {
+    fn apply_next_boot_operating_system(&mut self, os_option: SetOrUnset<OperatingSystem>) {
         self.apply_option(
-            os_option,
+            &os_option,
             StateProvider::set_next_boot_operating_system,
             StateProvider::unset_next_boot_operating_system,
             text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
@@ -68,9 +68,9 @@ impl ScriptExecutor {
         );
     }
 
-    fn apply_next_windows_boot_display(&mut self, display_option: &SetOrUnset<Display>) {
+    fn apply_next_windows_boot_display(&mut self, display_option: SetOrUnset<Display>) {
         self.apply_option(
-            display_option,
+            &display_option,
             StateProvider::set_next_windows_boot_display,
             StateProvider::unset_next_windows_boot_display,
             text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
@@ -93,7 +93,7 @@ impl ScriptExecutor {
         U: FnOnce(&mut StateProvider),
         V: Fn(Option<T>) -> ANSIString<'static>,
     {
-        use SetOrUnset::*;
+        use SetOrUnset::{Set, Unset};
 
         match option {
             Set(value) => set(&mut self.state_provider, *value),
@@ -108,7 +108,7 @@ impl ScriptExecutor {
         );
     }
 
-    fn apply_switch_to_display(&mut self, switch_to: &SwitchToDisplay) -> Result<()> {
+    fn apply_switch_to_display(&mut self, switch_to: SwitchToDisplay) -> Result<()> {
         let from_display = self
             .state_provider
             .get_current_display()
@@ -126,14 +126,14 @@ impl ScriptExecutor {
                 self.switch_display_to(to_display)?;
             }
             SwitchToDisplay::Display(to_display) => {
-                if *to_display == from_display {
+                if to_display == from_display {
                     println!(
                         "{} {}",
-                        text::display::value_text(Some(*to_display)),
+                        text::display::value_text(Some(to_display)),
                         text::display::switching::IS_ALREADY_CURRENT
                     );
                 } else {
-                    self.switch_display_to(*to_display)?;
+                    self.switch_display_to(to_display)?;
                 }
             }
             SwitchToDisplay::Saved => match self.state_provider.get_next_windows_boot_display() {
@@ -143,7 +143,7 @@ impl ScriptExecutor {
                             "A {} é {}, que já é a tela atual",
                             text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
                             text::display::value_text(Some(to_display))
-                        )
+                        );
                     } else {
                         self.switch_display_to(to_display)?;
                         self.state_provider.unset_next_windows_boot_display();
@@ -169,15 +169,15 @@ impl ScriptExecutor {
         self.state_provider.set_current_display(display)
     }
 
-    fn apply_reboot_action(&self, reboot_action: &RebootAction) -> Result<()> {
+    fn apply_reboot_action(reboot_action: RebootAction) -> Result<()> {
         match reboot_action {
-            RebootAction::Reboot => self.do_reboot_action(host_os::reboot, "Reiniciando"),
-            RebootAction::Shutdown => self.do_reboot_action(host_os::shutdown, "Desligando"),
+            RebootAction::Reboot => Self::do_reboot_action(host_os::reboot, "Reiniciando"),
+            RebootAction::Shutdown => Self::do_reboot_action(host_os::shutdown, "Desligando"),
         }
     }
 
-    fn do_reboot_action(&self, method: fn() -> Result<()>, message: &str) -> Result<()> {
-        println!("{}...", message);
+    fn do_reboot_action(method: fn() -> Result<()>, message: &str) -> Result<()> {
+        println!("{message}...");
         if env::var("NO_REBOOT_ACTION").is_ok() {
             println!("{} 😬", Color::Yellow.paint("...mas não de verdade!"));
             Ok(())

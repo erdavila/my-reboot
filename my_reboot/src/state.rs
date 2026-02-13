@@ -16,6 +16,7 @@ const OPTIONS_FILENAME: &str = "my-reboot-options.properties";
 pub struct State {
     pub next_boot_operating_system: Option<OperatingSystem>,
     pub next_windows_boot_display: Option<Display>,
+    // TODO: this field should exist only on Windows
     pub current_display: Option<Display>,
 }
 

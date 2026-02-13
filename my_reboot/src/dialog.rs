@@ -78,7 +78,7 @@ pub fn show(
     )
     .title("My Reboot")
     .window(window_settings)
-    .subscription(Dialog::subscription)
+    .subscription(|_| Dialog::subscription())
     .run()?;
 
     Ok(outcome)
@@ -139,7 +139,7 @@ impl Dialog {
         }
     }
 
-    fn subscription(&self) -> iced::Subscription<Message> {
+    fn subscription() -> iced::Subscription<Message> {
         event::listen_with(|event, _status, _window| {
             if let Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(keyboard::key::Named::Escape),
