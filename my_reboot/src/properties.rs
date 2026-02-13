@@ -23,8 +23,8 @@ impl Properties {
             }
             Err(e) if !must_exist && e.kind() == ErrorKind::NotFound => {
                 eprintln!(
-                    "Arquivo {:?} não encontrado. Prosseguindo com conteúdo vazio.",
-                    path
+                    "Arquivo {} não encontrado. Prosseguindo com conteúdo vazio.",
+                    path.display()
                 );
                 Ok(Properties {
                     content: HashMap::new(),
@@ -70,10 +70,10 @@ impl Properties {
     }
 
     fn escape(hash_map: &HashMap<String, String>) -> HashMap<String, String> {
-        let entries = hash_map
+        hash_map
             .iter()
-            .map(|(key, value)| (key.clone(), value.replace('\\', r"\\")));
-        HashMap::from_iter(entries)
+            .map(|(key, value)| (key.clone(), value.replace('\\', r"\\")))
+            .collect()
     }
 
     fn path(filename: &str) -> PathBuf {

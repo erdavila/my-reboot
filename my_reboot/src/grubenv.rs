@@ -44,9 +44,10 @@ impl Grubenv {
         let mut content = String::from(GRUBENV_HEADER_LINE);
         content += &hash_map_to_file_content(&self.content);
 
-        if content.len() > GRUBENV_CONTENT_LENGTH {
-            panic!("Grubenv content is too large!");
-        }
+        assert!(
+            content.len() <= GRUBENV_CONTENT_LENGTH,
+            "Grubenv content is too large!"
+        );
 
         if content.len() < GRUBENV_CONTENT_LENGTH {
             let padding = iter::repeat_n('#', GRUBENV_CONTENT_LENGTH - content.len());

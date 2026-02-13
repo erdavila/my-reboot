@@ -104,9 +104,8 @@ fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgEr
 }
 
 fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let option = match RebootAction::from_option_string(arg) {
-        Some(option) => option,
-        None => return Ok(false),
+    let Some(option) = RebootAction::from_option_string(arg) else {
+        return Ok(false);
     };
 
     set_if_none(&mut script.reboot_action, option, arg, "ação")

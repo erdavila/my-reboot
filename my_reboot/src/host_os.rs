@@ -34,6 +34,7 @@ impl SuccessOr for ExitStatus {
     }
 }
 
+// TODO: this makes sense only on Windows
 pub trait CurrentDisplayHandler {
     fn get(&self) -> Display;
     fn switch_to(&self, display: Display) -> Result<()>;

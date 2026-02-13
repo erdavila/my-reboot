@@ -10,6 +10,8 @@ use crate::{
 };
 
 pub fn configure(initial_display: Option<Display>) -> Result<()> {
+    const WAIT_SECONDS: u64 = 5;
+
     if let Some(initial_display) = initial_display {
         let display_switch_args = if is_windows_11_or_greater() {
             ["1", "4"]
@@ -24,7 +26,6 @@ pub fn configure(initial_display: Option<Display>) -> Result<()> {
         };
 
         println!("Trocando de tela...");
-        const WAIT_SECONDS: u64 = 5;
         let switched = WindowsCurrentDisplayHandler::execute_display_switch(
             display_switch_args[0],
             WAIT_SECONDS,

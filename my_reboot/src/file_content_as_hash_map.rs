@@ -1,22 +1,21 @@
 use std::collections::HashMap;
 
 pub(crate) fn file_content_to_hash_map(file_content: &str) -> HashMap<String, String> {
-    let entries = file_content
+    file_content
         .lines()
         .filter(|line| !line.starts_with('#'))
         .map(|line| {
             let (key, value) = line.split_once('=').unwrap();
             (key.to_string(), value.to_string())
-        });
-
-    HashMap::from_iter(entries)
+        })
+        .collect()
 }
 
 pub(crate) fn hash_map_to_file_content(hash_map: &HashMap<String, String>) -> String {
     use std::fmt::Write;
 
     let mut output = String::new();
-    for (key, value) in hash_map.iter() {
+    for (key, value) in hash_map {
         let _ = writeln!(output, "{key}={value}");
     }
     output

@@ -2,8 +2,9 @@ use std::fmt::Display;
 
 use windows_sys::Wdk::System::SystemServices::KUSER_SHARED_DATA;
 
-const USER_SHARED_DATA_POINTER: *const KUSER_SHARED_DATA = 0x7FFE0000 as _;
+const USER_SHARED_DATA_POINTER: *const KUSER_SHARED_DATA = 0x7FFE_0000 as _;
 
+#[must_use]
 pub fn is_windows_11_or_greater() -> bool {
     let version = WindowsVersion::get();
     version.is_windows_11_or_greater()
@@ -16,6 +17,7 @@ pub struct WindowsVersion {
     build: u32,
 }
 impl WindowsVersion {
+    #[must_use]
     fn new(major: u32, minor: u32, build: u32) -> Self {
         WindowsVersion {
             major,
@@ -24,6 +26,7 @@ impl WindowsVersion {
         }
     }
 
+    #[must_use]
     pub fn get() -> Self {
         let user_shared_data = unsafe { &*USER_SHARED_DATA_POINTER as &KUSER_SHARED_DATA };
         WindowsVersion::new(
@@ -33,6 +36,7 @@ impl WindowsVersion {
         )
     }
 
+    #[must_use]
     pub fn is_windows_11_or_greater(&self) -> bool {
         *self >= WindowsVersion::new(10, 0, 22000)
     }

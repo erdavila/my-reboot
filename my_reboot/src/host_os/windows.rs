@@ -40,6 +40,7 @@ fn shutdown_now(arg: &str) -> Result<()> {
         .success_or(text::reboot_action::FAILED)
 }
 
+#[expect(clippy::unnecessary_wraps)]
 pub fn get_current_display_handler<'a>(
     configs: &'a Configs,
 ) -> Option<Box<dyn CurrentDisplayHandler + 'a>> {
@@ -49,10 +50,12 @@ pub fn get_current_display_handler<'a>(
 pub struct WindowsCurrentDisplayHandler<'a> {
     configs: &'a Configs,
 }
-impl<'a> WindowsCurrentDisplayHandler<'a> {
+impl WindowsCurrentDisplayHandler<'_> {
     const DISPLAY_SWITCH_PATH: &'static str = "DisplaySwitch.exe";
 
     fn execute_display_switch(display_switch_arg: &str, wait_seconds: u64) -> Result<bool> {
+        const PROBE_INTERVAL: Duration = Duration::from_secs(1);
+
         let display_id_before = get_active_display_id::get_active_display_id();
 
         Command::new(Self::DISPLAY_SWITCH_PATH)
@@ -60,7 +63,6 @@ impl<'a> WindowsCurrentDisplayHandler<'a> {
             .status()?
             .success_or(text::display::switching::FAILED)?;
 
-        const PROBE_INTERVAL: Duration = Duration::from_secs(1);
         let total_wait_time: Duration = Duration::from_secs(wait_seconds);
         let begin = Instant::now();
 
@@ -74,7 +76,7 @@ impl<'a> WindowsCurrentDisplayHandler<'a> {
         Ok(false)
     }
 }
-impl<'a> CurrentDisplayHandler for WindowsCurrentDisplayHandler<'a> {
+impl CurrentDisplayHandler for WindowsCurrentDisplayHandler<'_> {
     fn get(&self) -> Display {
         let device_id = get_active_display_id::get_active_display_id();
         self.configs.get_display_by_device_id(&device_id)
