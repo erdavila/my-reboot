@@ -1,9 +1,9 @@
-use iced::widget::{button, column, horizontal_space, row};
-use iced::{Size, Task, Theme};
+use iced::widget::{button, column, row, space};
+use iced::{Fill, Size, Task, Theme};
 
 use super::{Dialog, Outcome};
 
-const WINDOW_WIDTH: f32 = 340.0;
+const WINDOW_WIDTH: f32 = 350.0;
 const PADDING: f32 = 12.0;
 const BUTTON_HEIGHT: f32 = 32.0;
 #[cfg(windows)]
@@ -45,7 +45,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         })
         .spacing(1);
 
-    column![buttons, row![horizontal_space(), mode_toggler!(false),],]
+    column![buttons, row![space().width(Fill), mode_toggler!(false),],]
         .spacing(16)
         .padding(PADDING)
         .into()

@@ -45,19 +45,7 @@ pub fn show(
     let label_count = predefined_script_labels.len();
 
     let mut outcome: Option<Outcome> = None;
-    let flags = Flags {
-        initial_mode,
-        predefined_script_labels,
-        initial_script_options,
-        outcome: NonNull::from(&mut outcome),
-    };
-
-    let dialog = Dialog {
-        mode: flags.initial_mode,
-        predefined_script_labels: flags.predefined_script_labels,
-        script_options: flags.initial_script_options,
-        outcome: flags.outcome,
-    };
+    let outcome_ptr = NonNull::from(&mut outcome);
 
     let window_settings = window::Settings {
         size: match initial_mode {
@@ -73,19 +61,27 @@ pub fn show(
         ..Default::default()
     };
 
-    iced::application("My Reboot", Dialog::update, Dialog::view)
-        .window(window_settings)
-        .subscription(Dialog::subscription)
-        .run_with(move || (dialog, Task::none()))?;
+    iced::application(
+        move || {
+            (
+                Dialog {
+                    mode: initial_mode,
+                    predefined_script_labels: predefined_script_labels.clone(),
+                    script_options: initial_script_options,
+                    outcome: outcome_ptr,
+                },
+                Task::none(),
+            )
+        },
+        Dialog::update,
+        Dialog::view,
+    )
+    .title("My Reboot")
+    .window(window_settings)
+    .subscription(Dialog::subscription)
+    .run()?;
 
     Ok(outcome)
-}
-
-struct Flags {
-    initial_mode: Mode,
-    predefined_script_labels: Vec<&'static str>,
-    initial_script_options: ScriptOptions,
-    outcome: NonNull<Option<Outcome>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -109,7 +105,7 @@ impl Dialog {
         outcome: Option<Outcome>,
     ) -> Task<M> {
         *unsafe { self.outcome.as_mut() } = outcome;
-        window::get_latest().and_then(window::close)
+        window::latest().and_then(window::close)
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -129,7 +125,7 @@ impl Dialog {
 
                 self.mode = new_mode;
 
-                window::get_latest().and_then(move |id| window::resize(id, new_size))
+                window::latest().and_then(move |id| window::resize(id, new_size))
                 // TODO: reposition window (iced currently does not support it)
             }
             Message::Dismiss => self.set_outcome_and_close_window(None),
