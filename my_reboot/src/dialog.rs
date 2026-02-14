@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{cell::Cell, rc::Rc};
 
 use anyhow::Result;
 use iced::{Event, Task, Theme, Vector, event, keyboard, window};
@@ -37,15 +37,7 @@ pub fn show(
     predefined_script_labels: Vec<&'static str>,
     initial_script_options: ScriptOptions,
 ) -> Result<Option<Outcome>> {
-    /*
-       Unfortunatelly there is no way to "return" an outcome from an iced window, so we have to pass
-       a pointer for the outcome as a flag, and use it after the window is closed.
-    */
-
     let label_count = predefined_script_labels.len();
-
-    let mut outcome: Option<Outcome> = None;
-    let outcome_ptr = NonNull::from(&mut outcome);
 
     let window_settings = window::Settings {
         size: match initial_mode {
@@ -61,17 +53,22 @@ pub fn show(
         ..Default::default()
     };
 
+    let outcome = Rc::new(Cell::new(None));
+
     iced::application(
-        move || {
-            (
-                Dialog {
-                    mode: initial_mode,
-                    predefined_script_labels: predefined_script_labels.clone(),
-                    script_options: initial_script_options,
-                    outcome: outcome_ptr,
-                },
-                Task::none(),
-            )
+        {
+            let outcome = outcome.clone();
+            move || {
+                (
+                    Dialog {
+                        mode: initial_mode,
+                        predefined_script_labels: predefined_script_labels.clone(),
+                        script_options: initial_script_options,
+                        outcome: outcome.clone(),
+                    },
+                    Task::none(),
+                )
+            }
         },
         Dialog::update,
         Dialog::view,
@@ -81,7 +78,7 @@ pub fn show(
     .subscription(|_| Dialog::subscription())
     .run()?;
 
-    Ok(outcome)
+    Ok(outcome.take())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -97,7 +94,7 @@ struct Dialog {
     mode: Mode,
     predefined_script_labels: Vec<&'static str>,
     script_options: ScriptOptions,
-    outcome: NonNull<Option<Outcome>>,
+    outcome: Rc<Cell<Option<Outcome>>>,
 }
 
 impl Dialog {
@@ -105,7 +102,7 @@ impl Dialog {
         &mut self,
         outcome: Option<Outcome>,
     ) -> Task<M> {
-        *unsafe { self.outcome.as_mut() } = outcome;
+        self.outcome.set(outcome);
         window::latest().and_then(window::close)
     }
 
