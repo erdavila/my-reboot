@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
 use anyhow::Result;
-use iced::{Event, Task, Theme, event, keyboard, window};
+use iced::{Event, Task, Theme, Vector, event, keyboard, window};
 
 pub use self::advanced::ScriptOptions;
 
@@ -20,7 +20,7 @@ macro_rules! mode_toggler {
 mod advanced;
 mod basic;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Mode {
     Basic,
     Advanced,
@@ -90,6 +90,7 @@ enum Message {
     AdvancedDialog(advanced::Message),
     SwitchMode,
     Dismiss,
+    Debug,
 }
 
 struct Dialog {
@@ -115,20 +116,48 @@ impl Dialog {
                 advanced::update(self, message).map(Message::AdvancedDialog)
             }
             Message::SwitchMode => {
-                let (new_mode, new_size) = match self.mode {
-                    Mode::Basic => (Mode::Advanced, advanced::window_size()),
-                    Mode::Advanced => (
-                        Mode::Basic,
-                        basic::window_size(self.predefined_script_labels.len()),
-                    ),
+                let basic_size = basic::window_size(self.predefined_script_labels.len());
+                let advanced_size = advanced::window_size();
+
+                let from_mode = self.mode;
+                let (from_size, to_size, to_mode) = match from_mode {
+                    Mode::Basic => (basic_size, advanced_size, Mode::Advanced),
+                    Mode::Advanced => (advanced_size, basic_size, Mode::Basic),
                 };
+                self.mode = to_mode;
 
-                self.mode = new_mode;
+                window::latest().and_then(move |id| {
+                    // Tries to maintain the the center of the window at the same location
+                    let move_to = window::position(id).and_then(move |from_position| {
+                        let to_position = from_position + Vector::from((from_size - to_size) / 2.0);
+                        window::move_to(id, to_position)
+                    });
 
-                window::latest().and_then(move |id| window::resize(id, new_size))
-                // TODO: reposition window (iced currently does not support it)
+                    let resize = window::resize(id, to_size);
+
+                    Task::batch([resize, move_to])
+                })
             }
             Message::Dismiss => self.set_outcome_and_close_window(None),
+            Message::Debug => {
+                let mode = self.mode;
+                let requested_size = match mode {
+                    Mode::Basic => {
+                        let label_count = self.predefined_script_labels.len();
+                        basic::window_size(label_count)
+                    }
+                    Mode::Advanced => advanced::window_size(),
+                };
+
+                window::latest().and_then(move |id| {
+                    window::position(id).then(move |pos| {
+                        window::size(id).then(move  |sz| {
+                            println!(">>>> Mode {mode:?}\n       requested_size: {requested_size:?}\n       size: {sz:?}\n       position: {pos:?}");
+                            Task::none()
+                        })
+                    })
+                })
+            }
         }
     }
 
@@ -140,15 +169,16 @@ impl Dialog {
     }
 
     fn subscription() -> iced::Subscription<Message> {
-        event::listen_with(|event, _status, _window| {
-            if let Event::Keyboard(keyboard::Event::KeyPressed {
+        event::listen_with(|event, _status, _window| match event {
+            Event::Keyboard(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(keyboard::key::Named::Escape),
                 ..
-            }) = event
-            {
-                return Some(Message::Dismiss);
-            }
-            None
+            }) => Some(Message::Dismiss),
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                physical_key: keyboard::key::Physical::Code(keyboard::key::Code::KeyX),
+                ..
+            }) => Some(Message::Debug),
+            _ => None,
         })
     }
 }
