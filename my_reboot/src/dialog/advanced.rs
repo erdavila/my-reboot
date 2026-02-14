@@ -1,7 +1,7 @@
 #[cfg(windows)]
 use iced::widget::checkbox;
 use iced::widget::{button, column, container, horizontal_space, radio, row, text};
-use iced::{Command, Size, Theme, font};
+use iced::{Padding, Size, Task, Theme, font};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;
@@ -39,24 +39,24 @@ pub(crate) enum Message {
     Confirm,
 }
 
-pub(crate) fn update(dialog: &mut Dialog, message: Message) -> iced::Command<Message> {
+pub(crate) fn update(dialog: &mut Dialog, message: Message) -> Task<Message> {
     match message {
         Message::NextBootOperatingSystem(os) => {
             dialog.script_options.next_boot_operating_system = os;
-            Command::none()
+            Task::none()
         }
         Message::NextWindowsBootDisplay(display) => {
             dialog.script_options.next_windows_boot_display = display;
-            Command::none()
+            Task::none()
         }
         #[cfg(windows)]
         Message::SwitchDisplay(switch) => {
             dialog.script_options.switch_display = switch;
-            Command::none()
+            Task::none()
         }
         Message::Action(action) => {
             dialog.script_options.reboot_action = action;
-            Command::none()
+            Task::none()
         }
         Message::Confirm => {
             dialog.set_outcome_and_close_window(Some(Outcome::ScriptOptions(dialog.script_options)))
@@ -105,7 +105,7 @@ macro_rules! option_radios {
 
 macro_rules! indented {
     ($content:expr) => {
-        container($content).padding([0, 0, 0, 8])
+        container($content).padding(Padding::default().left(8))
     };
 }
 
