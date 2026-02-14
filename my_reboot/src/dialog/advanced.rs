@@ -1,6 +1,7 @@
+use iced::Length::Fill;
 #[cfg(windows)]
 use iced::widget::checkbox;
-use iced::widget::{button, column, container, horizontal_space, radio, row, text};
+use iced::widget::{button, column, container, radio, row, space, text};
 use iced::{Padding, Size, Task, Theme, font};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
@@ -24,7 +25,7 @@ const WINDOW_HEIGHT: f32 = 406.0;
 
 pub(crate) fn window_size() -> Size {
     Size {
-        width: 340.0,
+        width: 350.0,
         height: WINDOW_HEIGHT,
     }
 }
@@ -147,11 +148,11 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         #[cfg(windows)]
         let widgets = add_to_option_group!(
             widgets,
-            [
-                checkbox("trocar de tela antes", dialog.script_options.switch_display,).on_toggle(
+            [checkbox(dialog.script_options.switch_display)
+                .label("trocar de tela antes")
+                .on_toggle(
                     |switch| super::Message::AdvancedDialog(Message::SwitchDisplay(switch))
-                )
-            ]
+                )]
         );
         add_to_option_group!(
             widgets,
@@ -176,7 +177,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
             button("OK")
                 .on_press(super::Message::AdvancedDialog(Message::Confirm))
                 .padding([4, 30]),
-            horizontal_space(),
+            space().width(Fill),
             mode_toggler!(true),
         ]
     ]
