@@ -1,5 +1,5 @@
 use iced::widget::{button, column, horizontal_space, row};
-use iced::{Size, Theme};
+use iced::{Size, Task, Theme};
 
 use super::{Dialog, Outcome};
 
@@ -23,7 +23,7 @@ pub(crate) enum Message {
     Confirm(usize),
 }
 
-pub(crate) fn update(dialog: &mut Dialog, message: Message) -> iced::Command<Message> {
+pub(crate) fn update(dialog: &mut Dialog, message: Message) -> Task<Message> {
     match message {
         Message::Confirm(index) => {
             dialog.set_outcome_and_close_window(Some(Outcome::PredefinedScriptIndex(index)))

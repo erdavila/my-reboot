@@ -1,19 +1,19 @@
 use std::ptr::NonNull;
 
 use anyhow::Result;
-use iced::{Application, Command, Event, Settings, Theme, event, executor, keyboard, window};
+use iced::{Event, Task, Theme, event, keyboard, window};
 
 pub use self::advanced::ScriptOptions;
 
 macro_rules! mode_toggler {
     ($is_checked:expr) => {
-        iced::widget::toggler(Some(String::from("Modo avançado")), $is_checked, |_| {
-            $crate::dialog::Message::SwitchMode
-        })
-        .text_size(12)
-        .text_alignment(iced::alignment::Horizontal::Right)
-        .width(140)
-        .spacing(2)
+        iced::widget::toggler($is_checked)
+            .label("Modo avançado")
+            .on_toggle(|_| $crate::dialog::Message::SwitchMode)
+            .text_size(12)
+            .text_alignment(iced::alignment::Horizontal::Right)
+            .width(140)
+            .spacing(2)
     };
 }
 
@@ -51,25 +51,32 @@ pub fn show(
         initial_script_options,
         outcome: NonNull::from(&mut outcome),
     };
-    let settings = Settings::with_flags(flags);
-    let settings = Settings {
-        window: window::Settings {
-            size: match initial_mode {
-                Mode::Basic => basic::window_size(label_count),
-                Mode::Advanced => advanced::window_size(),
-            },
-            position: window::Position::Centered,
-            resizable: false,
-            icon: Some(window::icon::from_file_data(
-                include_bytes!("../../assets/icon-256x256.png"),
-                None,
-            )?),
-            ..Default::default()
-        },
-        ..settings
+
+    let dialog = Dialog {
+        mode: flags.initial_mode,
+        predefined_script_labels: flags.predefined_script_labels,
+        script_options: flags.initial_script_options,
+        outcome: flags.outcome,
     };
 
-    Dialog::run(settings)?;
+    let window_settings = window::Settings {
+        size: match initial_mode {
+            Mode::Basic => basic::window_size(label_count),
+            Mode::Advanced => advanced::window_size(),
+        },
+        position: window::Position::Centered,
+        resizable: false,
+        icon: Some(window::icon::from_file_data(
+            include_bytes!("../../assets/icon-256x256.png"),
+            None,
+        )?),
+        ..Default::default()
+    };
+
+    iced::application("My Reboot", Dialog::update, Dialog::view)
+        .window(window_settings)
+        .subscription(Dialog::subscription)
+        .run_with(move || (dialog, Task::none()))?;
 
     Ok(outcome)
 }
@@ -97,46 +104,15 @@ struct Dialog {
 }
 
 impl Dialog {
-    fn set_outcome_and_close_window<M>(&mut self, outcome: Option<Outcome>) -> Command<M> {
+    fn set_outcome_and_close_window<M: Send + 'static>(
+        &mut self,
+        outcome: Option<Outcome>,
+    ) -> Task<M> {
         *unsafe { self.outcome.as_mut() } = outcome;
-        window::close(window::Id::MAIN)
-    }
-}
-
-impl Application for Dialog {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = Flags;
-
-    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let this = Self {
-            mode: flags.initial_mode,
-            predefined_script_labels: flags.predefined_script_labels,
-            script_options: flags.initial_script_options,
-            outcome: flags.outcome,
-        };
-        (this, Command::none())
+        window::get_latest().and_then(window::close)
     }
 
-    fn title(&self) -> String {
-        String::from("My Reboot")
-    }
-
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
-        event::listen_with(|event, _status| {
-            if let Event::Keyboard(keyboard::Event::KeyPressed {
-                key: keyboard::Key::Named(keyboard::key::Named::Escape),
-                ..
-            }) = event
-            {
-                return Some(Message::Dismiss);
-            }
-            None
-        })
-    }
-
-    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::BasicDialog(message) => basic::update(self, message).map(Message::BasicDialog),
             Message::AdvancedDialog(message) => {
@@ -153,19 +129,30 @@ impl Application for Dialog {
 
                 self.mode = new_mode;
 
-                Command::batch([
-                    window::resize(window::Id::MAIN, new_size),
-                    // TODO: reposition window (iced currently does not support it)
-                ])
+                window::get_latest().and_then(move |id| window::resize(id, new_size))
+                // TODO: reposition window (iced currently does not support it)
             }
             Message::Dismiss => self.set_outcome_and_close_window(None),
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, Self::Theme, iced::Renderer> {
+    fn view(&self) -> iced::Element<'_, Message, Theme, iced::Renderer> {
         match self.mode {
             Mode::Basic => basic::view(self),
             Mode::Advanced => advanced::view(self),
         }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        event::listen_with(|event, _status, _window| {
+            if let Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            }) = event
+            {
+                return Some(Message::Dismiss);
+            }
+            None
+        })
     }
 }
