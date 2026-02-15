@@ -12,7 +12,6 @@ use std::process::ExitStatus;
 
 use anyhow::{Result, bail};
 
-use crate::options_types::Display;
 use crate::script::Script;
 
 pub struct PredefinedScript {
@@ -32,10 +31,4 @@ impl SuccessOr for ExitStatus {
             bail!(message)
         }
     }
-}
-
-// TODO: this makes sense only on Windows
-pub trait CurrentDisplayHandler {
-    fn get(&self) -> Display;
-    fn switch_to(&self, display: Display) -> Result<()>;
 }

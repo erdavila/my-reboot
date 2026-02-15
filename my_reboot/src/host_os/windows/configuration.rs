@@ -3,9 +3,7 @@ use is_windows_11_or_greater::is_windows_11_or_greater;
 
 use crate::{
     configs::ConfigsWriter,
-    host_os::{
-        WindowsCurrentDisplayHandler, windows::get_active_display_id::get_active_display_id,
-    },
+    host_os::{CurrentDisplayHandler, windows::get_active_display_id::get_active_display_id},
     options_types::{Display, OptionType},
 };
 
@@ -26,10 +24,8 @@ pub fn configure(initial_display: Option<Display>) -> Result<()> {
         };
 
         println!("Trocando de tela...");
-        let switched = WindowsCurrentDisplayHandler::execute_display_switch(
-            display_switch_args[0],
-            WAIT_SECONDS,
-        )?;
+        let switched =
+            CurrentDisplayHandler::execute_display_switch(display_switch_args[0], WAIT_SECONDS)?;
         let (initial_display_switch_arg, other_display_device_id, other_display_switch_arg) =
             if switched {
                 (
@@ -38,7 +34,7 @@ pub fn configure(initial_display: Option<Display>) -> Result<()> {
                     display_switch_args[0],
                 )
             } else {
-                WindowsCurrentDisplayHandler::execute_display_switch(
+                CurrentDisplayHandler::execute_display_switch(
                     display_switch_args[1],
                     WAIT_SECONDS,
                 )?;
@@ -50,10 +46,7 @@ pub fn configure(initial_display: Option<Display>) -> Result<()> {
             };
 
         println!("Voltando para a tela inicial...");
-        WindowsCurrentDisplayHandler::execute_display_switch(
-            initial_display_switch_arg,
-            WAIT_SECONDS,
-        )?;
+        CurrentDisplayHandler::execute_display_switch(initial_display_switch_arg, WAIT_SECONDS)?;
 
         let mut configs = ConfigsWriter::load(false)?;
         configs.set_device_id(initial_display, &initial_display_device_id);

@@ -8,7 +8,7 @@ use crate::options_types::{OperatingSystem, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::{configs::Configs, host_os::SuccessOr, options_types::Display, text};
 
-use super::{CurrentDisplayHandler, PredefinedScript};
+use super::PredefinedScript;
 
 pub mod configuration;
 mod get_active_display_id;
@@ -40,18 +40,15 @@ fn shutdown_now(arg: &str) -> Result<()> {
         .success_or(text::reboot_action::FAILED)
 }
 
-#[expect(clippy::unnecessary_wraps)]
-pub fn get_current_display_handler<'a>(
-    configs: &'a Configs,
-) -> Option<Box<dyn CurrentDisplayHandler + 'a>> {
-    Some(Box::new(WindowsCurrentDisplayHandler { configs }))
-}
-
-pub struct WindowsCurrentDisplayHandler<'a> {
+pub struct CurrentDisplayHandler<'a> {
     configs: &'a Configs,
 }
-impl WindowsCurrentDisplayHandler<'_> {
+impl<'a> CurrentDisplayHandler<'a> {
     const DISPLAY_SWITCH_PATH: &'static str = "DisplaySwitch.exe";
+
+    pub(crate) fn new(configs: &'a Configs) -> Self {
+        Self { configs }
+    }
 
     fn execute_display_switch(display_switch_arg: &str, wait_seconds: u64) -> Result<bool> {
         const PROBE_INTERVAL: Duration = Duration::from_secs(1);
@@ -75,14 +72,13 @@ impl WindowsCurrentDisplayHandler<'_> {
 
         Ok(false)
     }
-}
-impl CurrentDisplayHandler for WindowsCurrentDisplayHandler<'_> {
-    fn get(&self) -> Display {
+
+    pub(crate) fn get(&self) -> Display {
         let device_id = get_active_display_id::get_active_display_id();
         self.configs.get_display_by_device_id(&device_id)
     }
 
-    fn switch_to(&self, display: Display) -> Result<()> {
+    pub(crate) fn switch_to(&self, display: Display) -> Result<()> {
         const WAIT_SECONDS: u64 = 10;
 
         let display_switch_arg = self.configs.get_display_switch_arg(display);

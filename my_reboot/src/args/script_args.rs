@@ -1,5 +1,9 @@
-use crate::options_types::{Display, OptionType, RebootAction};
-use crate::script::{Script, SetOrUnset, SwitchToDisplay};
+#[cfg(windows)]
+use crate::options_types::Display;
+use crate::options_types::{OptionType, RebootAction};
+#[cfg(windows)]
+use crate::script::SwitchToDisplay;
+use crate::script::{Script, SetOrUnset};
 use crate::text;
 
 use super::errors::{self, ArgError};
@@ -34,6 +38,7 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
         return Ok(true);
     }
 
+    #[cfg(windows)]
     if parse_switch_to_display(arg, script)? {
         return Ok(true);
     }
@@ -88,6 +93,7 @@ fn parse_boot_option<T: OptionType>(
     set_if_none(value, option, arg, descr)
 }
 
+#[cfg(windows)]
 fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     let option = match arg.strip_prefix("switch:") {
         Some("saved") => SwitchToDisplay::Saved,
@@ -137,6 +143,7 @@ mod tests {
     use std::iter;
 
     use crate::options_types::{Display, OperatingSystem};
+    #[cfg(windows)]
     use crate::script::SwitchToDisplay;
 
     use super::*;
@@ -226,6 +233,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn test_parse_single_switch() {
         let mut script = Script::new();
 
@@ -370,6 +378,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn test_parse_switch_to_display() {
         let cases = [
             ("switch", SwitchToDisplay::Other),
@@ -390,6 +399,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn test_parse_switch_to_display_invalid() {
         let mut script = Script::new();
 
@@ -399,6 +409,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn test_parse_switch_to_display_no_switch_arg() {
         let mut script = Script::new();
         let arg = "blah";
@@ -410,6 +421,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn test_parse_switch_to_display_already_set() {
         let mut script = Script::new();
         script.switch_to_display = Some(SwitchToDisplay::Other);
