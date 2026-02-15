@@ -4,9 +4,9 @@ use anyhow::Result;
 
 use crate::options_types::{Display, OperatingSystem, RebootAction};
 use crate::script::{Script, SetOrUnset};
-use crate::{configs::Configs, text};
+use crate::text;
 
-use super::{CurrentDisplayHandler, PredefinedScript, SuccessOr};
+use super::{PredefinedScript, SuccessOr};
 
 pub const STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
 
@@ -26,7 +26,6 @@ const fn reboot_on_windows_with_display(display: Display) -> Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Windows)),
         next_windows_boot_display: Some(SetOrUnset::Set(display)),
         reboot_action: Some(RebootAction::Reboot),
-        ..Script::new()
     }
 }
 
@@ -43,12 +42,6 @@ fn systemctl(arg: &str) -> Result<()> {
         .arg(arg)
         .status()?
         .success_or(text::reboot_action::FAILED)
-}
-
-pub fn get_current_display_handler<'a>(
-    _: &'a Configs,
-) -> Option<Box<dyn CurrentDisplayHandler + 'a>> {
-    None
 }
 
 pub mod configuration {

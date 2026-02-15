@@ -1,13 +1,14 @@
 use std::io;
 
-use anyhow::{Result, anyhow};
+#[cfg(windows)]
+use anyhow::Result;
 
 use crate::configs::Configs;
 use crate::grubenv::Grubenv;
+#[cfg(windows)]
 use crate::host_os;
 use crate::options_types::{Display, OperatingSystem, OptionType};
 use crate::properties::Properties;
-use crate::text;
 
 const GRUB_ENTRY: &str = "saved_entry";
 const WINDOWS_DISPLAY_KEY: &str = "windows.display";
@@ -16,8 +17,8 @@ const OPTIONS_FILENAME: &str = "my-reboot-options.properties";
 pub struct State {
     pub next_boot_operating_system: Option<OperatingSystem>,
     pub next_windows_boot_display: Option<Display>,
-    // TODO: this field should exist only on Windows
-    pub current_display: Option<Display>,
+    #[cfg(windows)]
+    pub current_display: Display,
 }
 
 pub struct StateProvider {
@@ -41,6 +42,7 @@ impl StateProvider {
         State {
             next_boot_operating_system: self.get_next_boot_operating_system(),
             next_windows_boot_display: self.get_next_windows_boot_display(),
+            #[cfg(windows)]
             current_display: self.get_current_display(),
         }
     }
@@ -79,14 +81,18 @@ impl StateProvider {
         self.options.save().unwrap();
     }
 
-    pub fn get_current_display(&self) -> Option<Display> {
-        host_os::get_current_display_handler(&self.configs).map(|handler| handler.get())
+    #[cfg(windows)]
+    pub fn get_current_display(&self) -> Display {
+        self.current_display_handler().get()
     }
 
+    #[cfg(windows)]
     pub fn set_current_display(&self, display: Display) -> Result<()> {
-        let handler = host_os::get_current_display_handler(&self.configs)
-            .ok_or_else(|| anyhow!(text::display::switching::NOT_SUPPORTED))?;
-        handler.switch_to(display)?;
-        Ok(())
+        self.current_display_handler().switch_to(display)
+    }
+
+    #[cfg(windows)]
+    fn current_display_handler(&self) -> host_os::CurrentDisplayHandler<'_> {
+        host_os::CurrentDisplayHandler::new(&self.configs)
     }
 }

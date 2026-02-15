@@ -72,8 +72,6 @@ fn show_dialog(mode: Mode) -> Result<()> {
                 next_windows_boot_display: Some(options.next_windows_boot_display.into()),
                 #[cfg(windows)]
                 switch_to_display: options.switch_display.then_some(SwitchToDisplay::Other),
-                #[cfg(not(windows))]
-                switch_to_display: None,
                 reboot_action: options.reboot_action,
             };
             script.execute()
@@ -100,13 +98,12 @@ fn show_state() -> Result<()> {
         text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
         text::display::value_text(state.next_windows_boot_display)
     );
-    if state.current_display.is_some() {
-        println!(
-            "{}: {}",
-            text::display::CURRENT,
-            text::display::value_text(state.current_display)
-        );
-    }
+    #[cfg(windows)]
+    println!(
+        "{}: {}",
+        text::display::CURRENT,
+        text::display::value_text(Some(state.current_display))
+    );
 
     Ok(())
 }

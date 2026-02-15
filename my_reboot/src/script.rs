@@ -1,7 +1,7 @@
 use std::env;
 
 use ansi_term::{ANSIString, Color};
-use anyhow::{Ok, Result, anyhow};
+use anyhow::{Ok, Result};
 
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::state::StateProvider;
@@ -11,6 +11,7 @@ use crate::{host_os, text};
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
+    #[cfg(windows)]
     pub switch_to_display: Option<SwitchToDisplay>,
     pub reboot_action: Option<RebootAction>,
 }
@@ -19,6 +20,7 @@ impl Script {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_display: None,
+            #[cfg(windows)]
             switch_to_display: None,
             reboot_action: None,
         }
@@ -46,6 +48,7 @@ impl ScriptExecutor {
             self.apply_next_windows_boot_display(display_option);
         }
 
+        #[cfg(windows)]
         if let Some(switch_to) = script.switch_to_display {
             self.apply_switch_to_display(switch_to)?;
         }
@@ -108,11 +111,9 @@ impl ScriptExecutor {
         );
     }
 
+    #[cfg(windows)]
     fn apply_switch_to_display(&mut self, switch_to: SwitchToDisplay) -> Result<()> {
-        let from_display = self
-            .state_provider
-            .get_current_display()
-            .ok_or_else(|| anyhow!(text::display::switching::NOT_SUPPORTED))?;
+        let from_display = self.state_provider.get_current_display();
 
         match switch_to {
             SwitchToDisplay::Other => {
@@ -160,6 +161,7 @@ impl ScriptExecutor {
         Ok(())
     }
 
+    #[cfg(windows)]
     fn switch_display_to(&self, display: Display) -> Result<()> {
         println!(
             "{} {}",
@@ -209,6 +211,7 @@ impl<T> From<Option<T>> for SetOrUnset<T> {
     }
 }
 
+#[cfg(windows)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SwitchToDisplay {
     Other,

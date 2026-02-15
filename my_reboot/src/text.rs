@@ -33,19 +33,17 @@ pub mod display {
     pub const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
         "tela a ser usada na próxima inicialização do Windows";
 
+    #[cfg(windows)]
     pub const CURRENT: &str = "tela atual";
 
     pub const WAS_UPDATED_TO: &str = "foi atualizada para";
 
     pub const UNDEFINED: &str = "indefinida";
 
+    #[cfg(windows)]
     pub mod switching {
-        pub const NOT_SUPPORTED: &str =
-            "A troca de tela não é suportada no sistema operacional atual";
         pub const TO: &str = "Trocando de tela para";
-        #[cfg(windows)]
         pub const TAKING_TOO_LONG: &str = "A tela não trocou no tempo limite";
-        #[cfg(windows)]
         pub const FAILED: &str = "A troca de tela falhou";
         pub const IS_ALREADY_CURRENT: &str = "já é a tela atual";
     }
