@@ -22,10 +22,10 @@ fn main() {
 fn print_data(dd: &DisplayDevice, indent_level: u8) {
     let indent = "  ".repeat(indent_level.into());
 
-    println!("{indent}Name: {}", dd.device_name.to_str().unwrap());
-    println!("{indent}String: {}", dd.device_string.to_str().unwrap());
-    println!("{indent}ID: {}", &dd.device_id.to_str().unwrap());
-    println!("{indent}Key: {}", &dd.device_key.to_str().unwrap());
+    println!("{indent}Name: {}", dd.device_name);
+    println!("{indent}String: {}", dd.device_string);
+    println!("{indent}ID: {}", &dd.device_id);
+    println!("{indent}Key: {}", &dd.device_key);
     println!("{indent}Active: {}", dd.state_flags.active());
     println!(
         "{indent}Attached to desktop: {}",

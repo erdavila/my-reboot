@@ -1,78 +1,79 @@
-use std::ffi::CString;
 use std::{mem, ptr};
 
-use windows_sys::Win32::Graphics::Gdi::{
+use windows::Win32::Graphics::Gdi::{
     DISPLAY_DEVICE_ACTIVE, DISPLAY_DEVICE_ATTACHED_TO_DESKTOP, DISPLAY_DEVICE_MIRRORING_DRIVER,
     DISPLAY_DEVICE_MODESPRUNED, DISPLAY_DEVICE_PRIMARY_DEVICE, DISPLAY_DEVICE_REMOVABLE,
-    DISPLAY_DEVICE_VGA_COMPATIBLE, DISPLAY_DEVICEA, EnumDisplayDevicesA,
+    DISPLAY_DEVICE_STATE_FLAGS, DISPLAY_DEVICE_VGA_COMPATIBLE, DISPLAY_DEVICEW,
+    EnumDisplayDevicesW,
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME;
+use windows::Win32::UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME;
+use windows::core::PCWSTR;
 
-pub struct DisplayDeviceFlags {
-    value: u32,
-}
+pub struct DisplayDeviceFlags(DISPLAY_DEVICE_STATE_FLAGS);
 impl DisplayDeviceFlags {
     #[must_use]
     pub fn active(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_ACTIVE) != 0
+        self.0.contains(DISPLAY_DEVICE_ACTIVE)
     }
     #[must_use]
     pub fn attached_to_desktop(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) != 0
+        self.0.contains(DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)
     }
     #[must_use]
     pub fn mirroring_driver(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_MIRRORING_DRIVER) != 0
+        self.0.contains(DISPLAY_DEVICE_MIRRORING_DRIVER)
     }
     #[must_use]
     pub fn modes_pruned(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_MODESPRUNED) != 0
+        self.0.contains(DISPLAY_DEVICE_MODESPRUNED)
     }
     #[must_use]
     pub fn primary_device(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_PRIMARY_DEVICE) != 0
+        self.0.contains(DISPLAY_DEVICE_PRIMARY_DEVICE)
     }
     #[must_use]
     pub fn removable(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_REMOVABLE) != 0
+        self.0.contains(DISPLAY_DEVICE_REMOVABLE)
     }
     #[must_use]
     pub fn vga_compatible(&self) -> bool {
-        (self.value & DISPLAY_DEVICE_VGA_COMPATIBLE) != 0
+        self.0.contains(DISPLAY_DEVICE_VGA_COMPATIBLE)
     }
 }
 
 pub struct DisplayDevice {
-    pub device_name: CString,
-    pub device_string: CString,
+    pub device_name: String,
+    pub device_string: String,
     pub state_flags: DisplayDeviceFlags,
-    pub device_id: CString,
-    pub device_key: CString,
+    pub device_id: String,
+    pub device_key: String,
 }
-impl From<&DISPLAY_DEVICEA> for DisplayDevice {
-    fn from(dd: &DISPLAY_DEVICEA) -> Self {
+impl From<&DISPLAY_DEVICEW> for DisplayDevice {
+    fn from(dd: &DISPLAY_DEVICEW) -> Self {
         DisplayDevice {
-            device_name: byte_slice_to_cstring(&dd.DeviceName),
-            device_string: byte_slice_to_cstring(&dd.DeviceString),
-            state_flags: DisplayDeviceFlags {
-                value: dd.StateFlags,
-            },
-            device_id: byte_slice_to_cstring(&dd.DeviceID),
-            device_key: byte_slice_to_cstring(&dd.DeviceKey),
+            device_name: u16string_to_string(&dd.DeviceName),
+            device_string: u16string_to_string(&dd.DeviceString),
+            state_flags: DisplayDeviceFlags(dd.StateFlags),
+            device_id: u16string_to_string(&dd.DeviceID),
+            device_key: u16string_to_string(&dd.DeviceKey),
         }
     }
 }
 
 pub struct EnumDisplayDevices {
-    device: Option<CString>,
+    device: Option<Vec<u16>>,
     flags: u32,
     next_index: Option<u32>,
 }
 impl EnumDisplayDevices {
     #[must_use]
-    pub fn new(device: Option<CString>, get_device_interface_name: bool) -> EnumDisplayDevices {
+    pub fn new(device: Option<String>, get_device_interface_name: bool) -> EnumDisplayDevices {
         EnumDisplayDevices {
-            device,
+            device: device.map(|dev| {
+                let mut dev: Vec<_> = dev.encode_utf16().collect();
+                dev.push(0);
+                dev
+            }),
             flags: if get_device_interface_name {
                 EDD_GET_DEVICE_INTERFACE_NAME
             } else {
@@ -82,11 +83,12 @@ impl EnumDisplayDevices {
         }
     }
 
-    fn device(&self) -> *const u8 {
-        match self.device.as_ref() {
+    fn device(&self) -> PCWSTR {
+        let ptr = match self.device.as_ref() {
             Some(device) => device.as_ptr().cast(),
             None => ptr::null(),
-        }
+        };
+        PCWSTR::from_raw(ptr)
     }
 }
 impl Iterator for EnumDisplayDevices {
@@ -96,14 +98,12 @@ impl Iterator for EnumDisplayDevices {
         match self.next_index {
             #[expect(clippy::cast_possible_truncation)]
             Some(index) => {
-                let mut dd: DISPLAY_DEVICEA = unsafe { mem::zeroed() };
+                let mut dd = DISPLAY_DEVICEW::default();
                 dd.cb = mem::size_of_val(&dd) as u32;
 
-                let r =
-                    unsafe { EnumDisplayDevicesA(self.device(), index, &raw mut dd, self.flags) };
-                let result = r != 0;
-
-                if result {
+                let result =
+                    unsafe { EnumDisplayDevicesW(self.device(), index, &raw mut dd, self.flags) };
+                if result.as_bool() {
                     self.next_index = Some(index + 1);
                     Some(DisplayDevice::from(&dd))
                 } else {
@@ -116,8 +116,10 @@ impl Iterator for EnumDisplayDevices {
     }
 }
 
-fn byte_slice_to_cstring(bytes: &[u8]) -> CString {
-    let len = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
-    // We ensured the slice don't contain the nul byte, so we can safely unwrap
-    CString::new(&bytes[..len]).unwrap()
+fn u16string_to_string(u16string: &[u16]) -> String {
+    let len = u16string
+        .iter()
+        .position(|&c| c == 0)
+        .unwrap_or(u16string.len());
+    String::from_utf16_lossy(&u16string[..len])
 }
