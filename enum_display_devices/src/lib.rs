@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::ffi::NulError;
 use std::mem;
 use std::ptr;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
@@ -49,17 +48,17 @@ pub struct DisplayDevice {
     pub device_id: CString,
     pub device_key: CString,
 }
-impl DisplayDevice {
-    fn from(dd: &DISPLAY_DEVICEA) -> Result<DisplayDevice, NulError> {
-        Ok(DisplayDevice {
-            device_name: byte_slice_to_cstring(&dd.DeviceName)?,
-            device_string: byte_slice_to_cstring(&dd.DeviceString)?,
+impl From<&DISPLAY_DEVICEA> for DisplayDevice {
+    fn from(dd: &DISPLAY_DEVICEA) -> Self {
+        DisplayDevice {
+            device_name: byte_slice_to_cstring(&dd.DeviceName),
+            device_string: byte_slice_to_cstring(&dd.DeviceString),
             state_flags: DisplayDeviceFlags {
                 value: dd.StateFlags,
             },
-            device_id: byte_slice_to_cstring(&dd.DeviceID)?,
-            device_key: byte_slice_to_cstring(&dd.DeviceKey)?,
-        })
+            device_id: byte_slice_to_cstring(&dd.DeviceID),
+            device_key: byte_slice_to_cstring(&dd.DeviceKey),
+        }
     }
 }
 
@@ -105,7 +104,7 @@ impl Iterator for EnumDisplayDevices {
 
                 if result {
                     self.next_index = Some(index + 1);
-                    Some(DisplayDevice::from(&dd).unwrap())
+                    Some(DisplayDevice::from(&dd))
                 } else {
                     self.next_index = None;
                     None
@@ -116,14 +115,8 @@ impl Iterator for EnumDisplayDevices {
     }
 }
 
-fn byte_slice_to_cstring(bytes: &[u8]) -> Result<CString, NulError> {
-    let nul_index = bytes
-        .iter()
-        .enumerate()
-        .find_map(|(i, b)| if *b == 0 { Some(i) } else { None });
-    let bytes = match nul_index {
-        Some(i) => &bytes[..i],
-        None => bytes,
-    };
-    CString::new(bytes)
+fn byte_slice_to_cstring(bytes: &[u8]) -> CString {
+    let len = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+    // We ensured the slice don't contain the nul byte, so we can safely unwrap
+    CString::new(&bytes[..len]).unwrap()
 }
