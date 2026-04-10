@@ -1,11 +1,8 @@
 use std::collections::HashMap;
-use std::fs;
-use std::io;
-use std::iter;
 use std::path::PathBuf;
+use std::{fs, io, iter};
 
-use crate::file_content_as_hash_map::file_content_to_hash_map;
-use crate::file_content_as_hash_map::hash_map_to_file_content;
+use crate::file_content_as_hash_map::{file_content_to_hash_map, hash_map_to_file_content};
 use crate::host_os::STATE_DIR_PATH;
 
 const GRUBENV_CONTENT_LENGTH: usize = 1024;

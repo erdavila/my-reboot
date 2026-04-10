@@ -1,18 +1,17 @@
-#[cfg(not(windows))]
-mod linux;
-#[cfg(not(windows))]
-pub use linux::*;
-
-#[cfg(windows)]
-mod windows;
-#[cfg(windows)]
-pub use windows::*;
-
 use std::process::ExitStatus;
 
 use anyhow::{Result, bail};
+#[cfg(not(windows))]
+pub use linux::*;
+#[cfg(windows)]
+pub use windows::*;
 
 use crate::script::Script;
+
+#[cfg(not(windows))]
+mod linux;
+#[cfg(windows)]
+mod windows;
 
 pub struct PredefinedScript {
     pub button_label: &'static str,

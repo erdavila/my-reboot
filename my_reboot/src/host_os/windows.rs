@@ -4,11 +4,12 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
 
-use crate::options_types::{OperatingSystem, RebootAction};
-use crate::script::{Script, SetOrUnset};
-use crate::{configs::Configs, host_os::SuccessOr, options_types::Display, text};
-
 use super::PredefinedScript;
+use crate::configs::Configs;
+use crate::host_os::SuccessOr;
+use crate::options_types::{Display, OperatingSystem, RebootAction};
+use crate::script::{Script, SetOrUnset};
+use crate::text;
 
 pub mod configuration;
 mod get_active_display_id;

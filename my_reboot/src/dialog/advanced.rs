@@ -4,10 +4,9 @@ use iced::widget::checkbox;
 use iced::widget::{button, column, container, radio, row, space, text};
 use iced::{Padding, Size, Task, Theme, font};
 
+use super::{Dialog, Outcome};
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
 use crate::text::Capitalize;
-
-use super::{Dialog, Outcome};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScriptOptions {

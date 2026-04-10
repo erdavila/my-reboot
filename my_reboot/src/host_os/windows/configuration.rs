@@ -1,11 +1,10 @@
 use anyhow::Result;
 use is_windows_11_or_greater::is_windows_11_or_greater;
 
-use crate::{
-    configs::ConfigsWriter,
-    host_os::{CurrentDisplayHandler, windows::get_active_display_id::get_active_display_id},
-    options_types::{Display, OptionType},
-};
+use crate::configs::ConfigsWriter;
+use crate::host_os::CurrentDisplayHandler;
+use crate::host_os::windows::get_active_display_id::get_active_display_id;
+use crate::options_types::{Display, OptionType};
 
 pub fn configure(initial_display: Option<Display>) -> Result<()> {
     const WAIT_SECONDS: u64 = 5;

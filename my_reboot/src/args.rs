@@ -3,13 +3,12 @@ mod script_args;
 
 use std::env;
 
+use self::errors::ArgError;
 use crate::dialog::Mode;
 use crate::host_os::PREDEFINED_SCRIPTS;
 #[cfg(windows)]
 use crate::options_types::Display;
 use crate::script::Script;
-
-use self::errors::ArgError;
 
 pub enum ParsedArgs {
     Dialog(Mode),

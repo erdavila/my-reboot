@@ -1,3 +1,4 @@
+use super::errors::{self, ArgError};
 #[cfg(windows)]
 use crate::options_types::Display;
 use crate::options_types::{OptionType, RebootAction};
@@ -5,8 +6,6 @@ use crate::options_types::{OptionType, RebootAction};
 use crate::script::SwitchToDisplay;
 use crate::script::{Script, SetOrUnset};
 use crate::text;
-
-use super::errors::{self, ArgError};
 
 pub fn parse(
     arg: &str,
@@ -142,12 +141,12 @@ fn repeated_option_error<T>(option: &str, arg: &str) -> Result<T, ArgError> {
 mod tests {
     use std::iter;
 
+    use SetOrUnset::*;
+
+    use super::*;
     use crate::options_types::{Display, OperatingSystem};
     #[cfg(windows)]
     use crate::script::SwitchToDisplay;
-
-    use super::*;
-    use SetOrUnset::*;
 
     #[test]
     fn test_parse() {

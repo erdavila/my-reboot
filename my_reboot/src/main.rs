@@ -15,15 +15,15 @@ mod script;
 mod state;
 mod text;
 
-use crate::args::ParsedArgs;
-use crate::state::StateProvider;
-
 use anyhow::{Context, Result};
 use dialog::Mode;
 use host_os::PREDEFINED_SCRIPTS;
 use script::Script;
 #[cfg(windows)]
 use script::SwitchToDisplay;
+
+use crate::args::ParsedArgs;
+use crate::state::StateProvider;
 
 fn main() -> Result<()> {
     let args = args::parse()

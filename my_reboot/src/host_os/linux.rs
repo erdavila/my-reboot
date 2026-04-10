@@ -2,11 +2,10 @@ use std::process::Command;
 
 use anyhow::Result;
 
+use super::{PredefinedScript, SuccessOr};
 use crate::options_types::{Display, OperatingSystem, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
-
-use super::{PredefinedScript, SuccessOr};
 
 pub const STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
 

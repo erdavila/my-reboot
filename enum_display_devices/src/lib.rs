@@ -1,15 +1,11 @@
 use std::ffi::CString;
-use std::mem;
-use std::ptr;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ATTACHED_TO_DESKTOP;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_MIRRORING_DRIVER;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_MODESPRUNED;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_PRIMARY_DEVICE;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_REMOVABLE;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_VGA_COMPATIBLE;
-use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICEA;
-use windows_sys::Win32::Graphics::Gdi::EnumDisplayDevicesA;
+use std::{mem, ptr};
+
+use windows_sys::Win32::Graphics::Gdi::{
+    DISPLAY_DEVICE_ACTIVE, DISPLAY_DEVICE_ATTACHED_TO_DESKTOP, DISPLAY_DEVICE_MIRRORING_DRIVER,
+    DISPLAY_DEVICE_MODESPRUNED, DISPLAY_DEVICE_PRIMARY_DEVICE, DISPLAY_DEVICE_REMOVABLE,
+    DISPLAY_DEVICE_VGA_COMPATIBLE, DISPLAY_DEVICEA, EnumDisplayDevicesA,
+};
 use windows_sys::Win32::UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME;
 
 pub struct DisplayDeviceFlags {

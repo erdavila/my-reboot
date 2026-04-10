@@ -1,4 +1,5 @@
-use std::{cell::Cell, rc::Rc};
+use std::cell::Cell;
+use std::rc::Rc;
 
 use anyhow::Result;
 use iced::{Event, Task, Theme, Vector, event, keyboard, window};

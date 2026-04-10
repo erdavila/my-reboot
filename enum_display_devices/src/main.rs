@@ -1,6 +1,4 @@
-use enum_display_devices::DisplayDevice;
-
-use enum_display_devices::EnumDisplayDevices;
+use enum_display_devices::{DisplayDevice, EnumDisplayDevices};
 
 fn main() {
     for dd1 in EnumDisplayDevices::new(None, false) {
