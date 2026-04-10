@@ -29,4 +29,8 @@ fn print_data(dd: &DisplayDevice, indent_level: u8) {
     println!("{indent}ID: {}", &dd.device_id.to_str().unwrap());
     println!("{indent}Key: {}", &dd.device_key.to_str().unwrap());
     println!("{indent}Active: {}", dd.state_flags.active());
+    println!(
+        "{indent}Attached to desktop: {}",
+        dd.state_flags.attached_to_desktop()
+    );
 }

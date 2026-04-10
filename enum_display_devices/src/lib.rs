@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::mem;
 use std::ptr;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ACTIVE;
+use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_ATTACHED_TO_DESKTOP;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_MIRRORING_DRIVER;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_MODESPRUNED;
 use windows_sys::Win32::Graphics::Gdi::DISPLAY_DEVICE_PRIMARY_DEVICE;
@@ -18,6 +19,10 @@ impl DisplayDeviceFlags {
     #[must_use]
     pub fn active(&self) -> bool {
         (self.value & DISPLAY_DEVICE_ACTIVE) != 0
+    }
+    #[must_use]
+    pub fn attached_to_desktop(&self) -> bool {
+        (self.value & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) != 0
     }
     #[must_use]
     pub fn mirroring_driver(&self) -> bool {
