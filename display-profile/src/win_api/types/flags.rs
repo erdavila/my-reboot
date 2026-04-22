@@ -1,7 +1,9 @@
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 
-use serde::Serialize;
+use serde::de::Visitor;
+use serde::{Deserialize, Serialize};
 
 pub trait WinFlags:
     BitAnd<Output = Self> + BitOr<Output = Self> + BitOrAssign + Not<Output = Self> + Copy + PartialEq
@@ -45,7 +47,7 @@ pub(crate) use impl_win_flags_for;
 impl_win_flags_for!(u32);
 
 pub trait Flag: Debug + Copy + Eq + Serialize + 'static {
-    type WinFlags: WinFlags + From<Self> + Into<Self>;
+    type WinFlags: WinFlags + From<Self> + Into<Self> + Default;
 
     fn all() -> &'static [(Self, Self::WinFlags)];
     fn unknown_bits(bits: Self::WinFlags) -> Self;
@@ -76,12 +78,12 @@ macro_rules! define_flag_type {
             )*
         }
     ) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
         pub enum $name {
             $(
                 $variant,
             )*
-            Unknown($crate::win_api::types::lower_hex::LowerHexFormattedBits<$win_flags>),
+            Unknown($crate::win_api::types::hex_formatted_bits::HexFormattedBits<$win_flags>),
         }
 
         impl $crate::win_api::types::flags::Flag for $name {
@@ -96,7 +98,7 @@ macro_rules! define_flag_type {
             }
 
             fn unknown_bits(bits: Self::WinFlags) -> Self {
-                Self::Unknown($crate::win_api::types::lower_hex::LowerHexFormattedBits(bits))
+                Self::Unknown($crate::win_api::types::hex_formatted_bits::HexFormattedBits(bits))
             }
 
             fn unknown_bits_from(value: Self) -> Option<Self::WinFlags> {
@@ -139,6 +141,15 @@ macro_rules! define_flag_type {
                 output
             }
         }
+
+        impl std::ops::BitOr<Flags<$name>> for $name {
+            type Output = Flags<$name>;
+
+            fn bitor(self, mut rhs: Flags<Self>) -> Self::Output {
+                rhs |= self;
+                rhs
+            }
+        }
     };
 }
 pub(crate) use define_flag_type;
@@ -160,10 +171,23 @@ impl<T: Flag> Flags<T> {
         false
     }
 }
+impl<T: Flag> Default for Flags<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 impl<T: Flag> From<T> for Flags<T> {
     fn from(value: T) -> Self {
         let value = value.into();
         Flags(value)
+    }
+}
+impl<T: Flag> BitOr<T> for Flags<T> {
+    type Output = Self;
+
+    fn bitor(mut self, rhs: T) -> Self::Output {
+        self |= rhs;
+        self
     }
 }
 impl<T: Flag> BitOrAssign for Flags<T> {
@@ -187,6 +211,37 @@ impl<T: Flag> Serialize for Flags<T> {
         S: serde::Serializer,
     {
         serializer.collect_seq(T::values_from(self.0))
+    }
+}
+impl<'de, T: Flag + Deserialize<'de>> Deserialize<'de> for Flags<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Vis<T>(PhantomData<T>);
+
+        impl<'de, T: Flag + Deserialize<'de>> Visitor<'de> for Vis<T> {
+            type Value = Flags<T>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("A list of strings representing the variantes of the enum")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let mut flags = Flags::default();
+
+                while let Some(flag) = seq.next_element::<T>()? {
+                    flags |= flag;
+                }
+
+                Ok(flags)
+            }
+        }
+
+        deserializer.deserialize_seq(Vis(PhantomData))
     }
 }
 
@@ -258,7 +313,7 @@ mod tests {
     }
     mod typed {
         use super::*;
-        use crate::win_api::types::lower_hex::impl_to_lower_hex_for_newtype;
+        use crate::win_api::types::hex_formatted_bits::impl_hex_formatter_for_newtype;
 
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
         pub struct TYPED_FLAGS(u32);
@@ -299,7 +354,7 @@ mod tests {
                 FLAG4 => VALUE4,
             }
         );
-        impl_to_lower_hex_for_newtype!(TYPED_FLAGS);
+        impl_hex_formatter_for_newtype!(TYPED_FLAGS, u32);
 
         #[test]
         fn contains() {

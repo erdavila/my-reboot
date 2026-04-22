@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use windows::Win32::Devices::Display as WinDisplay;
 
 use crate::win_api::functions;
@@ -22,9 +22,10 @@ pub fn get_source_device_infos(device_id: DeviceId) -> Result<SourceDeviceInfos>
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SourceDeviceInfos {
-    viewGdiDeviceName: String,
+    pub viewGdiDeviceName: String,
+    // TODO: remove it? (unused)
     adapterDevicePath: String,
 }
 
@@ -54,10 +55,11 @@ pub fn get_target_device_infos(device_id: DeviceId) -> Result<TargetDeviceInfos>
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TargetDeviceInfos {
-    monitorFriendlyDeviceName: String,
-    monitorDevicePath: String,
+    pub monitorFriendlyDeviceName: String,
+    pub monitorDevicePath: String,
+    // TODO: remove it? (unused)
     adapterDevicePath: String,
 }
 

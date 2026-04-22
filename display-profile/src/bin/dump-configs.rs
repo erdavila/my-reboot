@@ -1,13 +1,7 @@
-#![expect(clippy::missing_errors_doc, non_snake_case)]
-
 use anyhow::{Result, bail};
-use display_profile::get_device_info::{
-    SourceDeviceInfos, TargetDeviceInfos, get_source_device_infos, get_target_device_infos,
-};
+use display_profile::common::aggregate_configs;
 use display_profile::output_format::OutputFormat;
-use display_profile::win_api::types::flags::Flags;
 use display_profile::win_api::{functions, types};
-use serde::Serialize;
 
 use crate::eq_ignoring_mode_idxs::eq_ignoring_mode_idxs;
 
@@ -181,66 +175,4 @@ fn compare_modes(
         }
     }
     Ok(())
-}
-
-pub fn aggregate_configs(
-    paths: Vec<types::DISPLAYCONFIG_PATH_INFO>,
-    modes: Vec<types::DISPLAYCONFIG_MODE_INFO>,
-) -> Result<Vec<AggregatedPath>> {
-    let configs = paths
-        .into_iter()
-        .map(|path| {
-            let sourceMode = path
-                .source_mode_idx()
-                .map(|idx| match modes[idx].Anonymous {
-                    types::DISPLAYCONFIG_MODE_INFO_0::sourceMode(sourceMode) => sourceMode,
-                    _ => unreachable!(),
-                });
-            let targetMode = path
-                .target_mode_idx()
-                .map(|idx| match modes[idx].Anonymous {
-                    types::DISPLAYCONFIG_MODE_INFO_0::targetMode(targetMode) => targetMode,
-                    _ => unreachable!(),
-                });
-            let desktopMode = path
-                .desktop_mode_idx()
-                .map(|idx| match modes[idx].Anonymous {
-                    types::DISPLAYCONFIG_MODE_INFO_0::desktopImageInfo(desktopMode) => desktopMode,
-                    _ => unreachable!(),
-                });
-
-            let sourceDeviceInfos = get_source_device_infos(path.sourceInfo.device_id)?;
-            let targetDeviceInfos = get_target_device_infos(path.targetInfo.device_id)?;
-
-            Ok(AggregatedPath {
-                flags: path.flags,
-                sourceInfo: path.sourceInfo,
-                sourceMode,
-                sourceDeviceInfos,
-                targetInfo: path.targetInfo,
-                targetMode,
-                targetDeviceInfos,
-                desktopMode,
-            })
-        })
-        .collect();
-
-    drop(modes);
-
-    configs
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-pub struct AggregatedPath {
-    pub flags: Flags<types::DISPLAYCONFIG_PATH_INFO_flag>,
-
-    pub sourceInfo: types::DISPLAYCONFIG_PATH_SOURCE_INFO,
-    pub sourceMode: Option<types::DISPLAYCONFIG_SOURCE_MODE>,
-    pub sourceDeviceInfos: SourceDeviceInfos,
-
-    pub targetInfo: types::DISPLAYCONFIG_PATH_TARGET_INFO,
-    pub targetMode: Option<types::DISPLAYCONFIG_TARGET_MODE>,
-    pub targetDeviceInfos: TargetDeviceInfos,
-
-    pub desktopMode: Option<types::DISPLAYCONFIG_DESKTOP_IMAGE_INFO>,
 }

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use windows::Wdk::Graphics::Direct3D as WinDirect3D;
 use windows::Win32::Devices::Display as WinDisplay;
 use windows::Win32::Foundation as WinFoundation;
@@ -9,7 +9,7 @@ use windows::Win32::Graphics::Gdi as WinGdi;
 
 pub mod device_id;
 pub mod flags;
-pub mod lower_hex;
+pub mod hex_formatted_bits;
 mod validated;
 
 macro_rules! define_enum {
@@ -20,7 +20,7 @@ macro_rules! define_enum {
             )*
         }
     ) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
         pub enum $name {
             $(
                 $short_variant,
@@ -70,7 +70,7 @@ macro_rules! define_trivial_struct {
             $(,)?
         }
     ) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
         pub struct $name {
             $(
                 pub $field: $type,
@@ -157,7 +157,7 @@ define_trivial_struct!(WinDisplay::DISPLAYCONFIG_DESKTOP_IMAGE_INFO {
     DesktopImageClip: RECTL,
 });
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_MODE_INFO {
     // pub infoType: DISPLAYCONFIG_MODE_INFO_TYPE, // Encoded in the Anonymous enum
     pub device_id: DeviceId,
@@ -190,7 +190,7 @@ impl From<DISPLAYCONFIG_MODE_INFO> for WinDisplay::DISPLAYCONFIG_MODE_INFO {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DISPLAYCONFIG_MODE_INFO_0 {
     targetMode(DISPLAYCONFIG_TARGET_MODE),
     sourceMode(DISPLAYCONFIG_SOURCE_MODE),
@@ -253,7 +253,7 @@ define_enum!(
     }
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_PATH_INFO {
     pub sourceInfo: DISPLAYCONFIG_PATH_SOURCE_INFO,
     pub targetInfo: DISPLAYCONFIG_PATH_TARGET_INFO,
@@ -263,9 +263,20 @@ impl DISPLAYCONFIG_PATH_INFO {
     #[must_use]
     pub fn source_mode_idx(&self) -> Option<usize> {
         match self.sourceInfo.Anonymous {
-            DISPLAYCONFIG_PATH_SOURCE_INFO_0::modeInfoIdx(mode_idx) => mode_idx.into(),
+            DISPLAYCONFIG_PATH_SOURCE_INFO_0::modeInfoIdx(mode_info_idx) => mode_info_idx.into(),
             DISPLAYCONFIG_PATH_SOURCE_INFO_0::Anonymous(anonymous) => {
                 anonymous.sourceModeInfoIdx.into()
+            }
+        }
+    }
+
+    pub fn set_source_mode_idx(&mut self, idx: Option<usize>) {
+        match &mut self.sourceInfo.Anonymous {
+            DISPLAYCONFIG_PATH_SOURCE_INFO_0::modeInfoIdx(mode_info_idx) => {
+                *mode_info_idx = idx.into();
+            }
+            DISPLAYCONFIG_PATH_SOURCE_INFO_0::Anonymous(anonymous) => {
+                anonymous.sourceModeInfoIdx = idx.into();
             }
         }
     }
@@ -273,9 +284,19 @@ impl DISPLAYCONFIG_PATH_INFO {
     #[must_use]
     pub fn target_mode_idx(&self) -> Option<usize> {
         match self.targetInfo.Anonymous {
-            DISPLAYCONFIG_PATH_TARGET_INFO_0::modeInfoIdx(mode_idx) => mode_idx.into(),
+            DISPLAYCONFIG_PATH_TARGET_INFO_0::modeInfoIdx(mode_info_idx) => mode_info_idx.into(),
             DISPLAYCONFIG_PATH_TARGET_INFO_0::Anonymous(anonymous) => {
                 anonymous.targetModeInfoIdx.into()
+            }
+        }
+    }
+    pub fn set_target_mode_idx(&mut self, idx: Option<usize>) {
+        match &mut self.targetInfo.Anonymous {
+            DISPLAYCONFIG_PATH_TARGET_INFO_0::modeInfoIdx(mode_info_idx) => {
+                *mode_info_idx = idx.into();
+            }
+            DISPLAYCONFIG_PATH_TARGET_INFO_0::Anonymous(anonymous) => {
+                anonymous.targetModeInfoIdx = idx.into();
             }
         }
     }
@@ -286,6 +307,17 @@ impl DISPLAYCONFIG_PATH_INFO {
             DISPLAYCONFIG_PATH_TARGET_INFO_0::modeInfoIdx(_) => None,
             DISPLAYCONFIG_PATH_TARGET_INFO_0::Anonymous(anonymous) => {
                 anonymous.desktopModeInfoIdx.into()
+            }
+        }
+    }
+
+    pub fn set_desktop_mode_idx(&mut self, idx: Option<usize>) {
+        match &mut self.targetInfo.Anonymous {
+            DISPLAYCONFIG_PATH_TARGET_INFO_0::modeInfoIdx(_) => {
+                panic!("Desktop mode idx can't be set");
+            }
+            DISPLAYCONFIG_PATH_TARGET_INFO_0::Anonymous(anonymous) => {
+                anonymous.desktopModeInfoIdx = idx.into();
             }
         }
     }
@@ -321,7 +353,7 @@ define_flag_type!(
     }
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_PATH_SOURCE_INFO {
     pub device_id: DeviceId,
     pub Anonymous: DISPLAYCONFIG_PATH_SOURCE_INFO_0,
@@ -349,7 +381,7 @@ impl From<DISPLAYCONFIG_PATH_SOURCE_INFO> for WinDisplay::DISPLAYCONFIG_PATH_SOU
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DISPLAYCONFIG_PATH_SOURCE_INFO_0 {
     modeInfoIdx(Validated<u32, { WinGdi::DISPLAYCONFIG_PATH_MODE_IDX_INVALID }>),
     Anonymous(DISPLAYCONFIG_PATH_SOURCE_INFO_0_0),
@@ -384,7 +416,7 @@ impl From<DISPLAYCONFIG_PATH_SOURCE_INFO_0> for WinDisplay::DISPLAYCONFIG_PATH_S
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_PATH_SOURCE_INFO_0_0 {
     pub cloneGroupId: Validated<u16, { WinGdi::DISPLAYCONFIG_PATH_CLONE_GROUP_INVALID }>,
     pub sourceModeInfoIdx: Validated<u16, { WinGdi::DISPLAYCONFIG_PATH_SOURCE_MODE_IDX_INVALID }>,
@@ -419,7 +451,7 @@ define_flag_type!(
     }
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_PATH_TARGET_INFO {
     pub device_id: DeviceId,
     pub Anonymous: DISPLAYCONFIG_PATH_TARGET_INFO_0,
@@ -465,7 +497,7 @@ impl From<DISPLAYCONFIG_PATH_TARGET_INFO> for WinDisplay::DISPLAYCONFIG_PATH_TAR
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DISPLAYCONFIG_PATH_TARGET_INFO_0 {
     modeInfoIdx(Validated<u32, { WinGdi::DISPLAYCONFIG_PATH_MODE_IDX_INVALID }>),
     Anonymous(DISPLAYCONFIG_PATH_TARGET_INFO_0_0),
@@ -500,7 +532,7 @@ impl From<DISPLAYCONFIG_PATH_TARGET_INFO_0> for WinDisplay::DISPLAYCONFIG_PATH_T
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_PATH_TARGET_INFO_0_0 {
     pub desktopModeInfoIdx:
         Validated<u16, { WinGdi::DISPLAYCONFIG_PATH_DESKTOP_IMAGE_IDX_INVALID }>,
@@ -632,7 +664,7 @@ define_trivial_struct!(WinDisplay::DISPLAYCONFIG_VIDEO_SIGNAL_INFO {
     scanLineOrdering: DISPLAYCONFIG_SCANLINE_ORDERING,
 });
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DISPLAYCONFIG_VIDEO_SIGNAL_INFO_0 {
     pub videoStandard: D3DKMDT_VIDEO_SIGNAL_STANDARD,
 }

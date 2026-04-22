@@ -23,7 +23,7 @@ impl Win32Error {
         }
     }
 
-    fn message(self) -> String {
+    pub fn message(self) -> String {
         match self.0 {
             WinFoundation::ERROR_SUCCESS => "The operation completed successfully.".to_string(),
             WinFoundation::ERROR_INVALID_PARAMETER => "The combination of parameters and flags specified is invalid.".to_string(),

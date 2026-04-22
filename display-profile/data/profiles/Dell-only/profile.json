@@ -1,0 +1,20 @@
+[
+  {
+    "friendly_device_name": "DELL P2319H",
+    "source_device_name": "\\\\.\\DISPLAY5",
+    "device_path": "\\\\?\\DISPLAY#DELD0D7#4&86cc653&0&UID198147#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+    "width": 1920,
+    "height": 1080,
+    "pixel_format": "_32BPP",
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": "ROTATE270",
+    "scaling": "IDENTITY",
+    "refresh_rate": {
+      "Numerator": 148351648,
+      "Denominator": 2475000
+    }
+  }
+]

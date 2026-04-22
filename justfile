@@ -11,4 +11,7 @@ clippy:
 
 
 dump-configs *ARGS:
-  cargo run -p display-profile --bin dump-configs -- {{ARGS}}
+  cargo run -q -p display-profile --bin dump-configs -- {{ARGS}}
+
+apply-configs +ARGS:
+  cargo run -q -p display-profile --bin apply-configs -- {{ARGS}}
