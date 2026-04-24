@@ -1,11 +1,16 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use display_profile_lib::{Dimensions, PixelFormat, Position, Rational, Rotation, Scaling};
 use serde::{Deserialize, Serialize};
 use windows::Wdk::Graphics::Direct3D as WinDirect3D;
 use windows::Win32::Devices::Display as WinDisplay;
 use windows::Win32::Foundation as WinFoundation;
 use windows::Win32::Graphics::Gdi as WinGdi;
+
+use crate::win_api::types::device_id::DeviceId;
+use crate::win_api::types::flags::Flags;
+use crate::win_api::types::validated::Validated;
 
 pub mod device_id;
 pub mod flags;
@@ -50,16 +55,49 @@ macro_rules! define_enum {
     };
 }
 
+macro_rules! define_profile_enum {
+    (
+        $win_path:ident :: $name:ident => $profile_type:ident {
+            $(
+                $variant:ident => $short_variant:ident => $profile_variant:ident ,
+            )*
+        }
+    ) => {
+        define_enum!(
+            $win_path :: $name {
+                $(
+                    $variant => $short_variant ,
+                )*
+            }
+        );
+
+        impl From<$profile_type> for $name {
+            fn from(value: $profile_type) -> Self {
+                match value {
+                    $(
+                        $profile_type::$profile_variant => $name::$short_variant,
+                    )*
+                }
+            }
+        }
+        impl From<$name> for $profile_type {
+            fn from(value: $name) -> Self {
+                match value {
+                    $(
+                        $name::$short_variant => $profile_type::$profile_variant,
+                    )*
+                }
+            }
+        }
+    };
+}
+
 macro_rules! define_flag_type {
     ($( $token:tt )*) => {
         $crate::win_api::types::flags::define_flag_type!($( $token )*);
     };
 }
 pub(crate) use define_flag_type;
-
-use crate::win_api::types::device_id::DeviceId;
-use crate::win_api::types::flags::Flags;
-use crate::win_api::types::validated::Validated;
 
 macro_rules! define_trivial_struct {
     (
@@ -92,6 +130,45 @@ macro_rules! define_trivial_struct {
                 $win_path::$name {
                     $(
                         $field: value.$field.into(),
+                    )*
+                }
+            }
+        }
+    };
+}
+
+macro_rules! define_trivial_profile_struct {
+    (
+        $win_path:ident :: $name:ident => $profile_type:ident {
+            $(
+                $field:ident => $profile_field:ident : $type:ty
+            ),*
+            $(,)?
+        }
+    ) => {
+        define_trivial_struct!(
+            $win_path::$name {
+                $(
+                    $field: $type,
+                )*
+            }
+        );
+
+        impl From<$profile_type> for $name {
+            fn from(value: $profile_type) -> Self {
+                $name {
+                    $(
+                        $field: value.$profile_field.into(),
+                    )*
+                }
+            }
+        }
+
+        impl From<$name> for $profile_type {
+            fn from(value: $name) -> Self {
+                $profile_type {
+                    $(
+                        $profile_field: value.$field,
                     )*
                 }
             }
@@ -149,7 +226,12 @@ impl From<D3DKMDT_VIDEO_SIGNAL_STANDARD> for u32 {
     }
 }
 
-define_trivial_struct!(WinDisplay::DISPLAYCONFIG_2DREGION { cx: u32, cy: u32 });
+define_trivial_profile_struct!(
+    WinDisplay::DISPLAYCONFIG_2DREGION => Dimensions {
+        cx => width: u32,
+        cy => height: u32,
+    }
+);
 
 define_trivial_struct!(WinDisplay::DISPLAYCONFIG_DESKTOP_IMAGE_INFO {
     PathSourceSize: POINTL,
@@ -573,38 +655,40 @@ define_flag_type!(
     }
 );
 
-define_enum!(
-    WinDisplay::DISPLAYCONFIG_PIXELFORMAT {
-        DISPLAYCONFIG_PIXELFORMAT_16BPP => _16BPP,
-        DISPLAYCONFIG_PIXELFORMAT_24BPP => _24BPP,
-        DISPLAYCONFIG_PIXELFORMAT_32BPP => _32BPP,
-        DISPLAYCONFIG_PIXELFORMAT_8BPP => _8BPP,
-        DISPLAYCONFIG_PIXELFORMAT_NONGDI => NONGDI,
+define_profile_enum!(
+    WinDisplay::DISPLAYCONFIG_PIXELFORMAT => PixelFormat {
+        DISPLAYCONFIG_PIXELFORMAT_16BPP => _16BPP => BitsPerPixel16,
+        DISPLAYCONFIG_PIXELFORMAT_24BPP => _24BPP => BitsPerPixel24,
+        DISPLAYCONFIG_PIXELFORMAT_32BPP => _32BPP => BitsPerPixel32,
+        DISPLAYCONFIG_PIXELFORMAT_8BPP => _8BPP => BitsPerPixel8,
+        DISPLAYCONFIG_PIXELFORMAT_NONGDI => NONGDI => NONGDI,
     }
 );
 
-define_trivial_struct!(WinDisplay::DISPLAYCONFIG_RATIONAL {
-    Numerator: u32,
-    Denominator: u32,
-});
-
-define_enum!(
-    WinDisplay::DISPLAYCONFIG_ROTATION {
-        DISPLAYCONFIG_ROTATION_IDENTITY => IDENTITY,
-        DISPLAYCONFIG_ROTATION_ROTATE180 => ROTATE180,
-        DISPLAYCONFIG_ROTATION_ROTATE270 => ROTATE270,
-        DISPLAYCONFIG_ROTATION_ROTATE90 => ROTATE90,
+define_trivial_profile_struct!(
+    WinDisplay::DISPLAYCONFIG_RATIONAL => Rational {
+        Numerator => numerator: u32,
+        Denominator => denominator: u32,
     }
 );
 
-define_enum!(
-    WinDisplay::DISPLAYCONFIG_SCALING {
-        DISPLAYCONFIG_SCALING_ASPECTRATIOCENTEREDMAX => ASPECTRATIOCENTEREDMAX,
-        DISPLAYCONFIG_SCALING_CENTERED => CENTERED,
-        DISPLAYCONFIG_SCALING_CUSTOM => CUSTOM,
-        DISPLAYCONFIG_SCALING_IDENTITY => IDENTITY,
-        DISPLAYCONFIG_SCALING_PREFERRED => PREFERRED,
-        DISPLAYCONFIG_SCALING_STRETCHED => STRETCHED,
+define_profile_enum!(
+    WinDisplay::DISPLAYCONFIG_ROTATION => Rotation {
+        DISPLAYCONFIG_ROTATION_IDENTITY => IDENTITY => IDENTITY,
+        DISPLAYCONFIG_ROTATION_ROTATE180 => ROTATE180 => ROTATE180,
+        DISPLAYCONFIG_ROTATION_ROTATE270 => ROTATE270 => ROTATE270,
+        DISPLAYCONFIG_ROTATION_ROTATE90 => ROTATE90 => ROTATE90,
+    }
+);
+
+define_profile_enum!(
+    WinDisplay::DISPLAYCONFIG_SCALING => Scaling {
+        DISPLAYCONFIG_SCALING_ASPECTRATIOCENTEREDMAX => ASPECTRATIOCENTEREDMAX => ASPECTRATIOCENTEREDMAX,
+        DISPLAYCONFIG_SCALING_CENTERED => CENTERED => CENTERED,
+        DISPLAYCONFIG_SCALING_CUSTOM => CUSTOM => CUSTOM,
+        DISPLAYCONFIG_SCALING_IDENTITY => IDENTITY => IDENTITY,
+        DISPLAYCONFIG_SCALING_PREFERRED => PREFERRED => PREFERRED,
+        DISPLAYCONFIG_SCALING_STRETCHED => STRETCHED => STRETCHED,
     }
 );
 
@@ -700,7 +784,12 @@ impl Ord for LUID {
     }
 }
 
-define_trivial_struct!(WinFoundation::POINTL { x: i32, y: i32 });
+define_trivial_profile_struct!(
+    WinFoundation::POINTL => Position {
+        x => x: i32,
+        y => y: i32
+    }
+);
 
 define_trivial_struct!(WinFoundation::RECTL {
     left: i32,

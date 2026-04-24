@@ -1,0 +1,12 @@
+[package]
+name = "display-profile-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+display-profile-lib = { path = "../lib", features = ["serde"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+
+[lints]
+workspace = true

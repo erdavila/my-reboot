@@ -8,27 +8,12 @@ use display_profile_experiment::common::{
 };
 use display_profile_experiment::win_api::functions::{self, QUERY_DISPLAY_CONFIG_FLAG};
 use display_profile_experiment::win_api::types;
+use display_profile_lib::{Dimensions, Monitor, Profile};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 const DATA_DIR_PATH: &str = "display-profile/data";
-
-type Profile = Vec<Monitor>;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-struct Monitor {
-    friendly_device_name: String,
-    source_device_name: String,
-    device_path: String,
-    width: u32,
-    height: u32,
-    pixel_format: types::DISPLAYCONFIG_PIXELFORMAT,
-    position: types::POINTL,
-    rotation: types::DISPLAYCONFIG_ROTATION,
-    scaling: types::DISPLAYCONFIG_SCALING,
-    refresh_rate: types::DISPLAYCONFIG_RATIONAL,
-}
 
 fn main() -> Result<()> {
     let args = parse_args()?;
@@ -145,13 +130,15 @@ fn load_profile_from_configs_dump(profile_name: &str) -> Result<Profile> {
                 friendly_device_name: path.targetDeviceInfos.monitorFriendlyDeviceName,
                 source_device_name: path.sourceDeviceInfos.viewGdiDeviceName,
                 device_path: path.targetDeviceInfos.monitorDevicePath,
-                width: source_mode.width,
-                height: source_mode.height,
-                pixel_format: source_mode.pixelFormat,
-                position: source_mode.position,
-                rotation: path.targetInfo.rotation,
-                scaling: path.targetInfo.scaling,
-                refresh_rate: path.targetInfo.refreshRate,
+                dimensions: Dimensions {
+                    width: source_mode.width,
+                    height: source_mode.height,
+                },
+                pixel_format: source_mode.pixelFormat.into(),
+                position: source_mode.position.into(),
+                rotation: path.targetInfo.rotation.into(),
+                scaling: path.targetInfo.scaling.into(),
+                refresh_rate: path.targetInfo.refreshRate.into(),
             })
         })
         .collect::<Result<_>>()?;
@@ -236,15 +223,15 @@ fn solve_profile(profile: Vec<Monitor>, configs: Configs) -> Result<Configs> {
     let configs = solved_monitors
         .into_iter()
         .map(|(monitor, mut path)| {
-            path.targetInfo.rotation = monitor.rotation;
-            path.targetInfo.scaling = monitor.scaling;
-            path.targetInfo.refreshRate = monitor.refresh_rate;
+            path.targetInfo.rotation = monitor.rotation.into();
+            path.targetInfo.scaling = monitor.scaling.into();
+            path.targetInfo.refreshRate = monitor.refresh_rate.into();
 
             path.sourceMode = Some(types::DISPLAYCONFIG_SOURCE_MODE {
-                width: monitor.width,
-                height: monitor.height,
-                pixelFormat: monitor.pixel_format,
-                position: monitor.position,
+                width: monitor.dimensions.width,
+                height: monitor.dimensions.height,
+                pixelFormat: monitor.pixel_format.into(),
+                position: monitor.position.into(),
             });
 
             path.targetMode = Some(types::DISPLAYCONFIG_TARGET_MODE {
@@ -254,11 +241,8 @@ fn solve_profile(profile: Vec<Monitor>, configs: Configs) -> Result<Configs> {
                         Numerator: 0,
                         Denominator: 0,
                     },
-                    vSyncFreq: monitor.refresh_rate,
-                    activeSize: types::DISPLAYCONFIG_2DREGION {
-                        cx: monitor.width,
-                        cy: monitor.height,
-                    },
+                    vSyncFreq: monitor.refresh_rate.into(),
+                    activeSize: monitor.dimensions.into(),
                     totalSize: types::DISPLAYCONFIG_2DREGION { cx: 0, cy: 0 },
                     Anonymous: types::DISPLAYCONFIG_VIDEO_SIGNAL_INFO_0 {
                         videoStandard: types::D3DKMDT_VIDEO_SIGNAL_STANDARD::OTHER,
