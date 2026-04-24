@@ -25,7 +25,6 @@ pub fn get_source_device_infos(device_id: DeviceId) -> Result<SourceDeviceInfos>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SourceDeviceInfos {
     pub viewGdiDeviceName: String,
-    // TODO: remove it? (unused)
     adapterDevicePath: String,
 }
 
@@ -59,7 +58,6 @@ pub fn get_target_device_infos(device_id: DeviceId) -> Result<TargetDeviceInfos>
 pub struct TargetDeviceInfos {
     pub monitorFriendlyDeviceName: String,
     pub monitorDevicePath: String,
-    // TODO: remove it? (unused)
     adapterDevicePath: String,
 }
 

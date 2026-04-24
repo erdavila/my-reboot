@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
-use display_profile::common::aggregate_configs;
-use display_profile::output_format::OutputFormat;
-use display_profile::win_api::{functions, types};
+use display_profile_experiment::common::aggregate_configs;
+use display_profile_experiment::output_format::OutputFormat;
+use display_profile_experiment::win_api::{functions, types};
 
 use crate::eq_ignoring_mode_idxs::eq_ignoring_mode_idxs;
 

@@ -792,7 +792,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "display-profile"
+name = "display-profile-experiment"
 version = "0.1.0"
 dependencies = [
  "anyhow",

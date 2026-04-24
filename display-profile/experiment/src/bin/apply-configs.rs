@@ -3,11 +3,11 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow, bail};
-use display_profile::common::{
+use display_profile_experiment::common::{
     Configs, DisaggregatedConfigs, aggregate_configs, disaggregate_configs,
 };
-use display_profile::win_api::functions::{self, QUERY_DISPLAY_CONFIG_FLAG};
-use display_profile::win_api::types;
+use display_profile_experiment::win_api::functions::{self, QUERY_DISPLAY_CONFIG_FLAG};
+use display_profile_experiment::win_api::types;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

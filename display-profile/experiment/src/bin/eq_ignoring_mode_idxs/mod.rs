@@ -1,4 +1,4 @@
-use display_profile::win_api::types;
+use display_profile_experiment::win_api::types;
 
 macro_rules! eq_fields {
     (
