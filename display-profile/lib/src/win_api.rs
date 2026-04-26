@@ -4,21 +4,20 @@ use windows::Win32::Devices::Display::{
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
     DISPLAYCONFIG_DEVICE_INFO_HEADER, DISPLAYCONFIG_DEVICE_INFO_TYPE, DISPLAYCONFIG_MODE_INFO,
     DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME,
-    DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QDC_VIRTUAL_MODE_AWARE,
-    QUERY_DISPLAY_CONFIG_FLAGS, QueryDisplayConfig,
+    DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QUERY_DISPLAY_CONFIG_FLAGS,
+    QueryDisplayConfig, SET_DISPLAY_CONFIG_FLAGS, SetDisplayConfig,
 };
-use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, LUID};
+use windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
 
 use crate::Result;
+use crate::device_id::DeviceId;
 use crate::win_api::win32_error::Win32Error;
 
 pub mod win32_error;
 
 pub fn query_display_config(
-    mut flags: QUERY_DISPLAY_CONFIG_FLAGS,
+    flags: QUERY_DISPLAY_CONFIG_FLAGS,
 ) -> Result<(Vec<DISPLAYCONFIG_PATH_INFO>, Vec<DISPLAYCONFIG_MODE_INFO>)> {
-    flags |= QDC_VIRTUAL_MODE_AWARE;
-
     loop {
         let mut path_count = 0;
         let mut mode_count = 0;
@@ -53,6 +52,15 @@ pub fn query_display_config(
     }
 }
 
+pub fn set_display_config(
+    paths: Option<&[DISPLAYCONFIG_PATH_INFO]>,
+    modes: Option<&[DISPLAYCONFIG_MODE_INFO]>,
+    flags: SET_DISPLAY_CONFIG_FLAGS,
+) -> Result<()> {
+    let result = unsafe { SetDisplayConfig(paths, modes, flags) };
+    Win32Error::from(result).to_result("SetDisplayConfig", ())
+}
+
 pub trait GetDeviceInfo: Default {
     const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE;
     fn header(&mut self) -> &mut DISPLAYCONFIG_DEVICE_INFO_HEADER;
@@ -72,14 +80,18 @@ impl GetDeviceInfo for DISPLAYCONFIG_SOURCE_DEVICE_NAME {
     }
 }
 
-pub fn display_config_get_device_info<T: GetDeviceInfo>(adapter_id: LUID, id: u32) -> Result<T> {
+pub fn display_config_get_device_info<T: GetDeviceInfo>(
+    device_id: impl Into<DeviceId>,
+) -> Result<T> {
+    let device_id = device_id.into();
+
     let mut device_info = T::default();
     *device_info.header() = DISPLAYCONFIG_DEVICE_INFO_HEADER {
         r#type: T::TYPE,
         #[expect(clippy::cast_possible_truncation)]
         size: mem::size_of::<T>() as u32,
-        adapterId: adapter_id,
-        id,
+        adapterId: device_id.adapter_id,
+        id: device_id.id,
     };
 
     let error = unsafe { DisplayConfigGetDeviceInfo(device_info.header()) };

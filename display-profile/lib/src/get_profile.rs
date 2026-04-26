@@ -1,51 +1,46 @@
 use windows::Win32::Devices::Display::{
     DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME, QDC_ONLY_ACTIVE_PATHS,
-};
-use windows::Win32::Graphics::Gdi::{
-    DISPLAYCONFIG_PATH_MODE_IDX_INVALID, DISPLAYCONFIG_PATH_SUPPORT_VIRTUAL_MODE,
+    QDC_VIRTUAL_MODE_AWARE,
 };
 
 use crate::error::Error;
+use crate::util::{PathInfoExt as _, from_windows_string};
 use crate::win_api::{display_config_get_device_info, query_display_config};
-use crate::{Dimensions, Monitor, Profile, Result, is_flag_set, windows_string_to_string};
+use crate::{Dimensions, Monitor, Profile, Result, VIRTUAL_MODE_AWARE};
 
 pub fn get_profile() -> Result<Profile> {
-    let (paths, modes) = query_display_config(QDC_ONLY_ACTIVE_PATHS)?;
+    let mut flags = QDC_ONLY_ACTIVE_PATHS;
+    if VIRTUAL_MODE_AWARE {
+        flags |= QDC_VIRTUAL_MODE_AWARE;
+    }
+    let (paths, modes) = query_display_config(flags)?;
 
     paths
         .into_iter()
         .map(|path| {
             let source_device_name = display_config_get_device_info::<
                 DISPLAYCONFIG_SOURCE_DEVICE_NAME,
-            >(path.sourceInfo.adapterId, path.sourceInfo.id)?;
+            >(path.sourceInfo)?;
 
             let target_device_name = display_config_get_device_info::<
                 DISPLAYCONFIG_TARGET_DEVICE_NAME,
-            >(path.targetInfo.adapterId, path.targetInfo.id)?;
+            >(path.targetInfo)?;
 
             let source_mode = unsafe {
-                let idx = if is_flag_set(path.flags, DISPLAYCONFIG_PATH_SUPPORT_VIRTUAL_MODE) {
-                    path.sourceInfo.Anonymous.Anonymous._bitfield >> 16
-                } else {
-                    path.sourceInfo.Anonymous.modeInfoIdx
-                };
-
-                if idx == DISPLAYCONFIG_PATH_MODE_IDX_INVALID {
+                let Some(idx) = path.source_mode_idx() else {
                     return Err(Error::Custom(
                         "no source mode in the display path info".to_string(),
                     ));
-                }
-                &modes[idx as usize].Anonymous.sourceMode
+                };
+                &modes[idx].Anonymous.sourceMode
             };
 
             Ok(Monitor {
-                friendly_device_name: windows_string_to_string(
+                friendly_device_name: from_windows_string(
                     &target_device_name.monitorFriendlyDeviceName,
                 )?,
-                source_device_name: windows_string_to_string(
-                    &source_device_name.viewGdiDeviceName,
-                )?,
-                device_path: windows_string_to_string(&target_device_name.monitorDevicePath)?,
+                source_device_name: from_windows_string(&source_device_name.viewGdiDeviceName)?,
+                device_path: from_windows_string(&target_device_name.monitorDevicePath)?,
                 dimensions: Dimensions {
                     width: source_mode.width,
                     height: source_mode.height,

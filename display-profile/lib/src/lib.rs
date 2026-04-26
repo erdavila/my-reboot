@@ -1,20 +1,60 @@
 #![expect(clippy::missing_errors_doc)]
 
+pub use error::Error;
+pub use get_profile::get_profile;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use windows::Win32::Devices::Display::DISPLAYCONFIG_RATIONAL;
-use windows::Win32::Foundation::POINTL;
+pub use set_profile::set_profile;
+use windows::Win32::Devices::Display::DISPLAYCONFIG_2DREGION;
 
+mod device_id;
 mod error;
 mod get_profile;
 mod set_profile;
+mod util;
 mod win_api;
 
-pub use error::Error;
-pub use get_profile::get_profile;
-pub use set_profile::set_profile;
+const VIRTUAL_MODE_AWARE: bool = true;
 
-type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+macro_rules! define_windows_mapped_struct {
+    (
+        $name:ident => $win_name:ident in $($win_path:ident)::+ {
+            $(
+                $field:ident => $win_field:ident : $field_type:ty ,
+            )*
+        }
+    ) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        pub struct $name {
+            $(
+                pub $field: $field_type,
+            )*
+        }
+
+        impl From<$($win_path::)+ $win_name> for $name {
+            fn from(value: $($win_path::)+ $win_name) -> Self {
+                $name {
+                    $(
+                        $field: value.$win_field,
+                    )*
+                }
+            }
+        }
+
+        impl From<$name> for $($win_path::)+ $win_name {
+            fn from(value: $name) -> Self {
+                $($win_path::)+ $win_name {
+                    $(
+                        $win_field: value.$field,
+                    )*
+                }
+            }
+        }
+    };
+}
 
 macro_rules! define_windows_mapped_enum {
     (
@@ -43,8 +83,19 @@ macro_rules! define_windows_mapped_enum {
                 }
             }
         }
+
+        impl From<$name> for $($win_path::)+ $win_type {
+            fn from(value: $name) -> Self {
+                use $($win_path)::+ as WinPath;
+                match value {
+                    $( $name::$variant => WinPath::$win_val, )*
+                }
+            }
+        }
     };
 }
+
+pub type Profile = Vec<Monitor>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -66,6 +117,14 @@ pub struct Dimensions {
     pub width: u32,
     pub height: u32,
 }
+impl From<Dimensions> for DISPLAYCONFIG_2DREGION {
+    fn from(value: Dimensions) -> Self {
+        DISPLAYCONFIG_2DREGION {
+            cx: value.width,
+            cy: value.height,
+        }
+    }
+}
 
 define_windows_mapped_enum!(
     PixelFormat => DISPLAYCONFIG_PIXELFORMAT in windows::Win32::Devices::Display {
@@ -81,20 +140,12 @@ define_windows_mapped_enum!(
     }
 );
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Position {
-    pub x: i32,
-    pub y: i32,
-}
-impl From<POINTL> for Position {
-    fn from(value: POINTL) -> Self {
-        Self {
-            x: value.x,
-            y: value.y,
-        }
+define_windows_mapped_struct!(
+    Position => POINTL in windows::Win32::Foundation {
+        x => x: i32,
+        y => y: i32,
     }
-}
+);
 
 define_windows_mapped_enum!(
     Rotation => DISPLAYCONFIG_ROTATION in windows::Win32::Devices::Display {
@@ -116,28 +167,9 @@ define_windows_mapped_enum!(
     }
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Rational {
-    pub numerator: u32,
-    pub denominator: u32,
-}
-impl From<DISPLAYCONFIG_RATIONAL> for Rational {
-    fn from(value: DISPLAYCONFIG_RATIONAL) -> Self {
-        Self {
-            numerator: value.Numerator,
-            denominator: value.Denominator,
-        }
+define_windows_mapped_struct!(
+    Rational => DISPLAYCONFIG_RATIONAL in windows::Win32::Devices::Display {
+        numerator => Numerator: u32,
+        denominator => Denominator: u32,
     }
-}
-
-pub type Profile = Vec<Monitor>;
-
-fn is_flag_set(flags: u32, flag: u32) -> bool {
-    flags & flag == flag
-}
-
-fn windows_string_to_string(s: &[u16]) -> Result<String> {
-    let len = s.iter().position(|&c| c == 0).unwrap_or(s.len());
-    Ok(String::from_utf16(&s[..len])?)
-}
+);
