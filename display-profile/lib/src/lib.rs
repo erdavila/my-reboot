@@ -4,7 +4,7 @@ pub use error::Error;
 pub use get_profile::get_profile;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-pub use set_profile::set_profile;
+pub use set_profile::{SetProfileAction, set_profile};
 use windows::Win32::Devices::Display::DISPLAYCONFIG_2DREGION;
 
 mod device_id;

@@ -7,7 +7,8 @@ use windows::Win32::Devices::Display::{
     DISPLAYCONFIG_SCANLINE_ORDERING_PROGRESSIVE, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
     DISPLAYCONFIG_SOURCE_MODE, DISPLAYCONFIG_TARGET_DEVICE_NAME, DISPLAYCONFIG_TARGET_MODE,
     DISPLAYCONFIG_VIDEO_SIGNAL_INFO, QDC_ALL_PATHS, QDC_VIRTUAL_MODE_AWARE, SDC_ALLOW_CHANGES,
-    SDC_APPLY, SDC_SAVE_TO_DATABASE, SDC_USE_SUPPLIED_DISPLAY_CONFIG, SDC_VIRTUAL_MODE_AWARE,
+    SDC_APPLY, SDC_SAVE_TO_DATABASE, SDC_USE_SUPPLIED_DISPLAY_CONFIG, SDC_VALIDATE,
+    SDC_VIRTUAL_MODE_AWARE,
 };
 use windows::Win32::Graphics::Gdi::DISPLAYCONFIG_PATH_ACTIVE;
 
@@ -18,6 +19,12 @@ use crate::win_api::{
     GetDeviceInfo, display_config_get_device_info, query_display_config, set_display_config,
 };
 use crate::{Monitor, Profile, Result, VIRTUAL_MODE_AWARE};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SetProfileAction {
+    Apply,
+    Validate,
+}
 
 struct DeviceNames {
     cache: BTreeMap<DeviceId, String>,
@@ -60,7 +67,7 @@ impl DeviceNames {
     }
 }
 
-pub fn set_profile(profile: &Profile) -> Result<()> {
+pub fn set_profile(profile: &Profile, action: SetProfileAction) -> Result<()> {
     let mut flags = QDC_ALL_PATHS;
     if VIRTUAL_MODE_AWARE {
         flags |= QDC_VIRTUAL_MODE_AWARE;
@@ -71,8 +78,11 @@ pub fn set_profile(profile: &Profile) -> Result<()> {
     let solved_profile = solve_profile(profile, &input_paths)?;
     let (paths, modes) = make_paths_and_modes(solved_profile, &input_modes);
 
-    let mut flags =
-        SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE;
+    let mut flags = SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE;
+    flags |= match action {
+        SetProfileAction::Apply => SDC_APPLY,
+        SetProfileAction::Validate => SDC_VALIDATE,
+    };
     if VIRTUAL_MODE_AWARE {
         flags |= SDC_VIRTUAL_MODE_AWARE;
     }

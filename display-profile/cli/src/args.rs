@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum Action {
     Save,
     Apply,
+    Validate,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -18,6 +19,7 @@ pub fn get() -> Result<Args> {
     let action = match args.next() {
         Some(arg) if arg == "save" => Action::Save,
         Some(arg) if arg == "apply" => Action::Apply,
+        Some(arg) if arg == "validate" => Action::Validate,
         Some(arg) => return Err(ArgumentError::UnexpectedAction(arg)),
         None => return Err(ArgumentError::MissingAction),
     };
@@ -48,7 +50,7 @@ impl Display for ArgumentError {
                 write!(f, "unexpected ACTION {arg:?}")
             }
             ArgumentError::MissingAction => {
-                write!(f, r#"missing ACTION ("save" or "apply")"#)
+                write!(f, r#"missing ACTION ("save", "apply" or "validate")"#)
             }
             ArgumentError::MissingProfile => write!(f, "missing profile FILE"),
             ArgumentError::Unexpected(arg) => write!(f, "unexpected: {arg:?}"),
