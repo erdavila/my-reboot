@@ -6,6 +6,7 @@ members = [
     "display-profile/lib",
     "display-profile/cli",
     "windows-display-config",
+    "windows-ccd-example",
 ]
 default-members = ["my_reboot"]
 resolver = "3"
