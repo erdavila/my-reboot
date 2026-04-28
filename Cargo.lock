@@ -816,6 +816,7 @@ name = "display-profile-lib"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "windows 0.62.2",
 ]
 

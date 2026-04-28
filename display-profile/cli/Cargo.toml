@@ -3,6 +3,9 @@ name = "display-profile-cli"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+dump = ["display-profile-lib/dump"]
+
 [dependencies]
 anyhow = "1.0"
 display-profile-lib = { path = "../lib", features = ["serde"] }

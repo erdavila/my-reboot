@@ -14,10 +14,14 @@ cross-check:
 check: cross-check
   cargo check --workspace \
     --exclude my-reboot \
-    --exclude display-profile-lib
+    --exclude display-profile-lib \
+    --exclude display-profile-cli
   @# Checks the different combinations of features:
   cargo check -p display-profile-lib --no-default-features
   cargo check -p display-profile-lib --no-default-features --features serde
+  cargo check -p display-profile-lib --no-default-features --features dump
+  cargo check -p display-profile-cli --no-default-features
+  cargo check -p display-profile-cli --no-default-features --features dump
 
 [linux]
 check: cross-check

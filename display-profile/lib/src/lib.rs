@@ -8,6 +8,8 @@ pub use set_profile::{SetProfileAction, set_profile};
 use windows::Win32::Devices::Display::DISPLAYCONFIG_2DREGION;
 
 mod device_id;
+#[cfg(feature = "dump")]
+mod dump;
 mod error;
 mod get_profile;
 mod set_profile;
