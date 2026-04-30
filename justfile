@@ -17,6 +17,8 @@ check: cross-check
     --exclude display-profile-lib \
     --exclude display-profile-cli
   @# Checks the different combinations of features:
+  cargo check -p windows-display-config --no-default-features
+  cargo check -p windows-display-config --no-default-features --features dump
   cargo check -p display-profile-lib --no-default-features
   cargo check -p display-profile-lib --no-default-features --features serde
   cargo check -p display-profile-lib --no-default-features --features dump

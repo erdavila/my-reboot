@@ -5,16 +5,12 @@ pub use get_profile::get_profile;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 pub use set_profile::{SetProfileAction, set_profile};
-use windows::Win32::Devices::Display::DISPLAYCONFIG_2DREGION;
+use windows_display_config::windows::DISPLAYCONFIG_2DREGION;
 
-mod device_id;
-#[cfg(feature = "dump")]
-mod dump;
 mod error;
 mod get_profile;
 mod set_profile;
 mod util;
-mod win_api;
 
 const VIRTUAL_MODE_AWARE: bool = true;
 
@@ -129,7 +125,7 @@ impl From<Dimensions> for DISPLAYCONFIG_2DREGION {
 }
 
 define_windows_mapped_enum!(
-    PixelFormat => DISPLAYCONFIG_PIXELFORMAT in windows::Win32::Devices::Display {
+    PixelFormat => DISPLAYCONFIG_PIXELFORMAT in windows_display_config::windows {
         #[cfg_attr(feature = "serde", serde(rename = "8BPP"))]
         BitsPerPixel8 => DISPLAYCONFIG_PIXELFORMAT_8BPP,
         #[cfg_attr(feature = "serde", serde(rename = "16BPP"))]
@@ -143,14 +139,14 @@ define_windows_mapped_enum!(
 );
 
 define_windows_mapped_struct!(
-    Position => POINTL in windows::Win32::Foundation {
+    Position => POINTL in windows_display_config::windows {
         x => x: i32,
         y => y: i32,
     }
 );
 
 define_windows_mapped_enum!(
-    Rotation => DISPLAYCONFIG_ROTATION in windows::Win32::Devices::Display {
+    Rotation => DISPLAYCONFIG_ROTATION in windows_display_config::windows {
         IDENTITY => DISPLAYCONFIG_ROTATION_IDENTITY,
         ROTATE90 => DISPLAYCONFIG_ROTATION_ROTATE90,
         ROTATE180 => DISPLAYCONFIG_ROTATION_ROTATE180,
@@ -159,7 +155,7 @@ define_windows_mapped_enum!(
 );
 
 define_windows_mapped_enum!(
-    Scaling => DISPLAYCONFIG_SCALING in windows::Win32::Devices::Display {
+    Scaling => DISPLAYCONFIG_SCALING in windows_display_config::windows {
         IDENTITY => DISPLAYCONFIG_SCALING_IDENTITY,
         CENTERED => DISPLAYCONFIG_SCALING_CENTERED,
         STRETCHED => DISPLAYCONFIG_SCALING_STRETCHED,
@@ -170,7 +166,7 @@ define_windows_mapped_enum!(
 );
 
 define_windows_mapped_struct!(
-    Rational => DISPLAYCONFIG_RATIONAL in windows::Win32::Devices::Display {
+    Rational => DISPLAYCONFIG_RATIONAL in windows_display_config::windows {
         numerator => Numerator: u32,
         denominator => Denominator: u32,
     }

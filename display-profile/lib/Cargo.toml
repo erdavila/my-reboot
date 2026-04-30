@@ -4,16 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = []
-dump = [ "serde", "dep:serde_json", "windows/Wdk_Graphics_Direct3D" ]
+dump = [ "windows-display-config/dump" ]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", features = ["preserve_order"], optional = true }
-windows = { version = "0.62.2", features = [
-  "Win32_Devices_Display",
-  "Win32_Graphics_Gdi",
-] }
+windows-display-config = { path = "../../windows-display-config" }
 
 [lints]
 workspace = true

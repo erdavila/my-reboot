@@ -805,8 +805,7 @@ name = "display-profile-lib"
 version = "0.1.0"
 dependencies = [
  "serde",
- "serde_json",
- "windows 0.62.2",
+ "windows-display-config",
 ]
 
 [[package]]
@@ -4202,6 +4201,14 @@ dependencies = [
  "windows-link",
  "windows-result 0.4.1",
  "windows-strings 0.5.1",
+]
+
+[[package]]
+name = "windows-display-config"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "windows 0.62.2",
 ]
 
 [[package]]

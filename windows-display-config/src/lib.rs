@@ -1,19 +1,27 @@
+#![expect(clippy::missing_errors_doc)]
+
 use std::mem;
 
-use windows::Win32::Devices::Display::{
+use ::windows::Win32::Devices::Display::{
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
     DISPLAYCONFIG_DEVICE_INFO_HEADER, DISPLAYCONFIG_DEVICE_INFO_TYPE, DISPLAYCONFIG_MODE_INFO,
     DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME,
     DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QUERY_DISPLAY_CONFIG_FLAGS,
     QueryDisplayConfig, SET_DISPLAY_CONFIG_FLAGS, SetDisplayConfig,
 };
-use windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
+use ::windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
 
-use crate::Result;
-use crate::device_id::DeviceId;
-use crate::win_api::win32_error::Win32Error;
+pub use crate::device_id::DeviceId;
+pub use crate::error::Error;
 
-pub mod win32_error;
+mod device_id;
+#[cfg(feature = "dump")]
+mod dump;
+mod error;
+pub mod util;
+pub mod windows;
+
+pub type Result<T, E = error::Error> = std::result::Result<T, E>;
 
 pub fn query_display_config(
     flags: QUERY_DISPLAY_CONFIG_FLAGS,
@@ -22,14 +30,14 @@ pub fn query_display_config(
         let mut path_count = 0;
         let mut mode_count = 0;
 
-        let error =
+        let result =
             unsafe { GetDisplayConfigBufferSizes(flags, &raw mut path_count, &raw mut mode_count) };
-        Win32Error::from(error).to_result("GetDisplayConfigBufferSizes", ())?;
+        Error::new(result, "GetDisplayConfigBufferSizes").to_result(())?;
 
         let mut paths = vec![DISPLAYCONFIG_PATH_INFO::default(); path_count as usize];
         let mut modes = vec![DISPLAYCONFIG_MODE_INFO::default(); mode_count as usize];
 
-        let error = unsafe {
+        let result = unsafe {
             QueryDisplayConfig(
                 flags,
                 &raw mut path_count,
@@ -40,21 +48,15 @@ pub fn query_display_config(
             )
         };
 
-        if error != ERROR_INSUFFICIENT_BUFFER {
-            let win32_error = Win32Error::from(error);
+        if result != ERROR_INSUFFICIENT_BUFFER {
+            let error = Error::new(result, "QueryDisplayConfig");
 
             #[cfg(feature = "dump")]
             crate::dump::dump_query_display_config(
-                win32_error,
-                flags,
-                &paths,
-                path_count,
-                &modes,
-                mode_count,
-                None,
-            )?;
+                error, flags, &paths, path_count, &modes, mode_count, None,
+            );
 
-            return win32_error.to_result_with("QueryDisplayConfig", || {
+            return error.to_result_with(|| {
                 paths.truncate(path_count as usize);
                 modes.truncate(mode_count as usize);
                 (paths, modes)
@@ -71,26 +73,28 @@ pub fn set_display_config(
     flags: SET_DISPLAY_CONFIG_FLAGS,
 ) -> Result<()> {
     let result = unsafe { SetDisplayConfig(paths, modes, flags) };
-    let win32_error = Win32Error::from(result);
+    let error = Error::new(result, "SetDisplayConfig");
 
     #[cfg(feature = "dump")]
-    crate::dump::dump_set_display_config(win32_error, paths, modes, flags)?;
+    crate::dump::dump_set_display_config(error, paths, modes, flags);
 
-    win32_error.to_result("SetDisplayConfig", ())
+    error.to_result(())
 }
 
-cfg_select! {
-    feature = "dump" => {
-        pub(crate) trait GetDeviceInfoBase: Default + crate::dump::ToJsonValue {}
-        impl<T: Default + crate::dump::ToJsonValue> GetDeviceInfoBase for T {}
-    }
-    _ => {
-        pub(crate) trait GetDeviceInfoBase: Default {}
-        impl<T: Default> GetDeviceInfoBase for T {}
+mod private {
+    cfg_select! {
+        feature = "dump" => {
+            pub trait GetDeviceInfoBase: Default + crate::dump::ToJsonValue {}
+            impl<T: Default + crate::dump::ToJsonValue> GetDeviceInfoBase for T {}
+        }
+        _ => {
+            pub trait GetDeviceInfoBase: Default {}
+            impl<T: Default> GetDeviceInfoBase for T {}
+        }
     }
 }
 
-pub(crate) trait GetDeviceInfo: GetDeviceInfoBase {
+pub trait GetDeviceInfo: private::GetDeviceInfoBase {
     const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE;
 
     #[cfg(feature = "dump")]
@@ -99,8 +103,8 @@ pub(crate) trait GetDeviceInfo: GetDeviceInfoBase {
     fn header_mut(&mut self) -> &mut DISPLAYCONFIG_DEVICE_INFO_HEADER;
 }
 
-impl GetDeviceInfo for DISPLAYCONFIG_TARGET_DEVICE_NAME {
-    const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE = DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
+impl GetDeviceInfo for DISPLAYCONFIG_SOURCE_DEVICE_NAME {
+    const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
 
     #[cfg(feature = "dump")]
     fn header(&self) -> &DISPLAYCONFIG_DEVICE_INFO_HEADER {
@@ -112,8 +116,8 @@ impl GetDeviceInfo for DISPLAYCONFIG_TARGET_DEVICE_NAME {
     }
 }
 
-impl GetDeviceInfo for DISPLAYCONFIG_SOURCE_DEVICE_NAME {
-    const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+impl GetDeviceInfo for DISPLAYCONFIG_TARGET_DEVICE_NAME {
+    const TYPE: DISPLAYCONFIG_DEVICE_INFO_TYPE = DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
 
     #[cfg(feature = "dump")]
     fn header(&self) -> &DISPLAYCONFIG_DEVICE_INFO_HEADER {
@@ -139,11 +143,11 @@ pub fn display_config_get_device_info<T: GetDeviceInfo>(
         id: device_id.id,
     };
 
-    let error = unsafe { DisplayConfigGetDeviceInfo(device_info.header_mut()) };
-    let win32_error = Win32Error::from(error);
+    let result = unsafe { DisplayConfigGetDeviceInfo(device_info.header_mut()) };
+    let error = Error::new(result, "DisplayConfigGetDeviceInfo");
 
     #[cfg(feature = "dump")]
-    crate::dump::dump_display_config_get_device_info(win32_error, &device_info)?;
+    crate::dump::dump_display_config_get_device_info(error, &device_info);
 
-    win32_error.to_result("DisplayConfigGetDeviceInfo", device_info)
+    error.to_result(device_info)
 }

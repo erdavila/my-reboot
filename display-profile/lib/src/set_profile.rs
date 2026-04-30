@@ -1,23 +1,24 @@
 use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, BTreeSet};
 
-use windows::Win32::Devices::Display::{
+use windows_display_config::util::from_windows_string;
+pub use windows_display_config::util::{PathInfoExt as _, U32Ext as _};
+use windows_display_config::windows::{
     DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_MODE_INFO_0, DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE,
-    DISPLAYCONFIG_MODE_INFO_TYPE_TARGET, DISPLAYCONFIG_PATH_INFO,
+    DISPLAYCONFIG_MODE_INFO_TYPE_TARGET, DISPLAYCONFIG_PATH_ACTIVE, DISPLAYCONFIG_PATH_INFO,
     DISPLAYCONFIG_SCANLINE_ORDERING_PROGRESSIVE, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
     DISPLAYCONFIG_SOURCE_MODE, DISPLAYCONFIG_TARGET_DEVICE_NAME, DISPLAYCONFIG_TARGET_MODE,
     DISPLAYCONFIG_VIDEO_SIGNAL_INFO, QDC_ALL_PATHS, QDC_VIRTUAL_MODE_AWARE, SDC_ALLOW_CHANGES,
     SDC_APPLY, SDC_SAVE_TO_DATABASE, SDC_USE_SUPPLIED_DISPLAY_CONFIG, SDC_VALIDATE,
     SDC_VIRTUAL_MODE_AWARE,
 };
-use windows::Win32::Graphics::Gdi::DISPLAYCONFIG_PATH_ACTIVE;
-
-use crate::device_id::DeviceId;
-use crate::error::Error;
-use crate::util::{PathInfoExt as _, TryFind as _, U32Ext as _, from_windows_string};
-use crate::win_api::{
-    GetDeviceInfo, display_config_get_device_info, query_display_config, set_display_config,
+pub use windows_display_config::{
+    DeviceId, GetDeviceInfo, display_config_get_device_info, query_display_config,
+    set_display_config,
 };
+
+use crate::error::Error;
+use crate::util::TryFind as _;
 use crate::{Monitor, Profile, Result, VIRTUAL_MODE_AWARE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -58,7 +59,7 @@ impl DeviceNames {
         match self.cache.entry(device_id) {
             Entry::Vacant(entry) => {
                 let device_name = display_config_get_device_info::<T>(device_id)?;
-                let device_name = from_windows_string(extract(&device_name))?;
+                let device_name = from_windows_string(extract(&device_name));
                 entry.insert(device_name.clone());
                 Ok(device_name)
             }

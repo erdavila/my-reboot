@@ -4,9 +4,9 @@ use windows::Win32::Devices::Display::{
 use windows::Win32::Foundation::LUID;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct DeviceId {
-    pub(crate) adapter_id: LUID,
-    pub(crate) id: u32,
+pub struct DeviceId {
+    pub adapter_id: LUID,
+    pub id: u32,
 }
 
 impl Eq for DeviceId {}

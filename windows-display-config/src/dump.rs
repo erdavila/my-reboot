@@ -20,9 +20,7 @@ use windows::Win32::Graphics::Gdi::DISPLAYCONFIG_PATH_SUPPORT_VIRTUAL_MODE;
 use crate::util::{
     PathSourceInfoExt as _, PathTargetInfoExt as _, U32Ext as _, from_windows_string,
 };
-use crate::win_api::GetDeviceInfo;
-use crate::win_api::win32_error::Win32Error;
-use crate::{Error, Result};
+use crate::{Error, GetDeviceInfo};
 
 macro_rules! conditional_json {
     ({
@@ -47,22 +45,22 @@ macro_rules! conditional_json {
 }
 
 pub(crate) fn dump_query_display_config(
-    win32_error: Win32Error,
+    error: Error,
     flags: QUERY_DISPLAY_CONFIG_FLAGS,
     paths: &[DISPLAYCONFIG_PATH_INFO],
     path_count: u32,
     modes: &[DISPLAYCONFIG_MODE_INFO],
     mode_count: u32,
     current_topology_id: Option<&DISPLAYCONFIG_TOPOLOGY_ID>,
-) -> Result<()> {
+) {
     let value = conditional_json!({
-        "error": win32_error.message()
-            => if win32_error.is_err(),
+        "error": error.win32_error.to_string()
+            => if error.is_err(),
         "flags": flags.to_json_value(),
         "paths": paths[..path_count as usize].to_json_value()
-            => if win32_error.is_ok(),
+            => if error.is_ok(),
         "modes": modes[..mode_count as usize].to_json_value()
-            => if win32_error.is_ok(),
+            => if error.is_ok(),
         "current_topology_id": current_topology_id.map(ToJsonValue::to_json_value),
     });
 
@@ -74,18 +72,18 @@ pub(crate) fn dump_query_display_config(
         "UNKNOWN"
     };
 
-    dump("QueryDisplayConfig", argument, &value)
+    dump(error.function, argument, &value);
 }
 
 pub(crate) fn dump_set_display_config(
-    win32_error: Win32Error,
+    error: Error,
     paths: Option<&[DISPLAYCONFIG_PATH_INFO]>,
     modes: Option<&[DISPLAYCONFIG_MODE_INFO]>,
     flags: SET_DISPLAY_CONFIG_FLAGS,
-) -> Result<()> {
+) {
     let value = conditional_json!({
-        "error": win32_error.message() =>
-            if win32_error.is_err(),
+        "error": error.win32_error.to_string() =>
+            if error.is_err(),
         "paths": paths.map(ToJsonValue::to_json_value),
         "modes": modes.map(ToJsonValue::to_json_value),
         "flags": flags.to_json_value(),
@@ -99,18 +97,15 @@ pub(crate) fn dump_set_display_config(
         "UNKNOWN"
     };
 
-    dump("SetDisplayConfig", argument, &value)
+    dump(error.function, argument, &value);
 }
 
-pub(crate) fn dump_display_config_get_device_info<T: GetDeviceInfo>(
-    win32_error: Win32Error,
-    device_info: &T,
-) -> Result<()> {
-    let value = if win32_error.is_ok() {
+pub(crate) fn dump_display_config_get_device_info<T: GetDeviceInfo>(error: Error, device_info: &T) {
+    let value = if error.is_ok() {
         device_info.to_json_value()
     } else {
         json!({
-            "error": win32_error.message(),
+            "error": error.win32_error.to_string(),
             "header": device_info.header().to_json_value(),
         })
     };
@@ -128,18 +123,24 @@ pub(crate) fn dump_display_config_get_device_info<T: GetDeviceInfo>(
         device_info.header().id,
     );
 
-    dump("DisplayConfigGetDeviceInfo", &argument, &value)
+    dump(error.function, &argument, &value);
 }
 
-fn dump(function: &'static str, argument: &str, value: &JsonValue) -> Result<()> {
+fn dump(function: &'static str, argument: &str, value: &JsonValue) {
     let file_name = format!("dump-{function}-{argument}.json");
     eprintln!("Dumping {function} parameters and output to {file_name}");
-    let mut file = fs::File::create(file_name).map_err(|err| Error::Custom(err.to_string()))?;
 
-    serde_json::to_writer_pretty(&mut file, &value)
-        .map_err(|err| Error::Custom(err.to_string()))?;
+    let file = match fs::File::create(&file_name) {
+        Ok(file) => file,
+        Err(err) => {
+            eprint!("Could not open file {file_name}: {err}");
+            return;
+        }
+    };
 
-    Ok(())
+    if let Err(err) = serde_json::to_writer_pretty(file, &value) {
+        eprintln!("Could not write to file {file_name}: {err}");
+    }
 }
 
 macro_rules! with_stringified {
@@ -207,7 +208,7 @@ macro_rules! flags_to_json_value {
     (@ $var:ident : u32) => { $var };
 }
 
-pub(crate) trait ToJsonValue {
+pub trait ToJsonValue {
     fn to_json_value(&self) -> JsonValue;
 }
 
@@ -445,7 +446,7 @@ impl ToJsonValue for DISPLAYCONFIG_SOURCE_DEVICE_NAME {
     fn to_json_value(&self) -> JsonValue {
         json!({
             "header": self.header.to_json_value(),
-            "viewGdiDeviceName": from_windows_string(&self.viewGdiDeviceName).unwrap(),
+            "viewGdiDeviceName": from_windows_string(&self.viewGdiDeviceName),
         })
     }
 }
@@ -479,8 +480,8 @@ impl ToJsonValue for DISPLAYCONFIG_TARGET_DEVICE_NAME {
             "edidManufactureId": edid_ids_valid.then_some(self.edidManufactureId),
             "edidProductCodeId": edid_ids_valid.then_some(self.edidProductCodeId),
             "connectorInstance": self.connectorInstance,
-            "monitorFriendlyDeviceName": from_windows_string(&self.monitorFriendlyDeviceName).unwrap(),
-            "monitorDevicePath": from_windows_string(&self.monitorDevicePath).unwrap(),
+            "monitorFriendlyDeviceName": from_windows_string(&self.monitorFriendlyDeviceName),
+            "monitorDevicePath": from_windows_string(&self.monitorDevicePath),
         })
     }
 }

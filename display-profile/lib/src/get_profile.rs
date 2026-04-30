@@ -1,11 +1,11 @@
-use windows::Win32::Devices::Display::{
+use windows_display_config::util::{PathInfoExt as _, from_windows_string};
+use windows_display_config::windows::{
     DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME, QDC_ONLY_ACTIVE_PATHS,
     QDC_VIRTUAL_MODE_AWARE,
 };
+use windows_display_config::{display_config_get_device_info, query_display_config};
 
 use crate::error::Error;
-use crate::util::{PathInfoExt as _, from_windows_string};
-use crate::win_api::{display_config_get_device_info, query_display_config};
 use crate::{Dimensions, Monitor, Profile, Result, VIRTUAL_MODE_AWARE};
 
 pub fn get_profile() -> Result<Profile> {
@@ -38,9 +38,9 @@ pub fn get_profile() -> Result<Profile> {
             Ok(Monitor {
                 friendly_device_name: from_windows_string(
                     &target_device_name.monitorFriendlyDeviceName,
-                )?,
-                source_device_name: from_windows_string(&source_device_name.viewGdiDeviceName)?,
-                device_path: from_windows_string(&target_device_name.monitorDevicePath)?,
+                ),
+                source_device_name: from_windows_string(&source_device_name.viewGdiDeviceName),
+                device_path: from_windows_string(&target_device_name.monitorDevicePath),
                 dimensions: Dimensions {
                     width: source_mode.width,
                     height: source_mode.height,
