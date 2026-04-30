@@ -7,9 +7,9 @@ edition = "2024"
 dump = ["display-profile-lib/dump"]
 
 [dependencies]
-anyhow = "1.0"
-display-profile-lib = { path = "../lib", features = ["serde"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
+anyhow.workspace = true
+display-profile-lib = { workspace = true, features = ["serde"] }
+serde_json.workspace = true
 
 [lints]
 workspace = true

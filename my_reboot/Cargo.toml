@@ -12,19 +12,19 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ansi_term = "0.12.1"
-anyhow = "1.0"
-iced = { version = "0.14.0", features = [ "image" ] }
+ansi_term.workspace = true
+anyhow.workspace = true
+iced = { workspace = true, features = [ "image" ] }
 
 [target."cfg(not(windows))".dependencies]
-regex = "1.10.2"
+regex.workspace = true
 
 [target."cfg(windows)".dependencies]
-enum_display_devices = { path = "../enum_display_devices" }
-is_windows_11_or_greater = { path = "../is_windows_11_or_greater" }
+enum_display_devices.workspace = true
+is_windows_11_or_greater.workspace = true
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+winres.workspace = true
 
 [lints]
 workspace = true
