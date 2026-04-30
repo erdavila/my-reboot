@@ -56,6 +56,16 @@ clippy:
   cargo clippy --all-targets -p my-reboot
 
 
+doc *ARGS:
+  cargo +nightly doc --all-features --no-deps \
+    -p windows-display-config \
+    -p display-profile-lib \
+    -p enum_display_devices \
+    -p is_windows_11_or_greater \
+    {{ARGS}}
+
+doc-open: (doc '--open')
+
 # Runs the display-profile CLI
 [windows]
 [group('binary execution')]

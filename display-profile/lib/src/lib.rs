@@ -1,4 +1,5 @@
 #![expect(clippy::missing_errors_doc)]
+#![cfg_attr(all(doc, not(doctest)), feature(doc_cfg))]
 
 pub use error::Error;
 pub use get_profile::get_profile;
