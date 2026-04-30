@@ -5,7 +5,6 @@ members = [
     "is_windows_11_or_greater",
     "display-profile/lib",
     "display-profile/cli",
-    "display-profile/experiment",
 ]
 default-members = ["my_reboot"]
 resolver = "3"

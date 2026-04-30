@@ -57,8 +57,17 @@ clippy:
 # Runs the display-profile CLI
 [windows]
 [group('binary execution')]
-profile ACTION FILE:
-  cargo run -q -p display-profile-cli -- {{ACTION}} {{FILE}}
+profile ACTION FILE: (_profile '""' ACTION FILE)
+
+# Runs the display-profile CLI with the "dump" feature
+[windows]
+[group('binary execution')]
+profile-dump ACTION FILE: (_profile 'dump' ACTION FILE)
+
+[windows]
+_profile FEATURES ACTION FILE:
+  cargo run -q -p display-profile-cli --features {{FEATURES}} -- {{ACTION}} {{FILE}}
+
 
 [windows]
 [group('binary execution')]
@@ -69,13 +78,3 @@ enum-display-devices:
 [group('binary execution')]
 is-windows-11-or-greater:
   cargo run -q -p is_windows_11_or_greater
-
-[windows]
-[group('binary execution')]
-dump-configs *ARGS:
-  cargo run -q -p display-profile-experiment --bin dump-configs -- {{ARGS}}
-
-[windows]
-[group('binary execution')]
-apply-configs +ARGS:
-  cargo run -q -p display-profile-experiment --bin apply-configs -- {{ARGS}}
