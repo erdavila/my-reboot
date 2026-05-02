@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io};
 
 use anyhow::Result;
 use display_profile_lib::SetProfileAction;
@@ -20,9 +20,15 @@ fn main() -> Result<()> {
 }
 
 fn save(profile_path: &str) -> Result<()> {
-    let file = fs::File::create(profile_path)?;
     let profile = display_profile_lib::get_profile()?;
-    serde_json::to_writer_pretty(file, &profile)?;
+
+    if profile_path == "-" {
+        serde_json::to_writer_pretty(io::stdout(), &profile)?;
+    } else {
+        let file = fs::File::create(profile_path)?;
+        serde_json::to_writer_pretty(file, &profile)?;
+    }
+
     Ok(())
 }
 
