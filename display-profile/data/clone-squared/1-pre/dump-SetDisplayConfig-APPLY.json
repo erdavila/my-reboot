@@ -1,0 +1,233 @@
+{
+  "paths": [
+    {
+      "sourceInfo": {
+        "adapterId": {
+          "LowPart": 71829,
+          "HighPart": 0
+        },
+        "id": 0,
+        "cloneGroupId": null,
+        "sourceModeIdx": 0,
+        "statusFlags": [
+          "IN_USE"
+        ]
+      },
+      "targetInfo": {
+        "adapterId": {
+          "LowPart": 71829,
+          "HighPart": 0
+        },
+        "id": 198147,
+        "desktopModeIdx": 2,
+        "targetModeIdx": 1,
+        "outputTechnology": "HDMI",
+        "rotation": "ROTATE270",
+        "scaling": "IDENTITY",
+        "refreshRate": {
+          "Numerator": 148500000,
+          "Denominator": 2475000
+        },
+        "scanLineOrdering": "PROGRESSIVE",
+        "targetAvailable": true,
+        "statusFlags": [
+          "IN_USE"
+        ]
+      },
+      "flags": [
+        "ACTIVE",
+        "SUPPORT_VIRTUAL_MODE"
+      ]
+    },
+    {
+      "sourceInfo": {
+        "adapterId": {
+          "LowPart": 67034,
+          "HighPart": 0
+        },
+        "id": 0,
+        "cloneGroupId": null,
+        "sourceModeIdx": 3,
+        "statusFlags": [
+          "IN_USE"
+        ]
+      },
+      "targetInfo": {
+        "adapterId": {
+          "LowPart": 67034,
+          "HighPart": 0
+        },
+        "id": 4353,
+        "desktopModeIdx": 5,
+        "targetModeIdx": 4,
+        "outputTechnology": "DVI",
+        "rotation": "IDENTITY",
+        "scaling": "IDENTITY",
+        "refreshRate": {
+          "Numerator": 60,
+          "Denominator": 1
+        },
+        "scanLineOrdering": "PROGRESSIVE",
+        "targetAvailable": true,
+        "statusFlags": [
+          "IN_USE"
+        ]
+      },
+      "flags": [
+        "ACTIVE",
+        "SUPPORT_VIRTUAL_MODE"
+      ]
+    }
+  ],
+  "modes": [
+    {
+      "id": 0,
+      "adapterId": {
+        "LowPart": 71829,
+        "HighPart": 0
+      },
+      "sourceMode": {
+        "width": 1920,
+        "height": 1080,
+        "pixelFormat": "32BPP",
+        "position": {
+          "x": 1920,
+          "y": -672
+        }
+      }
+    },
+    {
+      "id": 198147,
+      "adapterId": {
+        "LowPart": 71829,
+        "HighPart": 0
+      },
+      "targetMode": {
+        "targetVideoSignalInfo": {
+          "pixelRate": 0,
+          "hSyncFreq": {
+            "Numerator": 0,
+            "Denominator": 0
+          },
+          "vSyncFreq": {
+            "Numerator": 148500000,
+            "Denominator": 2475000
+          },
+          "activeSize": {
+            "cx": 1920,
+            "cy": 1080
+          },
+          "totalSize": {
+            "cx": 0,
+            "cy": 0
+          },
+          "videoStandard": "UNINITIALIZED",
+          "scanLineOrdering": "PROGRESSIVE"
+        }
+      }
+    },
+    {
+      "id": 198147,
+      "adapterId": {
+        "LowPart": 71829,
+        "HighPart": 0
+      },
+      "desktopImageInfo": {
+        "PathSourceSize": {
+          "x": 1920,
+          "y": 1080
+        },
+        "DesktopImageRegion": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "DesktopImageClip": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080
+        }
+      }
+    },
+    {
+      "id": 0,
+      "adapterId": {
+        "LowPart": 67034,
+        "HighPart": 0
+      },
+      "sourceMode": {
+        "width": 1920,
+        "height": 1080,
+        "pixelFormat": "32BPP",
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 4353,
+      "adapterId": {
+        "LowPart": 67034,
+        "HighPart": 0
+      },
+      "targetMode": {
+        "targetVideoSignalInfo": {
+          "pixelRate": 0,
+          "hSyncFreq": {
+            "Numerator": 0,
+            "Denominator": 0
+          },
+          "vSyncFreq": {
+            "Numerator": 60,
+            "Denominator": 1
+          },
+          "activeSize": {
+            "cx": 1920,
+            "cy": 1080
+          },
+          "totalSize": {
+            "cx": 0,
+            "cy": 0
+          },
+          "videoStandard": "UNINITIALIZED",
+          "scanLineOrdering": "PROGRESSIVE"
+        }
+      }
+    },
+    {
+      "id": 4353,
+      "adapterId": {
+        "LowPart": 67034,
+        "HighPart": 0
+      },
+      "desktopImageInfo": {
+        "PathSourceSize": {
+          "x": 1920,
+          "y": 1080
+        },
+        "DesktopImageRegion": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "DesktopImageClip": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080
+        }
+      }
+    }
+  ],
+  "flags": [
+    "APPLY",
+    "USE_SUPPLIED_DISPLAY_CONFIG",
+    "SAVE_TO_DATABASE",
+    "ALLOW_CHANGES",
+    "VIRTUAL_MODE_AWARE"
+  ]
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "sourceInfo": {
+      "adapterId": {
+        "LowPart": 71829,
+        "HighPart": 0
+      },
+      "id": 0,
+      "cloneGroupId": 1,
+      "sourceModeIdx": null,
+      "statusFlags": [
+        "IN_USE"
+      ],
+      "sourceDeviceName": null
+    },
+    "targetInfo": {
+      "adapterId": {
+        "LowPart": 71829,
+        "HighPart": 0
+      },
+      "id": 198147,
+      "desktopModeIdx": null,
+      "targetModeIdx": null,
+      "outputTechnology": "HDMI",
+      "rotation": "ROTATE270",
+      "scaling": "IDENTITY",
+      "refreshRate": {
+        "Numerator": 148500000,
+        "Denominator": 2475000
+      },
+      "scanLineOrdering": "PROGRESSIVE",
+      "targetAvailable": true,
+      "statusFlags": [
+        "IN_USE"
+      ],
+      "targetDeviceName": {
+        "monitorFriendlyDeviceName": "DELL P2319H",
+        "monitorDevicePath": "\\\\?\\DISPLAY#DELD0D7#4&86cc653&0&UID198147#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
+      }
+    },
+    "flags": [
+      "ACTIVE",
+      "SUPPORT_VIRTUAL_MODE"
+    ]
+  },
+  {
+    "sourceInfo": {
+      "adapterId": {
+        "LowPart": 67034,
+        "HighPart": 0
+      },
+      "id": 0,
+      "cloneGroupId": 1,
+      "sourceModeIdx": null,
+      "statusFlags": [
+        "IN_USE"
+      ],
+      "sourceDeviceName": null
+    },
+    "targetInfo": {
+      "adapterId": {
+        "LowPart": 67034,
+        "HighPart": 0
+      },
+      "id": 4353,
+      "desktopModeIdx": null,
+      "targetModeIdx": null,
+      "outputTechnology": "DVI",
+      "rotation": "IDENTITY",
+      "scaling": "IDENTITY",
+      "refreshRate": {
+        "Numerator": 60,
+        "Denominator": 1
+      },
+      "scanLineOrdering": "PROGRESSIVE",
+      "targetAvailable": true,
+      "statusFlags": [
+        "IN_USE"
+      ],
+      "targetDeviceName": {
+        "monitorFriendlyDeviceName": "24B35HM2",
+        "monitorDevicePath": "\\\\?\\DISPLAY#AOC2403#5&1dbd9c5&1&UID4353#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
+      }
+    },
+    "flags": [
+      "ACTIVE",
+      "SUPPORT_VIRTUAL_MODE"
+    ]
+  }
+]

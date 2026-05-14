@@ -1,0 +1,12 @@
+{
+  "header": {
+    "type": "GET_SOURCE_NAME",
+    "size": 84,
+    "adapterId": {
+      "LowPart": 71829,
+      "HighPart": 0
+    },
+    "id": 0
+  },
+  "viewGdiDeviceName": "\\\\.\\DISPLAY5"
+}
