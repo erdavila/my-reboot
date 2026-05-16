@@ -23,8 +23,8 @@ use script::Script;
 use script::SwitchToDisplay;
 
 use crate::args::ParsedArgs;
-#[cfg(windows)]
-use crate::options_types::LabeledProfile;
+use crate::configs::Configs;
+use crate::options_types::{LabeledProfile, ProfileId};
 use crate::state::StateProvider;
 
 fn main() -> Result<()> {
@@ -39,10 +39,7 @@ fn main() -> Result<()> {
         ParsedArgs::Configure => configure(),
         #[cfg(windows)]
         ParsedArgs::Configure { initial_display } => configure(initial_display),
-        ParsedArgs::Usage => {
-            println!("{}", args::USAGE);
-            Ok(())
-        }
+        ParsedArgs::Usage => show_usage(),
     }
 }
 
@@ -71,6 +68,8 @@ fn show_dialog(mode: Mode) -> Result<()> {
         Some(dialog::Outcome::ScriptOptions(options)) => {
             let script = Script {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
+                // TODO: implement it
+                next_windows_boot_profile: None,
                 next_windows_boot_display: Some(options.next_windows_boot_display.into()),
                 #[cfg(windows)]
                 switch_to_display: options.switch_display.then_some(SwitchToDisplay::Other),
@@ -99,6 +98,15 @@ fn show_state() -> Result<()> {
         "{}: {}",
         text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
         text::display::value_text(state.next_windows_boot_display)
+    );
+    println!(
+        "{}: {}",
+        text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+        text::profile::next_boot_value_text(
+            state
+                .next_windows_boot_profile
+                .and_then(|id| LabeledProfile::get(id, provider.configs()))
+        )
     );
     #[cfg(windows)]
     println!(
@@ -130,4 +138,16 @@ use options_types::Display;
 #[cfg(windows)]
 fn configure(initial_display: Option<Display>) -> Result<()> {
     host_os::configuration::configure(initial_display)
+}
+
+fn show_usage() -> Result<()> {
+    let configs = Configs::load(true)?;
+
+    let usage = args::Usage::new(
+        configs.get_profile_label_opt(ProfileId::A),
+        configs.get_profile_label_opt(ProfileId::B),
+    );
+
+    println!("{usage}");
+    Ok(())
 }

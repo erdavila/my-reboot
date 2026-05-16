@@ -6,17 +6,17 @@ use crate::configs::Configs;
 use crate::grubenv::Grubenv;
 #[cfg(windows)]
 use crate::host_os;
-#[cfg(windows)]
-use crate::options_types::ProfileId;
-use crate::options_types::{Display, OperatingSystem, OptionType as _};
+use crate::options_types::{Display, OperatingSystem, OptionType as _, ProfileId};
 use crate::properties::Properties;
 
 const GRUB_ENTRY: &str = "saved_entry";
+const WINDOWS_PROFILE_KEY: &str = "windows.profile";
 const WINDOWS_DISPLAY_KEY: &str = "windows.display";
 const OPTIONS_FILENAME: &str = "my-reboot-options.properties";
 
 pub struct State {
     pub next_boot_operating_system: Option<OperatingSystem>,
+    pub(crate) next_windows_boot_profile: Option<ProfileId>,
     pub next_windows_boot_display: Option<Display>,
     #[cfg(windows)]
     pub(crate) current_profile: Option<ProfileId>,
@@ -45,6 +45,7 @@ impl StateProvider {
     pub fn get_state(&self) -> Result<State> {
         Ok(State {
             next_boot_operating_system: self.get_next_boot_operating_system(),
+            next_windows_boot_profile: self.get_next_windows_boot_profile(),
             next_windows_boot_display: self.get_next_windows_boot_display(),
             #[cfg(windows)]
             current_profile: self.get_current_profile()?,
@@ -68,6 +69,23 @@ impl StateProvider {
     pub fn unset_next_boot_operating_system(&mut self) {
         self.grubenv.unset(GRUB_ENTRY);
         self.grubenv.save().unwrap();
+    }
+
+    pub(crate) fn get_next_windows_boot_profile(&self) -> Option<ProfileId> {
+        self.options
+            .get(WINDOWS_PROFILE_KEY)
+            .and_then(|code| ProfileId::from_option_string(code))
+    }
+
+    pub(crate) fn set_next_windows_boot_profile(&mut self, profile_id: ProfileId) {
+        self.options
+            .set(WINDOWS_PROFILE_KEY, profile_id.to_option_string());
+        self.options.save().unwrap();
+    }
+
+    pub(crate) fn unset_next_windows_boot_profile(&mut self) {
+        self.options.unset(WINDOWS_PROFILE_KEY);
+        self.options.save().unwrap();
     }
 
     pub fn get_next_windows_boot_display(&self) -> Option<Display> {
@@ -112,7 +130,6 @@ impl StateProvider {
         host_os::CurrentDisplayHandler::new(&self.configs)
     }
 
-    #[cfg(windows)]
     pub(crate) fn configs(&self) -> &Configs {
         &self.configs
     }

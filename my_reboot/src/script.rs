@@ -3,13 +3,16 @@ use std::env;
 use ansi_term::{ANSIString, Color};
 use anyhow::{Ok, Result};
 
-use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
+#[cfg(windows)]
+use crate::options_types::OptionType as _;
+use crate::options_types::{Display, LabeledProfile, OperatingSystem, ProfileId, RebootAction};
 use crate::state::StateProvider;
 use crate::{host_os, text};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
+    pub(crate) next_windows_boot_profile: Option<SetOrUnset<ProfileId>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
     #[cfg(windows)]
     pub switch_to_display: Option<SwitchToDisplay>,
@@ -19,6 +22,7 @@ impl Script {
     pub const fn new() -> Self {
         Script {
             next_boot_operating_system: None,
+            next_windows_boot_profile: None,
             next_windows_boot_display: None,
             #[cfg(windows)]
             switch_to_display: None,
@@ -44,6 +48,10 @@ impl ScriptExecutor {
             self.apply_next_boot_operating_system(os_option);
         }
 
+        if let Some(profile_option) = script.next_windows_boot_profile {
+            self.apply_next_windows_boot_profile(profile_option);
+        }
+
         if let Some(display_option) = script.next_windows_boot_display {
             self.apply_next_windows_boot_display(display_option);
         }
@@ -63,7 +71,7 @@ impl ScriptExecutor {
     fn apply_next_boot_operating_system(&mut self, os_option: SetOrUnset<OperatingSystem>) {
         self.apply_option(
             &os_option,
-            StateProvider::set_next_boot_operating_system,
+            |sp, &os| sp.set_next_boot_operating_system(os),
             StateProvider::unset_next_boot_operating_system,
             text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
             text::operating_system::WAS_UPDATED_TO,
@@ -71,10 +79,31 @@ impl ScriptExecutor {
         );
     }
 
+    fn apply_next_windows_boot_profile(&mut self, profile_option: SetOrUnset<ProfileId>) {
+        // Store the label as an owned String to avoid capturing the state_provider lifetime.
+        let profile_option = profile_option.to_option().map(|profile_id| {
+            let label = self.state_provider.configs().get_profile_label(profile_id);
+            (profile_id, label.to_string())
+        });
+        let profile_option = profile_option
+            .as_ref()
+            .map(|(profile_id, label)| LabeledProfile::new(*profile_id, label))
+            .into();
+
+        self.apply_option(
+            &profile_option,
+            |sp, lp| sp.set_next_windows_boot_profile(lp.profile_id()),
+            StateProvider::unset_next_windows_boot_profile,
+            text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+            text::profile::WAS_UPDATED_TO,
+            text::profile::next_boot_value_text,
+        );
+    }
+
     fn apply_next_windows_boot_display(&mut self, display_option: SetOrUnset<Display>) {
         self.apply_option(
             &display_option,
-            StateProvider::set_next_windows_boot_display,
+            |sp, &display| sp.set_next_windows_boot_display(display),
             StateProvider::unset_next_windows_boot_display,
             text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
             text::display::WAS_UPDATED_TO,
@@ -91,15 +120,15 @@ impl ScriptExecutor {
         was_updated_to: &str,
         value_text: V,
     ) where
-        T: OptionType,
-        S: FnOnce(&mut StateProvider, T),
+        T: Copy,
+        S: FnOnce(&mut StateProvider, &T),
         U: FnOnce(&mut StateProvider),
         V: Fn(Option<T>) -> ANSIString<'static>,
     {
         use SetOrUnset::{Set, Unset};
 
         match option {
-            Set(value) => set(&mut self.state_provider, *value),
+            Set(value) => set(&mut self.state_provider, value),
             Unset => unset(&mut self.state_provider),
         }
 

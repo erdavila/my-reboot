@@ -1,4 +1,3 @@
-#[cfg(windows)]
 use crate::configs::Configs;
 
 pub trait OptionType: Copy + Eq {
@@ -11,6 +10,10 @@ pub trait OptionType: Copy + Eq {
         Self::values()
             .into_iter()
             .find(|v| v.to_option_string() == option_string)
+    }
+
+    fn from_arg_string(arg_string: &str) -> Option<Self> {
+        Self::from_option_string(arg_string)
     }
 }
 
@@ -44,13 +47,11 @@ impl std::fmt::Display for OperatingSystem {
     }
 }
 
-#[cfg(windows)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ProfileId {
     A,
     B,
 }
-#[cfg(windows)]
 impl OptionType for ProfileId {
     fn values() -> [Self; 2] {
         [Self::A, Self::B]
@@ -62,8 +63,15 @@ impl OptionType for ProfileId {
             ProfileId::B => "profile-b",
         }
     }
+
+    fn from_arg_string(arg_string: &str) -> Option<Self> {
+        match arg_string {
+            "a" => Some(ProfileId::A),
+            "b" => Some(ProfileId::B),
+            _ => None,
+        }
+    }
 }
-#[cfg(windows)]
 impl std::fmt::Display for ProfileId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -77,15 +85,14 @@ impl std::fmt::Display for ProfileId {
     }
 }
 
-#[cfg(windows)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) struct LabeledProfile<'a> {
     profile_id: ProfileId,
     label: &'a str,
 }
-#[cfg(windows)]
 impl<'a> LabeledProfile<'a> {
     pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
-        let label = configs.get_profile_label(profile_id);
+        let label = configs.get_profile_label_opt(profile_id);
         label.map(|label| Self::new(profile_id, label))
     }
 
@@ -97,7 +104,6 @@ impl<'a> LabeledProfile<'a> {
         self.profile_id
     }
 }
-#[cfg(windows)]
 impl std::fmt::Display for LabeledProfile<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\"{}\" ({})", self.label, self.profile_id)

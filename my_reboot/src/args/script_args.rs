@@ -33,6 +33,10 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
         return Ok(true);
     }
 
+    if parse_next_windows_boot_profile(arg, script)? {
+        return Ok(true);
+    }
+
     if parse_next_windows_boot_display(arg, script)? {
         return Ok(true);
     }
@@ -58,6 +62,15 @@ fn parse_next_boot_operating_system(arg: &str, script: &mut Script) -> Result<bo
     )
 }
 
+fn parse_next_windows_boot_profile(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
+    parse_boot_option(
+        arg,
+        &mut script.next_windows_boot_profile,
+        "profile:",
+        text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+    )
+}
+
 fn parse_next_windows_boot_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     parse_boot_option(
         arg,
@@ -77,13 +90,13 @@ fn parse_boot_option<T: OptionType>(
         if string == UNSET_OPTION {
             SetOrUnset::<T>::Unset
         } else {
-            match T::from_option_string(string).map(SetOrUnset::Set) {
+            match T::from_arg_string(string).map(SetOrUnset::Set) {
                 Some(option) => option,
                 None => return errors::unknown_argument_error(arg),
             }
         }
     } else {
-        match T::from_option_string(arg).map(SetOrUnset::Set) {
+        match T::from_arg_string(arg).map(SetOrUnset::Set) {
             Some(option) => option,
             None => return Ok(false),
         }
@@ -144,7 +157,7 @@ mod tests {
     use SetOrUnset::*;
 
     use super::*;
-    use crate::options_types::{Display, OperatingSystem};
+    use crate::options_types::{Display, OperatingSystem, ProfileId};
     #[cfg(windows)]
     use crate::script::SwitchToDisplay;
 
@@ -215,6 +228,17 @@ mod tests {
             script.next_boot_operating_system,
             Some(Set(OperatingSystem::Windows))
         );
+    }
+
+    #[test]
+    fn test_parse_single_profile() {
+        let mut script = Script::new();
+
+        let result = parse_single("profile:a", &mut script);
+
+        let success = result.expect("result should be Ok(_)");
+        assert!(success);
+        assert_eq!(script.next_windows_boot_profile, Some(Set(ProfileId::A)));
     }
 
     #[test]
@@ -321,6 +345,53 @@ mod tests {
         script.next_boot_operating_system = Some(Unset);
 
         let result = parse_next_boot_operating_system("os:windows", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_next_windows_boot_profile() {
+        let cases = [
+            ("profile:a", Set(ProfileId::A)),
+            ("profile:b", Set(ProfileId::B)),
+            ("profile:unset", Unset),
+        ];
+
+        for (arg, expected) in cases {
+            let mut script = Script::new();
+
+            let result = parse_next_windows_boot_profile(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
+            assert_eq!(script.next_windows_boot_profile, Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_parse_next_windows_boot_profile_invalid() {
+        let mut script = Script::new();
+
+        let result = parse_next_windows_boot_profile("profile:blah", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_next_windows_boot_profile_not_profile_arg() {
+        let mut script = Script::new();
+        let arg = "blah".to_string();
+
+        let result = parse_next_windows_boot_profile(&arg, &mut script);
+
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
+    }
+
+    #[test]
+    fn test_parse_next_windows_boot_profile_already_set() {
+        let mut script = Script::new();
+        script.next_windows_boot_profile = Some(Unset);
+
+        let result = parse_next_windows_boot_profile("profile:a", &mut script);
 
         assert!(result.is_err());
     }

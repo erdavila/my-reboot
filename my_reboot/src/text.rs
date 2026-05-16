@@ -23,24 +23,42 @@ pub mod operating_system {
 }
 
 pub(crate) mod profile {
-    #[cfg(windows)]
     use ansi_term::ANSIString;
 
-    #[cfg(windows)]
     use crate::options_types::LabeledProfile;
+
+    pub(crate) const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
+        "perfil a ser usado na próxima inicialização do Windows";
+
+    pub(crate) const WAS_UPDATED_TO: &str = "foi atualizado para";
 
     #[cfg(windows)]
     pub(crate) const CURRENT: &str = "perfil atual";
 
+    const UNDEFINED: &str = "indefinido";
+
     #[cfg(windows)]
     const UNRECOGNIZED: &str = "não reconhecido";
+
+    pub(crate) fn next_boot_value_text(
+        labeled_profile: Option<LabeledProfile>,
+    ) -> ANSIString<'static> {
+        value_text(labeled_profile, UNDEFINED)
+    }
 
     #[cfg(windows)]
     pub(crate) fn current_value_text(
         labeled_profile: Option<LabeledProfile>,
     ) -> ANSIString<'static> {
+        value_text(labeled_profile, UNRECOGNIZED)
+    }
+
+    fn value_text(
+        labeled_profile: Option<LabeledProfile>,
+        undefined_text: &str,
+    ) -> ANSIString<'static> {
         let profile_label = labeled_profile.map(|lp| (lp.profile_id(), lp.to_string()));
-        super::two_values_text(profile_label, UNRECOGNIZED)
+        super::two_values_text(profile_label, undefined_text)
     }
 }
 

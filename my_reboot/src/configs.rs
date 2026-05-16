@@ -8,9 +8,7 @@ use display_profile_lib::Profile;
 
 #[cfg(windows)]
 use crate::options_types::Display;
-#[cfg(windows)]
-use crate::options_types::ProfileId;
-use crate::options_types::{OperatingSystem, OptionType};
+use crate::options_types::{OperatingSystem, OptionType, ProfileId};
 use crate::properties::Properties;
 
 const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
@@ -20,7 +18,6 @@ pub struct Configs {
     grub_entry_handler: ConfigHandler<OperatingSystem>,
     #[cfg(windows)]
     profile_configs_handler: ConfigHandler<ProfileId, ProfileSerialization>,
-    #[cfg(windows)]
     profile_label_handler: ConfigHandler<ProfileId>,
     #[cfg(windows)]
     device_id_handler: ConfigHandler<Display>,
@@ -36,7 +33,6 @@ impl Configs {
             grub_entry_handler: ConfigHandler::new("grubEntry", OperatingSystem::Linux),
             #[cfg(windows)]
             profile_configs_handler: ConfigHandler::new("configs", OperatingSystem::Windows),
-            #[cfg(windows)]
             profile_label_handler: ConfigHandler::new("label", OperatingSystem::Windows),
             #[cfg(windows)]
             device_id_handler: ConfigHandler::new("deviceId", OperatingSystem::Windows),
@@ -63,8 +59,12 @@ impl Configs {
             .get_object_by_value_opt(profile, &self.props)
     }
 
-    #[cfg(windows)]
-    pub(crate) fn get_profile_label(&self, profile_id: ProfileId) -> Option<&str> {
+    pub(crate) fn get_profile_label(&self, profile_id: ProfileId) -> &str {
+        self.profile_label_handler
+            .get_value(profile_id, &self.props)
+    }
+
+    pub(crate) fn get_profile_label_opt(&self, profile_id: ProfileId) -> Option<&str> {
         self.profile_label_handler
             .get_value_opt(profile_id, &self.props)
     }

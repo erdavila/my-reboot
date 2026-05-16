@@ -23,6 +23,8 @@ pub const PREDEFINED_SCRIPTS: [PredefinedScript; 2] = [
 const fn reboot_on_windows_with_display(display: Display) -> Script {
     Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Windows)),
+        // TODO: implement it
+        next_windows_boot_profile: None,
         next_windows_boot_display: Some(SetOrUnset::Set(display)),
         reboot_action: Some(RebootAction::Reboot),
     }
