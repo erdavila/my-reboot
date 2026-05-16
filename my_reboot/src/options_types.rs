@@ -1,13 +1,13 @@
 pub trait OptionType: Copy + Eq {
-    fn values() -> Vec<Self>;
+    // We're assuming that all options have only two possible values.
+    fn values() -> [Self; 2];
 
     fn to_option_string(&self) -> &str;
 
     fn from_option_string(option_string: &str) -> Option<Self> {
         Self::values()
-            .iter()
+            .into_iter()
             .find(|v| v.to_option_string() == option_string)
-            .copied()
     }
 }
 
@@ -17,8 +17,8 @@ pub enum OperatingSystem {
     Linux,
 }
 impl OptionType for OperatingSystem {
-    fn values() -> Vec<Self> {
-        vec![OperatingSystem::Windows, OperatingSystem::Linux]
+    fn values() -> [Self; 2] {
+        [OperatingSystem::Windows, OperatingSystem::Linux]
     }
 
     fn to_option_string(&self) -> &str {
@@ -47,9 +47,10 @@ pub enum Display {
     TV,
 }
 impl OptionType for Display {
-    fn values() -> Vec<Self> {
-        vec![Display::Monitor, Display::TV]
+    fn values() -> [Self; 2] {
+        [Display::Monitor, Display::TV]
     }
+
     fn to_option_string(&self) -> &str {
         match self {
             Display::Monitor => "monitor",
@@ -76,8 +77,8 @@ pub enum RebootAction {
     Shutdown,
 }
 impl OptionType for RebootAction {
-    fn values() -> Vec<Self> {
-        vec![RebootAction::Reboot, RebootAction::Shutdown]
+    fn values() -> [Self; 2] {
+        [RebootAction::Reboot, RebootAction::Shutdown]
     }
 
     fn to_option_string(&self) -> &str {

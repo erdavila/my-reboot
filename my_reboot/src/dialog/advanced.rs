@@ -6,7 +6,7 @@ use iced::{Padding, Size, Task, Theme, font};
 
 use super::{Dialog, Outcome};
 use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
-use crate::text::Capitalize;
+use crate::text::Capitalized;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScriptOptions {
@@ -112,7 +112,7 @@ macro_rules! indented {
 pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, iced::Renderer> {
     let next_boot_os_widgets = {
         let widgets = create_option_group!(
-            crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION.capitalize()
+            Capitalized(crate::text::operating_system::ON_NEXT_BOOT_DESCRIPTION).to_string()
         );
         add_to_option_group!(
             widgets,
@@ -128,7 +128,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
 
     let next_win_boot_display_widgets = {
         let widgets = create_option_group!(
-            crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION.capitalize()
+            Capitalized(crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION).to_string()
         );
         add_to_option_group!(
             widgets,
