@@ -71,6 +71,9 @@ fn show_dialog(mode: Mode) -> Result<()> {
                 // TODO: implement it
                 next_windows_boot_profile: None,
                 next_windows_boot_display: Some(options.next_windows_boot_display.into()),
+                // TODO: implement it
+                #[cfg(windows)]
+                switch_to_profile: None,
                 #[cfg(windows)]
                 switch_to_display: options.switch_display.then_some(SwitchToDisplay::Other),
                 reboot_action: options.reboot_action,
@@ -105,7 +108,7 @@ fn show_state() -> Result<()> {
         text::profile::next_boot_value_text(
             state
                 .next_windows_boot_profile
-                .and_then(|id| LabeledProfile::get(id, provider.configs()))
+                .and_then(|id| LabeledProfile::get_opt(id, provider.configs()))
         )
     );
     #[cfg(windows)]
@@ -115,7 +118,7 @@ fn show_state() -> Result<()> {
         text::profile::current_value_text(
             state
                 .current_profile
-                .and_then(|id| LabeledProfile::get(id, provider.configs()))
+                .and_then(|id| LabeledProfile::get_opt(id, provider.configs()))
         )
     );
     #[cfg(windows)]

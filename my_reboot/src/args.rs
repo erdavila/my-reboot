@@ -140,7 +140,7 @@ Usos:
         )?;
 
         #[cfg(windows)]
-        write!(f, "TROCA-DE-TELA | ")?;
+        write!(f, "TROCA-DE-PERFIL | TROCA-DE-TELA | ")?;
 
         write!(
             f,
@@ -166,13 +166,19 @@ Usos:
         #[cfg(windows)]
         write!(
             f,
-            "TROCA-DE-TELA pode ser:
-      switch[:other] - Troca para a outra tela.
-      switch:monitor - Troca para o monitor.
-      switch:tv - Troca para a TV.
-      switch:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.
+            "TROCA-DE-PERFIL pode ser:
+      switch[:other] - Troca para o outro perfil.
+      switch:a - Troca para o perfil {profile_a}.
+      switch:b - Troca para o perfil {profile_b}.
+      switch:saved - Troca para o perfil definido para ser usado na próxima inicialização do Windows.
 
-    "
+    TROCA-DE-TELA pode ser:
+      switch-display[:other] - Troca para a outra tela.
+      switch-display:monitor - Troca para o monitor.
+      switch-display:tv - Troca para a TV.
+      switch-display:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.
+
+    ",
         )?;
 
         write!(

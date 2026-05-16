@@ -91,7 +91,13 @@ pub(crate) struct LabeledProfile<'a> {
     label: &'a str,
 }
 impl<'a> LabeledProfile<'a> {
-    pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
+    #[cfg(windows)]
+    pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Self {
+        let label = configs.get_profile_label(profile_id);
+        Self::new(profile_id, label)
+    }
+
+    pub(crate) fn get_opt(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
         let label = configs.get_profile_label_opt(profile_id);
         label.map(|label| Self::new(profile_id, label))
     }

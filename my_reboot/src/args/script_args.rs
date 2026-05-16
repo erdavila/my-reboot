@@ -1,10 +1,10 @@
 use super::errors::{self, ArgError};
 #[cfg(windows)]
-use crate::options_types::Display;
+use crate::options_types::{Display, ProfileId};
 use crate::options_types::{OptionType, RebootAction};
-#[cfg(windows)]
-use crate::script::SwitchToDisplay;
 use crate::script::{Script, SetOrUnset};
+#[cfg(windows)]
+use crate::script::{SwitchToDisplay, SwitchToProfile};
 use crate::text;
 
 pub fn parse(
@@ -38,6 +38,11 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     }
 
     if parse_next_windows_boot_display(arg, script)? {
+        return Ok(true);
+    }
+
+    #[cfg(windows)]
+    if parse_switch_to_profile(arg, script)? {
         return Ok(true);
     }
 
@@ -106,15 +111,36 @@ fn parse_boot_option<T: OptionType>(
 }
 
 #[cfg(windows)]
-fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
+fn parse_switch_to_profile(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     let option = match arg.strip_prefix("switch:") {
+        Some("saved") => SwitchToProfile::Saved,
+        Some("other") => SwitchToProfile::Other,
+        Some(string) => match ProfileId::from_arg_string(string) {
+            Some(profile_id) => SwitchToProfile::Profile(profile_id),
+            None => return errors::unknown_argument_error(arg),
+        },
+        None if arg == "switch" => SwitchToProfile::Other,
+        None => return Ok(false),
+    };
+
+    set_if_none(
+        &mut script.switch_to_profile,
+        option,
+        arg,
+        "troca de perfil",
+    )
+}
+
+#[cfg(windows)]
+fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
+    let option = match arg.strip_prefix("switch-display:") {
         Some("saved") => SwitchToDisplay::Saved,
         Some("other") => SwitchToDisplay::Other,
         Some(string) => match Display::from_option_string(string) {
             Some(display) => SwitchToDisplay::Display(display),
             None => return errors::unknown_argument_error(arg),
         },
-        None if arg == "switch" => SwitchToDisplay::Other,
+        None if arg == "switch-display" => SwitchToDisplay::Other,
         None => return Ok(false),
     };
 
@@ -158,8 +184,6 @@ mod tests {
 
     use super::*;
     use crate::options_types::{Display, OperatingSystem, ProfileId};
-    #[cfg(windows)]
-    use crate::script::SwitchToDisplay;
 
     #[test]
     fn test_parse() {
@@ -257,10 +281,25 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_parse_single_switch() {
+    fn test_parse_single_switch_to_profile() {
         let mut script = Script::new();
 
-        let result = parse_single("switch:monitor", &mut script);
+        let result = parse_single("switch:a", &mut script);
+
+        let success = result.expect("result should be Ok(_)");
+        assert!(success);
+        assert_eq!(
+            script.switch_to_profile,
+            Some(SwitchToProfile::Profile(ProfileId::A))
+        );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_parse_single_switch_to_display() {
+        let mut script = Script::new();
+
+        let result = parse_single("switch-display:monitor", &mut script);
 
         let success = result.expect("result should be Ok(_)");
         assert!(success);
@@ -447,13 +486,69 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
+    fn test_parse_switch_to_profile() {
+        let cases = [
+            ("switch", SwitchToProfile::Other),
+            ("switch:other", SwitchToProfile::Other),
+            ("switch:a", SwitchToProfile::Profile(ProfileId::A)),
+            ("switch:b", SwitchToProfile::Profile(ProfileId::B)),
+            ("switch:saved", SwitchToProfile::Saved),
+        ];
+
+        for (arg, expected) in cases {
+            let mut script = Script::new();
+
+            let result = parse_switch_to_profile(arg, &mut script);
+
+            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
+            assert_eq!(script.switch_to_profile, Some(expected));
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_parse_switch_to_profile_invalid() {
+        let mut script = Script::new();
+
+        let result = parse_switch_to_profile("switch:blah", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_parse_switch_to_profile_no_switch_arg() {
+        let mut script = Script::new();
+        let arg = "blah";
+
+        let result = parse_switch_to_profile(arg, &mut script);
+
+        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_parse_switch_to_profile_already_set() {
+        let mut script = Script::new();
+        script.switch_to_profile = Some(SwitchToProfile::Other);
+
+        let result = parse_switch_to_profile("switch:saved", &mut script);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    #[cfg(windows)]
     fn test_parse_switch_to_display() {
         let cases = [
-            ("switch", SwitchToDisplay::Other),
-            ("switch:other", SwitchToDisplay::Other),
-            ("switch:monitor", SwitchToDisplay::Display(Display::Monitor)),
-            ("switch:tv", SwitchToDisplay::Display(Display::TV)),
-            ("switch:saved", SwitchToDisplay::Saved),
+            ("switch-display", SwitchToDisplay::Other),
+            ("switch-display:other", SwitchToDisplay::Other),
+            (
+                "switch-display:monitor",
+                SwitchToDisplay::Display(Display::Monitor),
+            ),
+            ("switch-display:tv", SwitchToDisplay::Display(Display::TV)),
+            ("switch-display:saved", SwitchToDisplay::Saved),
         ];
 
         for (arg, expected) in cases {
@@ -471,7 +566,7 @@ mod tests {
     fn test_parse_switch_to_display_invalid() {
         let mut script = Script::new();
 
-        let result = parse_switch_to_display("switch:blah", &mut script);
+        let result = parse_switch_to_display("switch-display:blah", &mut script);
 
         assert!(result.is_err());
     }
@@ -493,7 +588,7 @@ mod tests {
         let mut script = Script::new();
         script.switch_to_display = Some(SwitchToDisplay::Other);
 
-        let result = parse_switch_to_display("switch:saved", &mut script);
+        let result = parse_switch_to_display("switch-display:saved", &mut script);
 
         assert!(result.is_err());
     }

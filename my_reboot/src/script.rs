@@ -15,6 +15,8 @@ pub struct Script {
     pub(crate) next_windows_boot_profile: Option<SetOrUnset<ProfileId>>,
     pub next_windows_boot_display: Option<SetOrUnset<Display>>,
     #[cfg(windows)]
+    pub(crate) switch_to_profile: Option<SwitchToProfile>,
+    #[cfg(windows)]
     pub switch_to_display: Option<SwitchToDisplay>,
     pub reboot_action: Option<RebootAction>,
 }
@@ -24,6 +26,8 @@ impl Script {
             next_boot_operating_system: None,
             next_windows_boot_profile: None,
             next_windows_boot_display: None,
+            #[cfg(windows)]
+            switch_to_profile: None,
             #[cfg(windows)]
             switch_to_display: None,
             reboot_action: None,
@@ -54,6 +58,11 @@ impl ScriptExecutor {
 
         if let Some(display_option) = script.next_windows_boot_display {
             self.apply_next_windows_boot_display(display_option);
+        }
+
+        #[cfg(windows)]
+        if let Some(switch_to) = script.switch_to_profile {
+            self.apply_switch_to_profile(switch_to)?;
         }
 
         #[cfg(windows)]
@@ -138,6 +147,75 @@ impl ScriptExecutor {
             was_updated_to,
             value_text(option.to_option())
         );
+    }
+
+    #[cfg(windows)]
+    fn apply_switch_to_profile(&mut self, switch_to: SwitchToProfile) -> Result<()> {
+        let from_profile = self.state_provider.get_current_profile()?;
+
+        match switch_to {
+            SwitchToProfile::Other => {
+                let Some(from_profile) = from_profile else {
+                    anyhow::bail!("Não foi possível identificar o perfil atual");
+                };
+
+                let to_profile = ProfileId::values()
+                    .into_iter()
+                    .find(|&p| p != from_profile)
+                    .unwrap();
+
+                self.switch_profile_to(to_profile)?;
+            }
+            SwitchToProfile::Profile(to_profile) => {
+                if Some(to_profile) == from_profile {
+                    let labeled_profile =
+                        LabeledProfile::get(to_profile, self.state_provider.configs());
+                    println!(
+                        "{} {}",
+                        text::profile::current_value_text(Some(labeled_profile)),
+                        text::profile::switching::IS_ALREADY_CURRENT
+                    );
+                } else {
+                    self.switch_profile_to(to_profile)?;
+                }
+            }
+            SwitchToProfile::Saved => match self.state_provider.get_next_windows_boot_profile() {
+                Some(to_profile) => {
+                    if Some(to_profile) == from_profile {
+                        let labeled_profile =
+                            LabeledProfile::get(to_profile, self.state_provider.configs());
+                        println!(
+                            "O {} é {}, que já é o perfil atual",
+                            text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+                            text::profile::current_value_text(Some(labeled_profile))
+                        );
+                    } else {
+                        self.switch_profile_to(to_profile)?;
+                        self.state_provider.unset_next_windows_boot_profile();
+                    }
+                }
+                None => {
+                    println!(
+                        "O {} é {}",
+                        text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+                        text::profile::next_boot_value_text(None)
+                    );
+                }
+            },
+        }
+
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn switch_profile_to(&self, profile_id: ProfileId) -> Result<()> {
+        let labeled_profile = LabeledProfile::get(profile_id, self.state_provider.configs());
+        println!(
+            "{} {}",
+            text::profile::switching::TO,
+            text::profile::current_value_text(Some(labeled_profile))
+        );
+        self.state_provider.set_current_profile(profile_id)
     }
 
     #[cfg(windows)]
@@ -238,6 +316,14 @@ impl<T> From<Option<T>> for SetOrUnset<T> {
             None => Self::Unset,
         }
     }
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum SwitchToProfile {
+    Other,
+    Profile(ProfileId),
+    Saved,
 }
 
 #[cfg(windows)]

@@ -111,6 +111,11 @@ impl StateProvider {
     }
 
     #[cfg(windows)]
+    pub(crate) fn set_current_profile(&self, profile_id: ProfileId) -> Result<()> {
+        self.current_profile_handler().switch_to(profile_id)
+    }
+
+    #[cfg(windows)]
     pub fn get_current_display(&self) -> Display {
         self.current_display_handler().get()
     }

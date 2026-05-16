@@ -59,6 +59,12 @@ impl Configs {
             .get_object_by_value_opt(profile, &self.props)
     }
 
+    #[cfg(windows)]
+    pub(crate) fn get_profile_by_id(&self, profile_id: ProfileId) -> Profile {
+        self.profile_configs_handler
+            .get_value(profile_id, &self.props)
+    }
+
     pub(crate) fn get_profile_label(&self, profile_id: ProfileId) -> &str {
         self.profile_label_handler
             .get_value(profile_id, &self.props)

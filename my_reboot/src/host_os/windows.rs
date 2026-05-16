@@ -3,6 +3,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
+use display_profile_lib::{Profile, SetProfileAction};
 
 use super::PredefinedScript;
 use crate::configs::Configs;
@@ -49,10 +50,43 @@ impl<'a> CurrentProfileHandler<'a> {
         Self { configs }
     }
 
+    fn execute_profile_switch(profile: &Profile, wait_seconds: u64) -> Result<bool> {
+        const PROBE_INTERVAL: Duration = Duration::from_secs(1);
+
+        let profile_before = display_profile_lib::get_profile()?;
+
+        display_profile_lib::set_profile(profile, SetProfileAction::Apply)?;
+
+        let total_wait_time: Duration = Duration::from_secs(wait_seconds);
+        let begin = Instant::now();
+
+        while Instant::now().duration_since(begin) < total_wait_time {
+            thread::sleep(PROBE_INTERVAL);
+            if display_profile_lib::get_profile()? != profile_before {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
     pub(crate) fn get(&self) -> Result<Option<ProfileId>> {
         let profile = display_profile_lib::get_profile()?;
         let profile_id = self.configs.get_profile_id(&profile);
         Ok(profile_id)
+    }
+
+    pub(crate) fn switch_to(&self, profile_id: ProfileId) -> Result<()> {
+        const WAIT_SECONDS: u64 = 10;
+
+        let profile = self.configs.get_profile_by_id(profile_id);
+
+        let switched = Self::execute_profile_switch(&profile, WAIT_SECONDS)?;
+        if switched {
+            Ok(())
+        } else {
+            bail!(text::profile::switching::TAKING_TOO_LONG);
+        }
     }
 }
 

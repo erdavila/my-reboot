@@ -40,6 +40,13 @@ pub(crate) mod profile {
     #[cfg(windows)]
     const UNRECOGNIZED: &str = "não reconhecido";
 
+    #[cfg(windows)]
+    pub(crate) mod switching {
+        pub(crate) const TO: &str = "Trocando de perfil para";
+        pub(crate) const TAKING_TOO_LONG: &str = "O perfil não trocou no tempo limite";
+        pub(crate) const IS_ALREADY_CURRENT: &str = "já é o perfil atual";
+    }
+
     pub(crate) fn next_boot_value_text(
         labeled_profile: Option<LabeledProfile>,
     ) -> ANSIString<'static> {
