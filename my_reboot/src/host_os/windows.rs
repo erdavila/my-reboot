@@ -7,7 +7,7 @@ use anyhow::{Result, bail};
 use super::PredefinedScript;
 use crate::configs::Configs;
 use crate::host_os::SuccessOr;
-use crate::options_types::{Display, OperatingSystem, RebootAction};
+use crate::options_types::{Display, OperatingSystem, ProfileId, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 
@@ -39,6 +39,21 @@ fn shutdown_now(arg: &str) -> Result<()> {
         .args(["/t", "0"])
         .status()?
         .success_or(text::reboot_action::FAILED)
+}
+
+pub(crate) struct CurrentProfileHandler<'a> {
+    configs: &'a Configs,
+}
+impl<'a> CurrentProfileHandler<'a> {
+    pub(crate) fn new(configs: &'a Configs) -> Self {
+        Self { configs }
+    }
+
+    pub(crate) fn get(&self) -> Result<Option<ProfileId>> {
+        let profile = display_profile_lib::get_profile()?;
+        let profile_id = self.configs.get_profile_id(&profile);
+        Ok(profile_id)
+    }
 }
 
 pub struct CurrentDisplayHandler<'a> {
@@ -83,7 +98,7 @@ impl<'a> CurrentDisplayHandler<'a> {
         const WAIT_SECONDS: u64 = 10;
 
         let display_switch_arg = self.configs.get_display_switch_arg(display);
-        let switched = Self::execute_display_switch(&display_switch_arg, WAIT_SECONDS)?;
+        let switched = Self::execute_display_switch(display_switch_arg, WAIT_SECONDS)?;
         if switched {
             Ok(())
         } else {

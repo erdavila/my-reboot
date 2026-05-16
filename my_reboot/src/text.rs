@@ -22,6 +22,28 @@ pub mod operating_system {
     }
 }
 
+pub(crate) mod profile {
+    #[cfg(windows)]
+    use ansi_term::ANSIString;
+
+    #[cfg(windows)]
+    use crate::options_types::LabeledProfile;
+
+    #[cfg(windows)]
+    pub(crate) const CURRENT: &str = "perfil atual";
+
+    #[cfg(windows)]
+    const UNRECOGNIZED: &str = "não reconhecido";
+
+    #[cfg(windows)]
+    pub(crate) fn current_value_text(
+        labeled_profile: Option<LabeledProfile>,
+    ) -> ANSIString<'static> {
+        let profile_label = labeled_profile.map(|lp| (lp.profile_id(), lp.to_string()));
+        super::two_values_text(profile_label, UNRECOGNIZED)
+    }
+}
+
 pub mod display {
     use ansi_term::ANSIString;
 
@@ -54,12 +76,20 @@ pub mod reboot_action {
     pub const FAILED: &str = "A ação de reinicialização falhou";
 }
 
-fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
+fn two_values_option_value_text<T: OptionType + ToString>(
     current_value: Option<T>,
     undefined_text: &str,
 ) -> ANSIString<'static> {
+    let current_value = current_value.map(|value| (value, value.to_string()));
+    two_values_text(current_value, undefined_text)
+}
+
+fn two_values_text<T: OptionType>(
+    current_value: Option<(T, String)>,
+    undefined_text: &str,
+) -> ANSIString<'static> {
     let (color, text) = match current_value {
-        Some(current_value) => {
+        Some((current_value, text)) => {
             let [value1, value2] = T::values();
             let color = if current_value == value1 {
                 Blue
@@ -68,7 +98,7 @@ fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
             } else {
                 unimplemented!()
             };
-            (color, current_value.to_string())
+            (color, text)
         }
         None => (Red, undefined_text.to_string()),
     };

@@ -23,6 +23,8 @@ use script::Script;
 use script::SwitchToDisplay;
 
 use crate::args::ParsedArgs;
+#[cfg(windows)]
+use crate::options_types::LabeledProfile;
 use crate::state::StateProvider;
 
 fn main() -> Result<()> {
@@ -51,7 +53,7 @@ fn show_dialog(mode: Mode) -> Result<()> {
         .collect();
 
     let provider = StateProvider::new()?;
-    let state = provider.get_state();
+    let state = provider.get_state()?;
     let script_options = dialog::ScriptOptions {
         next_boot_operating_system: state.next_boot_operating_system,
         next_windows_boot_display: state.next_windows_boot_display,
@@ -86,7 +88,7 @@ fn execute_script(script: Script) -> Result<()> {
 
 fn show_state() -> Result<()> {
     let provider = StateProvider::new()?;
-    let state = provider.get_state();
+    let state = provider.get_state()?;
 
     println!(
         "{}: {}",
@@ -97,6 +99,16 @@ fn show_state() -> Result<()> {
         "{}: {}",
         text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
         text::display::value_text(state.next_windows_boot_display)
+    );
+    #[cfg(windows)]
+    println!(
+        "{}: {}",
+        text::profile::CURRENT,
+        text::profile::current_value_text(
+            state
+                .current_profile
+                .and_then(|id| LabeledProfile::get(id, provider.configs()))
+        )
     );
     #[cfg(windows)]
     println!(

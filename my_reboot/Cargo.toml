@@ -15,11 +15,13 @@ edition = "2024"
 ansi_term.workspace = true
 anyhow.workspace = true
 iced = { workspace = true, features = [ "image" ] }
+serde_json.workspace = true
 
 [target."cfg(not(windows))".dependencies]
 regex.workspace = true
 
 [target."cfg(windows)".dependencies]
+display-profile-lib = { workspace = true, features = [ "serde" ]}
 enum_display_devices.workspace = true
 is_windows_11_or_greater.workspace = true
 

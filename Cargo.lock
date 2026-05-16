@@ -1973,10 +1973,12 @@ version = "3.0.0"
 dependencies = [
  "ansi_term",
  "anyhow",
+ "display-profile-lib",
  "enum_display_devices",
  "iced",
  "is_windows_11_or_greater",
  "regex",
+ "serde_json",
  "winres",
 ]
 

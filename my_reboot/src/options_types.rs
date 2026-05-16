@@ -1,3 +1,6 @@
+#[cfg(windows)]
+use crate::configs::Configs;
+
 pub trait OptionType: Copy + Eq {
     // We're assuming that all options have only two possible values.
     fn values() -> [Self; 2];
@@ -38,6 +41,66 @@ impl std::fmt::Display for OperatingSystem {
                 OperatingSystem::Linux => "Linux",
             }
         )
+    }
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum ProfileId {
+    A,
+    B,
+}
+#[cfg(windows)]
+impl OptionType for ProfileId {
+    fn values() -> [Self; 2] {
+        [Self::A, Self::B]
+    }
+
+    fn to_option_string(&self) -> &str {
+        match self {
+            ProfileId::A => "profile-a",
+            ProfileId::B => "profile-b",
+        }
+    }
+}
+#[cfg(windows)]
+impl std::fmt::Display for ProfileId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ProfileId::A => "A",
+                ProfileId::B => "B",
+            }
+        )
+    }
+}
+
+#[cfg(windows)]
+pub(crate) struct LabeledProfile<'a> {
+    profile_id: ProfileId,
+    label: &'a str,
+}
+#[cfg(windows)]
+impl<'a> LabeledProfile<'a> {
+    pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
+        let label = configs.get_profile_label(profile_id);
+        label.map(|label| Self::new(profile_id, label))
+    }
+
+    pub(crate) fn new(profile_id: ProfileId, label: &'a str) -> Self {
+        Self { profile_id, label }
+    }
+
+    pub(crate) fn profile_id(&self) -> ProfileId {
+        self.profile_id
+    }
+}
+#[cfg(windows)]
+impl std::fmt::Display for LabeledProfile<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\" ({})", self.label, self.profile_id)
     }
 }
 
