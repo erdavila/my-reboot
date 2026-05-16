@@ -108,6 +108,9 @@ pub struct Monitor {
     pub rotation: Rotation,
     pub scaling: Scaling,
     pub refresh_rate: Rational,
+    pub path_source_size: Position,
+    pub desktop_image_region: Rect,
+    pub desktop_image_clip: Rect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -170,5 +173,14 @@ define_windows_mapped_struct!(
     Rational => DISPLAYCONFIG_RATIONAL in windows_display_config::windows {
         numerator => Numerator: u32,
         denominator => Denominator: u32,
+    }
+);
+
+define_windows_mapped_struct!(
+    Rect => RECTL in windows_display_config::windows {
+        left => left: i32,
+        top => top: i32,
+        right => right: i32,
+        bottom => bottom: i32,
     }
 );

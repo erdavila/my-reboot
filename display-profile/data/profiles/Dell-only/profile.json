@@ -17,6 +17,22 @@
     "refresh_rate": {
       "numerator": 148351648,
       "denominator": 2475000
+    },
+    "path_source_size": {
+      "x": 1920,
+      "y": 1080
+    },
+    "desktop_image_region": {
+      "left": 0,
+      "top": 0,
+      "right": 1920,
+      "bottom": 1080
+    },
+    "desktop_image_clip": {
+      "left": 0,
+      "top": 0,
+      "right": 1920,
+      "bottom": 1080
     }
   }
 ]

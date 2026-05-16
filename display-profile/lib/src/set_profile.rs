@@ -4,7 +4,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use windows_display_config::util::from_windows_string;
 pub use windows_display_config::util::{PathInfoExt as _, U32Ext as _};
 use windows_display_config::windows::{
-    DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_MODE_INFO_0, DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE,
+    DISPLAYCONFIG_DESKTOP_IMAGE_INFO, DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_MODE_INFO_0,
+    DISPLAYCONFIG_MODE_INFO_TYPE_DESKTOP_IMAGE, DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE,
     DISPLAYCONFIG_MODE_INFO_TYPE_TARGET, DISPLAYCONFIG_PATH_ACTIVE, DISPLAYCONFIG_PATH_INFO,
     DISPLAYCONFIG_SCANLINE_ORDERING_PROGRESSIVE, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
     DISPLAYCONFIG_SOURCE_MODE, DISPLAYCONFIG_TARGET_DEVICE_NAME, DISPLAYCONFIG_TARGET_MODE,
@@ -73,11 +74,11 @@ pub fn set_profile(profile: &Profile, action: SetProfileAction) -> Result<()> {
     if VIRTUAL_MODE_AWARE {
         flags |= QDC_VIRTUAL_MODE_AWARE;
     }
-    let (mut input_paths, input_modes) = query_display_config(flags)?;
+    let (mut input_paths, _input_modes) = query_display_config(flags)?;
     input_paths.retain(|path| path.targetInfo.targetAvailable.as_bool());
 
     let solved_profile = solve_profile(profile, &input_paths)?;
-    let (paths, modes) = make_paths_and_modes(solved_profile, &input_modes);
+    let (paths, modes) = make_paths_and_modes(solved_profile);
 
     let mut flags = SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE;
     flags |= match action {
@@ -168,7 +169,6 @@ fn solve_with_paths<'p>(
 
 fn make_paths_and_modes<'m, 'p>(
     solved_profile: impl IntoIterator<Item = (&'m Monitor, &'p DISPLAYCONFIG_PATH_INFO)>,
-    input_modes: &[DISPLAYCONFIG_MODE_INFO],
 ) -> (Vec<DISPLAYCONFIG_PATH_INFO>, Vec<DISPLAYCONFIG_MODE_INFO>) {
     let mut modes = Vec::new();
     let mut add_mode = |mode: DISPLAYCONFIG_MODE_INFO| {
@@ -216,15 +216,26 @@ fn make_paths_and_modes<'m, 'p>(
                 },
             };
 
-            let desktop_mode_opt = path.desktop_mode_idx().map(|idx| input_modes[idx]);
+            let desktop_mode = DISPLAYCONFIG_MODE_INFO {
+                infoType: DISPLAYCONFIG_MODE_INFO_TYPE_DESKTOP_IMAGE,
+                id: path.targetInfo.id,
+                adapterId: path.targetInfo.adapterId,
+                Anonymous: DISPLAYCONFIG_MODE_INFO_0 {
+                    desktopImageInfo: DISPLAYCONFIG_DESKTOP_IMAGE_INFO {
+                        PathSourceSize: monitor.path_source_size.into(),
+                        DesktopImageRegion: monitor.desktop_image_region.into(),
+                        DesktopImageClip: monitor.desktop_image_clip.into(),
+                    },
+                },
+            };
 
             let source_mode_idx = add_mode(source_mode);
             let target_mode_idx = add_mode(target_mode);
-            let desktop_mode_idx_opt = desktop_mode_opt.map(&mut add_mode);
+            let desktop_mode_idx = add_mode(desktop_mode);
 
             path.set_source_mode_idx(Some(source_mode_idx));
             path.set_target_mode_idx(Some(target_mode_idx));
-            path.set_desktop_mode_idx(desktop_mode_idx_opt);
+            path.set_desktop_mode_idx(Some(desktop_mode_idx));
 
             path.flags |= DISPLAYCONFIG_PATH_ACTIVE;
             path

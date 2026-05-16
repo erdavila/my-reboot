@@ -35,6 +35,15 @@ pub fn get_profile() -> Result<Profile> {
                 &modes[idx].Anonymous.sourceMode
             };
 
+            let desktop_mode = unsafe {
+                let Some(idx) = path.desktop_mode_idx() else {
+                    return Err(Error::Custom(
+                        "no desktop mode in the display path info".to_string(),
+                    ));
+                };
+                &modes[idx].Anonymous.desktopImageInfo
+            };
+
             Ok(Monitor {
                 friendly_device_name: from_windows_string(
                     &target_device_name.monitorFriendlyDeviceName,
@@ -50,6 +59,9 @@ pub fn get_profile() -> Result<Profile> {
                 rotation: path.targetInfo.rotation.into(),
                 scaling: path.targetInfo.scaling.into(),
                 refresh_rate: path.targetInfo.refreshRate.into(),
+                path_source_size: desktop_mode.PathSourceSize.into(),
+                desktop_image_region: desktop_mode.DesktopImageRegion.into(),
+                desktop_image_clip: desktop_mode.DesktopImageClip.into(),
             })
         })
         .collect()
