@@ -1,13 +1,13 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 
-use crate::file_content_as_hash_map::{file_content_to_hash_map, hash_map_to_file_content};
+use crate::file_content_as_map::{file_content_to_map, map_to_file_content};
 use crate::host_os::STATE_DIR_PATH;
 
 pub struct Properties {
-    content: HashMap<String, String>,
+    content: BTreeMap<String, String>,
     path: PathBuf,
 }
 
@@ -17,7 +17,7 @@ impl Properties {
 
         match fs::read_to_string(&path) {
             Ok(file_content) => {
-                let content = Self::hash_map_from_file_content(&file_content);
+                let content = Self::map_from_file_content(&file_content);
                 Ok(Properties { content, path })
             }
             Err(e) if !must_exist && e.kind() == ErrorKind::NotFound => {
@@ -26,7 +26,7 @@ impl Properties {
                     path.display()
                 );
                 Ok(Properties {
-                    content: HashMap::new(),
+                    content: BTreeMap::new(),
                     path,
                 })
             }
@@ -34,13 +34,13 @@ impl Properties {
         }
     }
 
-    fn hash_map_from_file_content(file_content: &str) -> HashMap<String, String> {
-        let mut hash_map = file_content_to_hash_map(file_content);
-        Self::unescape_inline(&mut hash_map);
-        hash_map
+    fn map_from_file_content(file_content: &str) -> BTreeMap<String, String> {
+        let mut map = file_content_to_map(file_content);
+        Self::unescape_inline(&mut map);
+        map
     }
 
-    fn unescape_inline(hash_map: &mut HashMap<String, String>) {
+    fn unescape_inline(hash_map: &mut BTreeMap<String, String>) {
         for value in hash_map.values_mut() {
             *value = value.replace(r"\\", r"\");
         }
@@ -64,13 +64,12 @@ impl Properties {
     }
 
     fn to_file_content(&self) -> String {
-        let hash_map = Self::escape(&self.content);
-        hash_map_to_file_content(&hash_map)
+        let map = Self::escape(&self.content);
+        map_to_file_content(&map)
     }
 
-    fn escape(hash_map: &HashMap<String, String>) -> HashMap<String, String> {
-        hash_map
-            .iter()
+    fn escape(map: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+        map.iter()
             .map(|(key, value)| (key.clone(), value.replace('\\', r"\\")))
             .collect()
     }
@@ -88,7 +87,7 @@ mod tests {
     fn hash_map_from_file_content() {
         let file_content = "abc=xyz\n#ignored line\njjj=12\\\\3";
 
-        let hash_map = Properties::hash_map_from_file_content(file_content);
+        let hash_map = Properties::map_from_file_content(file_content);
 
         assert_eq!(hash_map.len(), 2);
         assert_eq!(hash_map["abc"], "xyz");
@@ -141,7 +140,7 @@ mod tests {
     }
 
     fn create_properties() -> Properties {
-        let content = HashMap::from_iter([
+        let content = BTreeMap::from_iter([
             ("abc".to_string(), "xyz".to_string()),
             ("jjj".to_string(), r"12\3".to_string()),
         ]);

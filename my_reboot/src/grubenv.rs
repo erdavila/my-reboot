@@ -1,22 +1,22 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::{fs, io, iter};
 
-use crate::file_content_as_hash_map::{file_content_to_hash_map, hash_map_to_file_content};
+use crate::file_content_as_map::{file_content_to_map, map_to_file_content};
 use crate::host_os::STATE_DIR_PATH;
 
 const GRUBENV_CONTENT_LENGTH: usize = 1024;
 const GRUBENV_HEADER_LINE: &str = "# GRUB Environment Block\n";
 
 pub struct Grubenv {
-    content: HashMap<String, String>,
+    content: BTreeMap<String, String>,
 }
 
 impl Grubenv {
     pub fn load() -> io::Result<Grubenv> {
         let file_content = fs::read_to_string(Self::path())?;
         Ok(Grubenv {
-            content: file_content_to_hash_map(&file_content),
+            content: file_content_to_map(&file_content),
         })
     }
 
@@ -39,7 +39,7 @@ impl Grubenv {
 
     fn to_file_content(&self) -> String {
         let mut content = String::from(GRUBENV_HEADER_LINE);
-        content += &hash_map_to_file_content(&self.content);
+        content += &map_to_file_content(&self.content);
 
         assert!(
             content.len() <= GRUBENV_CONTENT_LENGTH,
@@ -121,7 +121,7 @@ mod tests {
     }
 
     fn create_grubenv() -> Grubenv {
-        let content = HashMap::from_iter([
+        let content = BTreeMap::from_iter([
             ("abc".to_string(), "xyz".to_string()),
             ("jjj".to_string(), "123".to_string()),
         ]);
