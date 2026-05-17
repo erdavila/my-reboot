@@ -1,8 +1,3 @@
-#![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
-
 mod args;
 mod configs;
 mod dialog;
@@ -35,15 +30,25 @@ fn main() -> Result<()> {
         ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
-        #[cfg(not(windows))]
         ParsedArgs::Configure => configure(),
-        #[cfg(windows)]
-        ParsedArgs::Configure { initial_display } => configure(initial_display),
         ParsedArgs::Usage => show_usage(),
     }
 }
 
 fn show_dialog(mode: Mode) -> Result<()> {
+    #[cfg(windows)]
+    {
+        // Hide the console window.
+        use windows::Win32::System::Console::GetConsoleWindow;
+        use windows::Win32::UI::WindowsAndMessaging::{SW_HIDE, ShowWindow};
+        unsafe {
+            let window = GetConsoleWindow();
+            if !window.is_invalid() {
+                let _ = ShowWindow(window, SW_HIDE);
+            }
+        }
+    }
+
     let provider = StateProvider::new()?;
 
     let labels: Vec<_> = PREDEFINED_SCRIPTS
@@ -132,16 +137,8 @@ fn show_state() -> Result<()> {
     Ok(())
 }
 
-#[cfg(not(windows))]
 fn configure() -> Result<()> {
     host_os::configuration::configure()
-}
-
-#[cfg(windows)]
-use options_types::Display;
-#[cfg(windows)]
-fn configure(initial_display: Option<Display>) -> Result<()> {
-    host_os::configuration::configure(initial_display)
 }
 
 fn show_usage() -> Result<()> {

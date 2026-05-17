@@ -9,6 +9,7 @@ Set oLink = WshShell.CreateShortcut(WshShell.ExpandEnvironmentStrings("%UserProf
 oLink.TargetPath = MyRebootPath
 oLink.Arguments = "switch:other"
 oLink.Description = "Trocar de Tela"
+oLink.WindowStyle = 7 'Minimized
 oLink.IconLocation = DisplaySwitchPath + ",2"
 oLink.Hotkey = "ALT+CTRL+X"
 oLink.Save

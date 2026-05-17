@@ -105,17 +105,19 @@ impl ConfigsWriter {
     }
 
     #[cfg(windows)]
-    pub fn set_device_id(&mut self, display: Display, value: &str) {
-        self.configs
-            .device_id_handler
-            .set_value(display, value, &mut self.configs.props);
+    pub(crate) fn set_profile_configs(&mut self, profile_id: ProfileId, configs: &Profile) {
+        self.configs.profile_configs_handler.set_value(
+            profile_id,
+            configs,
+            &mut self.configs.props,
+        );
     }
 
     #[cfg(windows)]
-    pub fn set_display_switch_arg(&mut self, display: Display, value: &str) {
+    pub(crate) fn set_profile_label(&mut self, profile_id: ProfileId, label: &str) {
         self.configs
-            .display_switch_arg_handler
-            .set_value(display, value, &mut self.configs.props);
+            .profile_label_handler
+            .set_value(profile_id, label, &mut self.configs.props);
     }
 
     pub fn save(&mut self) -> io::Result<()> {

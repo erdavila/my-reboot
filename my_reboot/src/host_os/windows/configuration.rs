@@ -1,76 +1,181 @@
+use ansi_term::Color;
 use anyhow::Result;
-use is_windows_11_or_greater::is_windows_11_or_greater;
+use display_profile_lib::{Profile, Rotation, SetProfileAction, get_profile, set_profile};
+use rustyline::DefaultEditor;
 
 use crate::configs::ConfigsWriter;
-use crate::host_os::CurrentDisplayHandler;
-use crate::host_os::windows::get_active_display_id::get_active_display_id;
-use crate::options_types::{Display, OptionType};
+use crate::options_types::{LabeledProfile, ProfileId};
 
-pub fn configure(initial_display: Option<Display>) -> Result<()> {
-    const WAIT_SECONDS: u64 = 5;
+pub(crate) fn configure() -> Result<()> {
+    let mut configure = Configure::new()?;
+    configure.configure()?;
+    configure.finalize()?;
+    Ok(())
+}
 
-    if let Some(initial_display) = initial_display {
-        let display_switch_args = if is_windows_11_or_greater() {
-            ["1", "4"]
-        } else {
-            ["/internal", "/external"]
-        };
+macro_rules! print_error {
+    ($($tt:tt)*) => {
+        println!("{} {}", Color::Red.paint("Erro:"), format_args!($($tt)*))
+    };
+}
 
-        let initial_display_device_id = get_active_display_id();
-        let other_display = match initial_display {
-            Display::Monitor => Display::TV,
-            Display::TV => Display::Monitor,
-        };
+struct Configure {
+    initial_profile: Profile,
+    readline: DefaultEditor,
+}
 
-        println!("Trocando de tela...");
-        let switched =
-            CurrentDisplayHandler::execute_display_switch(display_switch_args[0], WAIT_SECONDS)?;
-        let (initial_display_switch_arg, other_display_device_id, other_display_switch_arg) =
-            if switched {
-                (
-                    display_switch_args[1],
-                    get_active_display_id(),
-                    display_switch_args[0],
-                )
+impl Configure {
+    fn new() -> Result<Self> {
+        let initial_profile = get_profile()?;
+        let readline = DefaultEditor::new()?;
+        Ok(Self {
+            initial_profile,
+            readline,
+        })
+    }
+
+    #[expect(clippy::similar_names)]
+    fn configure(&mut self) -> Result<()> {
+        println!(
+            "Configuraremos perfis {} e {} de telas do Windows.",
+            ProfileId::A,
+            ProfileId::B
+        );
+
+        let profile_a = self.configure_profile(ProfileId::A, accept_anything)?;
+        let profile_a_label = self.ask_label(ProfileId::A, accept_anything)?;
+
+        let profile_b = self.configure_profile(ProfileId::B, |profile| {
+            if *profile == profile_a {
+                Err(format!(
+                    "A configuração não pode ser igual à do perfil {}",
+                    ProfileId::A
+                ))
             } else {
-                CurrentDisplayHandler::execute_display_switch(
-                    display_switch_args[1],
-                    WAIT_SECONDS,
-                )?;
-                (
-                    display_switch_args[0],
-                    get_active_display_id(),
-                    display_switch_args[1],
-                )
-            };
+                Ok(())
+            }
+        })?;
+        let profile_b_label = self.ask_label(ProfileId::B, |label| {
+            if *label == profile_a_label {
+                Err(format!(
+                    "O nome não pode ser igual ao do perfil {}",
+                    ProfileId::A
+                ))
+            } else {
+                Ok(())
+            }
+        })?;
 
-        println!("Voltando para a tela inicial...");
-        CurrentDisplayHandler::execute_display_switch(initial_display_switch_arg, WAIT_SECONDS)?;
+        println!();
+
+        println!("Resumo dos perfis:");
+        Self::print_profile_summary(ProfileId::A, &profile_a_label, &profile_a);
+        Self::print_profile_summary(ProfileId::B, &profile_b_label, &profile_b);
+        println!();
 
         let mut configs = ConfigsWriter::load(false)?;
-        configs.set_device_id(initial_display, &initial_display_device_id);
-        configs.set_device_id(other_display, &other_display_device_id);
-        configs.set_display_switch_arg(initial_display, initial_display_switch_arg);
-        configs.set_display_switch_arg(other_display, other_display_switch_arg);
-        println!("Salvando configurações...");
+        configs.set_profile_configs(ProfileId::A, &profile_a);
+        configs.set_profile_configs(ProfileId::B, &profile_b);
+        configs.set_profile_label(ProfileId::A, &profile_a_label);
+        configs.set_profile_label(ProfileId::B, &profile_b_label);
+        println!("Salvando as configurações...");
         configs.save()?;
+        println!();
 
         println!("Configuração finalizada.");
         Ok(())
-    } else {
-        println!(
-            "\
-Execute:
-  my-reboot configure TELA
-onde TELA é a tela atual ({}).
+    }
 
-Será testada a troca de telas. A configuração termina ao retornar para a tela inicial.",
-            Display::values()
-                .into_iter()
-                .map(|d| format!("\"{}\"", d.to_option_string()))
-                .collect::<Vec<_>>()
-                .join(" ou ")
-        );
+    fn configure_profile(
+        &mut self,
+        id: ProfileId,
+        validate: impl Fn(&Profile) -> Result<(), String>,
+    ) -> Result<Profile> {
+        loop {
+            println!();
+            println!("Escolha uma das opções para configurar o perfil {id}:");
+            println!("1. A configuração de tela atual corresponde ao perfil {id}");
+            println!("2. Abrir as configurações de tela do Windows");
+
+            match self.readline.readline("> ")?.as_str() {
+                "1" => {
+                    let profile = get_profile()?;
+                    match validate(&profile) {
+                        Ok(()) => {
+                            self.restore_initial_profile()?;
+                            return Ok(profile);
+                        }
+                        Err(msg) => print_error!("{msg}"),
+                    }
+                }
+                "2" => open::that("ms-settings:display")?,
+                other => print_error!("Opção inválida: {other:?}"),
+            }
+        }
+    }
+
+    fn ask_label(
+        &mut self,
+        id: ProfileId,
+        validate: impl Fn(&str) -> Result<(), String>,
+    ) -> Result<String> {
+        loop {
+            println!();
+            let label = self
+                .readline
+                .readline(&format!("Digite um nome para o perfil {id}: "))?;
+            if label.is_empty() {
+                print_error!("O nome não pode ser vazio");
+            } else if let Err(msg) = validate(&label) {
+                print_error!("{msg}");
+            } else {
+                return Ok(label);
+            }
+        }
+    }
+
+    fn finalize(self) -> Result<()> {
+        self.restore_initial_profile()
+    }
+
+    fn restore_initial_profile(&self) -> Result<()> {
+        let current_profile = get_profile()?;
+        if current_profile != self.initial_profile {
+            set_profile(&self.initial_profile, SetProfileAction::Apply)?;
+        }
         Ok(())
     }
+
+    fn print_profile_summary(id: ProfileId, label: &str, profile: &Profile) {
+        println!("  {}", LabeledProfile::new(id, label));
+        for monitor in profile {
+            print!(
+                "    {}: {}x{}; {:.2}Hz; em {},{}",
+                monitor.friendly_device_name,
+                monitor.dimensions.width,
+                monitor.dimensions.height,
+                f64::from(monitor.refresh_rate.numerator)
+                    / f64::from(monitor.refresh_rate.denominator),
+                monitor.position.x,
+                monitor.position.y,
+            );
+
+            let rotation = match monitor.rotation {
+                Rotation::IDENTITY => None,
+                Rotation::ROTATE90 => Some(90),
+                Rotation::ROTATE180 => Some(180),
+                Rotation::ROTATE270 => Some(270),
+            };
+            if let Some(rotation) = rotation {
+                print!("; rotação de {rotation}°");
+            }
+
+            println!();
+        }
+    }
+}
+
+#[expect(clippy::unnecessary_wraps)]
+fn accept_anything<T: ?Sized>(_: &T) -> Result<(), String> {
+    Ok(())
 }
