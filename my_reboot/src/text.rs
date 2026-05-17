@@ -35,7 +35,7 @@ pub(crate) mod profile {
     #[cfg(windows)]
     pub(crate) const CURRENT: &str = "perfil atual";
 
-    const UNDEFINED: &str = "indefinido";
+    pub(crate) const UNDEFINED: &str = "indefinido";
 
     #[cfg(windows)]
     const UNRECOGNIZED: &str = "não reconhecido";

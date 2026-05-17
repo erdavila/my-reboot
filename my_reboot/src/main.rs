@@ -24,7 +24,7 @@ use script::SwitchToDisplay;
 
 use crate::args::ParsedArgs;
 use crate::configs::Configs;
-use crate::options_types::{LabeledProfile, ProfileId};
+use crate::options_types::{LabeledProfile, OptionType, ProfileId};
 use crate::state::StateProvider;
 
 fn main() -> Result<()> {
@@ -53,13 +53,15 @@ fn show_dialog(mode: Mode) -> Result<()> {
     let state = provider.get_state()?;
     let script_options = dialog::ScriptOptions {
         next_boot_operating_system: state.next_boot_operating_system,
-        next_windows_boot_display: state.next_windows_boot_display,
+        next_windows_boot_profile: state.next_windows_boot_profile,
         #[cfg(windows)]
         switch_display: false,
         reboot_action: None,
     };
+    let profile_labels =
+        ProfileId::values().map(|id| LabeledProfile::get(id, provider.configs()).to_string());
 
-    let outcome = dialog::show(mode, labels, script_options)?;
+    let outcome = dialog::show(mode, labels, script_options, profile_labels)?;
 
     match outcome {
         Some(dialog::Outcome::PredefinedScriptIndex(index)) => {
@@ -68,9 +70,8 @@ fn show_dialog(mode: Mode) -> Result<()> {
         Some(dialog::Outcome::ScriptOptions(options)) => {
             let script = Script {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
-                // TODO: implement it
-                next_windows_boot_profile: None,
-                next_windows_boot_display: Some(options.next_windows_boot_display.into()),
+                next_windows_boot_profile: Some(options.next_windows_boot_profile.into()),
+                next_windows_boot_display: None,
                 // TODO: implement it
                 #[cfg(windows)]
                 switch_to_profile: None,

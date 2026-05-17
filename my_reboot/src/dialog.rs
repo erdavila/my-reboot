@@ -37,6 +37,7 @@ pub fn show(
     initial_mode: Mode,
     predefined_script_labels: Vec<&'static str>,
     initial_script_options: ScriptOptions,
+    profile_labels: [String; 2],
 ) -> Result<Option<Outcome>> {
     let label_count = predefined_script_labels.len();
 
@@ -65,6 +66,7 @@ pub fn show(
                         mode: initial_mode,
                         predefined_script_labels: predefined_script_labels.clone(),
                         script_options: initial_script_options,
+                        profile_labels: profile_labels.clone(),
                         outcome: outcome.clone(),
                     },
                     Task::none(),
@@ -95,6 +97,7 @@ struct Dialog {
     mode: Mode,
     predefined_script_labels: Vec<&'static str>,
     script_options: ScriptOptions,
+    profile_labels: [String; 2],
     outcome: Rc<Cell<Option<Outcome>>>,
 }
 

@@ -91,7 +91,6 @@ pub(crate) struct LabeledProfile<'a> {
     label: &'a str,
 }
 impl<'a> LabeledProfile<'a> {
-    #[cfg(windows)]
     pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Self {
         let label = configs.get_profile_label(profile_id);
         Self::new(profile_id, label)
