@@ -20,7 +20,7 @@ use dialog::Mode;
 use host_os::PREDEFINED_SCRIPTS;
 use script::Script;
 #[cfg(windows)]
-use script::SwitchToDisplay;
+use script::SwitchToProfile;
 
 use crate::args::ParsedArgs;
 use crate::configs::Configs;
@@ -55,7 +55,7 @@ fn show_dialog(mode: Mode) -> Result<()> {
         next_boot_operating_system: state.next_boot_operating_system,
         next_windows_boot_profile: state.next_windows_boot_profile,
         #[cfg(windows)]
-        switch_display: false,
+        switch_profile: false,
         reboot_action: None,
     };
     let profile_labels =
@@ -72,11 +72,10 @@ fn show_dialog(mode: Mode) -> Result<()> {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
                 next_windows_boot_profile: Some(options.next_windows_boot_profile.into()),
                 next_windows_boot_display: None,
-                // TODO: implement it
                 #[cfg(windows)]
-                switch_to_profile: None,
+                switch_to_profile: options.switch_profile.then_some(SwitchToProfile::Other),
                 #[cfg(windows)]
-                switch_to_display: options.switch_display.then_some(SwitchToDisplay::Other),
+                switch_to_display: None,
                 reboot_action: options.reboot_action,
             };
             script.execute()

@@ -13,7 +13,7 @@ pub struct ScriptOptions {
     pub next_boot_operating_system: Option<OperatingSystem>,
     pub(crate) next_windows_boot_profile: Option<ProfileId>,
     #[cfg(windows)]
-    pub switch_display: bool,
+    pub(crate) switch_profile: bool,
     pub reboot_action: Option<RebootAction>,
 }
 
@@ -34,7 +34,7 @@ pub(crate) enum Message {
     NextBootOperatingSystem(Option<OperatingSystem>),
     NextWindowsBootProfile(Option<ProfileId>),
     #[cfg(windows)]
-    SwitchDisplay(bool),
+    SwitchProfile(bool),
     Action(Option<RebootAction>),
     Confirm,
 }
@@ -50,8 +50,8 @@ pub(crate) fn update(dialog: &mut Dialog, message: Message) -> Task<Message> {
             Task::none()
         }
         #[cfg(windows)]
-        Message::SwitchDisplay(switch) => {
-            dialog.script_options.switch_display = switch;
+        Message::SwitchProfile(switch) => {
+            dialog.script_options.switch_profile = switch;
             Task::none()
         }
         Message::Action(action) => {
@@ -152,10 +152,10 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         #[cfg(windows)]
         let widgets = add_to_option_group!(
             widgets,
-            [checkbox(dialog.script_options.switch_display)
-                .label("trocar de tela antes")
+            [checkbox(dialog.script_options.switch_profile)
+                .label("trocar de perfil antes")
                 .on_toggle(
-                    |switch| super::Message::AdvancedDialog(Message::SwitchDisplay(switch))
+                    |switch| super::Message::AdvancedDialog(Message::SwitchProfile(switch))
                 )]
         );
         add_to_option_group!(
