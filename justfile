@@ -1,13 +1,21 @@
-default: check test fmt clippy
+# Runs checks, tests, formatting, and clippy with focus on the my-reboot package
+default: cross-check test fmt clippy
+
+# Runs checks, tests, formatting, and clippy on all packages
+[windows]
+all: check test fmt clippy
+
+
+# Runs my-reboot
+run *ARGS: (my-reboot ARGS)
 
 
 # For cross-checks, the targets must be added with: rustup target add x86_64-pc-windows-gnu x86_64-unknown-linux-gnu
 # Cross-checks the my-reboot package
 [group('cross-check')]
 cross-check:
-  cargo check -p my-reboot --config "env.SKIP_WINDOWS_ICON='1'" \
-    --target x86_64-pc-windows-gnu \
-    --target x86_64-unknown-linux-gnu
+  cargo check -p my-reboot --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-pc-windows-gnu
+  cargo check -p my-reboot --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-unknown-linux-gnu
 
 
 [windows]
@@ -65,6 +73,11 @@ doc *ARGS:
     {{ARGS}}
 
 doc-open: (doc '--open')
+
+# Runs my-reboot
+[group('binary execution')]
+my-reboot *ARGS:
+  cargo run -q -p my-reboot -- {{ARGS}}
 
 # Runs the display-profile CLI
 [windows]
