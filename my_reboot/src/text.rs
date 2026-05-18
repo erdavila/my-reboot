@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 use ansi_term::ANSIString;
 use ansi_term::Color::{Blue, Green, Red};
@@ -69,34 +69,6 @@ pub(crate) mod profile {
     }
 }
 
-pub mod display {
-    use ansi_term::ANSIString;
-
-    use crate::options_types::Display;
-
-    pub const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
-        "tela a ser usada na próxima inicialização do Windows";
-
-    #[cfg(windows)]
-    pub const CURRENT: &str = "tela atual";
-
-    pub const WAS_UPDATED_TO: &str = "foi atualizada para";
-
-    pub const UNDEFINED: &str = "indefinida";
-
-    #[cfg(windows)]
-    pub mod switching {
-        pub const TO: &str = "Trocando de tela para";
-        pub const TAKING_TOO_LONG: &str = "A tela não trocou no tempo limite";
-        pub const FAILED: &str = "A troca de tela falhou";
-        pub const IS_ALREADY_CURRENT: &str = "já é a tela atual";
-    }
-
-    pub fn value_text(display: Option<Display>) -> ANSIString<'static> {
-        super::two_values_option_value_text(display, UNDEFINED)
-    }
-}
-
 pub mod reboot_action {
     pub(crate) const UNDEFINED: &str = "indefinida";
     pub const FAILED: &str = "A ação de reinicialização falhou";
@@ -132,7 +104,7 @@ fn two_values_text<T: OptionType>(
 }
 
 pub(crate) struct Capitalized<T>(pub(crate) T);
-impl<T: std::fmt::Display> std::fmt::Display for Capitalized<T> {
+impl<T: Display> Display for Capitalized<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         struct Adapter<'a, 'b> {
             inner: &'a mut std::fmt::Formatter<'b>,

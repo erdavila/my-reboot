@@ -24,7 +24,6 @@ const fn reboot_on_windows_with_profile(profile_id: ProfileId) -> Script {
     Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Windows)),
         next_windows_boot_profile: Some(SetOrUnset::Set(profile_id)),
-        next_windows_boot_display: None,
         reboot_action: Some(RebootAction::Reboot),
     }
 }
@@ -47,6 +46,7 @@ fn systemctl(arg: &str) -> Result<()> {
 pub mod configuration {
     use std::collections::HashMap;
     use std::error::Error;
+    use std::fmt::Display;
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
@@ -58,7 +58,7 @@ pub mod configuration {
 
     #[derive(Debug)]
     struct GrubEntryNotFound(OperatingSystem);
-    impl std::fmt::Display for GrubEntryNotFound {
+    impl Display for GrubEntryNotFound {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "Entrada não encontrada para {}", self.0)
         }

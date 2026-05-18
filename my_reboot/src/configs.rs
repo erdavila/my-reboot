@@ -6,8 +6,6 @@ use std::marker::PhantomData;
 #[cfg(windows)]
 use display_profile_lib::Profile;
 
-#[cfg(windows)]
-use crate::options_types::Display;
 use crate::options_types::{OperatingSystem, OptionType, ProfileId};
 use crate::properties::Properties;
 
@@ -19,10 +17,6 @@ pub struct Configs {
     #[cfg(windows)]
     profile_configs_handler: ConfigHandler<ProfileId, ProfileSerialization>,
     profile_label_handler: ConfigHandler<ProfileId>,
-    #[cfg(windows)]
-    device_id_handler: ConfigHandler<Display>,
-    #[cfg(windows)]
-    display_switch_arg_handler: ConfigHandler<Display>,
 }
 
 impl Configs {
@@ -34,13 +28,6 @@ impl Configs {
             #[cfg(windows)]
             profile_configs_handler: ConfigHandler::new("configs", OperatingSystem::Windows),
             profile_label_handler: ConfigHandler::new("label", OperatingSystem::Windows),
-            #[cfg(windows)]
-            device_id_handler: ConfigHandler::new("deviceId", OperatingSystem::Windows),
-            #[cfg(windows)]
-            display_switch_arg_handler: ConfigHandler::new(
-                "displaySwitchArg",
-                OperatingSystem::Windows,
-            ),
         })
     }
 
@@ -73,18 +60,6 @@ impl Configs {
     pub(crate) fn get_profile_label_opt(&self, profile_id: ProfileId) -> Option<&str> {
         self.profile_label_handler
             .get_value_opt(profile_id, &self.props)
-    }
-
-    #[cfg(windows)]
-    pub fn get_display_by_device_id(&self, device_id: &str) -> Display {
-        self.device_id_handler
-            .get_object_by_value(device_id, &self.props)
-    }
-
-    #[cfg(windows)]
-    pub fn get_display_switch_arg(&self, display: Display) -> &str {
-        self.display_switch_arg_handler
-            .get_value(display, &self.props)
     }
 }
 

@@ -1,11 +1,11 @@
 use std::env;
 
 use ansi_term::{ANSIString, Color};
-use anyhow::{Ok, Result};
+use anyhow::Result;
 
 #[cfg(windows)]
 use crate::options_types::OptionType as _;
-use crate::options_types::{Display, LabeledProfile, OperatingSystem, ProfileId, RebootAction};
+use crate::options_types::{LabeledProfile, OperatingSystem, ProfileId, RebootAction};
 use crate::state::StateProvider;
 use crate::{host_os, text};
 
@@ -13,11 +13,8 @@ use crate::{host_os, text};
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub(crate) next_windows_boot_profile: Option<SetOrUnset<ProfileId>>,
-    pub next_windows_boot_display: Option<SetOrUnset<Display>>,
     #[cfg(windows)]
     pub(crate) switch_to_profile: Option<SwitchToProfile>,
-    #[cfg(windows)]
-    pub switch_to_display: Option<SwitchToDisplay>,
     pub reboot_action: Option<RebootAction>,
 }
 impl Script {
@@ -25,11 +22,8 @@ impl Script {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_profile: None,
-            next_windows_boot_display: None,
             #[cfg(windows)]
             switch_to_profile: None,
-            #[cfg(windows)]
-            switch_to_display: None,
             reboot_action: None,
         }
     }
@@ -56,18 +50,9 @@ impl ScriptExecutor {
             self.apply_next_windows_boot_profile(profile_option);
         }
 
-        if let Some(display_option) = script.next_windows_boot_display {
-            self.apply_next_windows_boot_display(display_option);
-        }
-
         #[cfg(windows)]
         if let Some(switch_to) = script.switch_to_profile {
             self.apply_switch_to_profile(switch_to)?;
-        }
-
-        #[cfg(windows)]
-        if let Some(switch_to) = script.switch_to_display {
-            self.apply_switch_to_display(switch_to)?;
         }
 
         if let Some(reboot_action) = script.reboot_action {
@@ -106,17 +91,6 @@ impl ScriptExecutor {
             text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
             text::profile::WAS_UPDATED_TO,
             text::profile::next_boot_value_text,
-        );
-    }
-
-    fn apply_next_windows_boot_display(&mut self, display_option: SetOrUnset<Display>) {
-        self.apply_option(
-            &display_option,
-            |sp, &display| sp.set_next_windows_boot_display(display),
-            StateProvider::unset_next_windows_boot_display,
-            text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-            text::display::WAS_UPDATED_TO,
-            text::display::value_text,
         );
     }
 
@@ -218,66 +192,6 @@ impl ScriptExecutor {
         self.state_provider.set_current_profile(profile_id)
     }
 
-    #[cfg(windows)]
-    fn apply_switch_to_display(&mut self, switch_to: SwitchToDisplay) -> Result<()> {
-        let from_display = self.state_provider.get_current_display();
-
-        match switch_to {
-            SwitchToDisplay::Other => {
-                let to_display: Vec<_> = Display::values()
-                    .into_iter()
-                    .filter(|d| *d != from_display)
-                    .collect();
-                assert_eq!(to_display.len(), 1);
-                let to_display = to_display[0];
-
-                self.switch_display_to(to_display)?;
-            }
-            SwitchToDisplay::Display(to_display) => {
-                if to_display == from_display {
-                    println!(
-                        "{} {}",
-                        text::display::value_text(Some(to_display)),
-                        text::display::switching::IS_ALREADY_CURRENT
-                    );
-                } else {
-                    self.switch_display_to(to_display)?;
-                }
-            }
-            SwitchToDisplay::Saved => match self.state_provider.get_next_windows_boot_display() {
-                Some(to_display) => {
-                    if to_display == from_display {
-                        println!(
-                            "A {} é {}, que já é a tela atual",
-                            text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-                            text::display::value_text(Some(to_display))
-                        );
-                    } else {
-                        self.switch_display_to(to_display)?;
-                        self.state_provider.unset_next_windows_boot_display();
-                    }
-                }
-                None => println!(
-                    "A {} é {}",
-                    text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-                    text::display::value_text(None)
-                ),
-            },
-        }
-
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn switch_display_to(&self, display: Display) -> Result<()> {
-        println!(
-            "{} {}",
-            text::display::switching::TO,
-            text::display::value_text(Some(display))
-        );
-        self.state_provider.set_current_display(display)
-    }
-
     fn apply_reboot_action(reboot_action: RebootAction) -> Result<()> {
         match reboot_action {
             RebootAction::Reboot => Self::do_reboot_action(host_os::reboot, "Reiniciando"),
@@ -324,22 +238,4 @@ pub(crate) enum SwitchToProfile {
     Other,
     Profile(ProfileId),
     Saved,
-}
-
-#[cfg(windows)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum SwitchToDisplay {
-    Other,
-    Display(Display),
-    Saved,
-}
-#[cfg(windows)]
-impl std::fmt::Display for SwitchToDisplay {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SwitchToDisplay::Other => write!(f, "outra"),
-            SwitchToDisplay::Display(display) => write!(f, "{display}"),
-            SwitchToDisplay::Saved => write!(f, "salva"),
-        }
-    }
 }

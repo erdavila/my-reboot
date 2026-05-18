@@ -37,11 +37,6 @@ impl PredefinedScript {
             profile_label,
             text::profile::UNDEFINED,
         );
-        template_resolver.resolve_set_or_unset_option(
-            "next_windows_boot_display",
-            self.script.next_windows_boot_display,
-            text::display::UNDEFINED,
-        );
         #[cfg(windows)]
         template_resolver.resolve_option_with(
             "switch_to_profile",
@@ -55,12 +50,6 @@ impl PredefinedScript {
                 }
             },
             text::profile::UNDEFINED,
-        );
-        #[cfg(windows)]
-        template_resolver.resolve_option(
-            "switch_to_display",
-            self.script.switch_to_display,
-            text::display::UNDEFINED,
         );
         template_resolver.resolve_option(
             "reboot_action",

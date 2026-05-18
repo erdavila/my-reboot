@@ -77,11 +77,8 @@ fn show_dialog(mode: Mode) -> Result<()> {
             let script = Script {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
                 next_windows_boot_profile: Some(options.next_windows_boot_profile.into()),
-                next_windows_boot_display: None,
                 #[cfg(windows)]
                 switch_to_profile: options.switch_profile.then_some(SwitchToProfile::Other),
-                #[cfg(windows)]
-                switch_to_display: None,
                 reboot_action: options.reboot_action,
             };
             script.execute()
@@ -105,11 +102,6 @@ fn show_state() -> Result<()> {
     );
     println!(
         "{}: {}",
-        text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-        text::display::value_text(state.next_windows_boot_display)
-    );
-    println!(
-        "{}: {}",
         text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
         text::profile::next_boot_value_text(
             state
@@ -126,12 +118,6 @@ fn show_state() -> Result<()> {
                 .current_profile
                 .and_then(|id| LabeledProfile::get_opt(id, provider.configs()))
         )
-    );
-    #[cfg(windows)]
-    println!(
-        "{}: {}",
-        text::display::CURRENT,
-        text::display::value_text(Some(state.current_display))
     );
 
     Ok(())

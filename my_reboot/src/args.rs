@@ -2,6 +2,7 @@ mod errors;
 mod script_args;
 
 use std::env;
+use std::fmt::Display;
 
 use self::errors::ArgError;
 use crate::dialog::Mode;
@@ -83,9 +84,9 @@ impl<'a> Usage<'a> {
         }
     }
 }
-impl std::fmt::Display for Usage<'_> {
+impl Display for Usage<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fn profile_description(id: ProfileId, label: Option<&str>) -> impl std::fmt::Display {
+        fn profile_description(id: ProfileId, label: Option<&str>) -> impl Display {
             std::fmt::from_fn(move |f| match label {
                 Some(label) => write!(f, "{}", LabeledProfile::new(id, label)),
                 None => write!(f, "{id} (não configurado)"),
@@ -105,11 +106,11 @@ Usos:
   my-reboot dialog -x
     Exibe diálogo avançado.
 
-  my-reboot (SO | PERFIL | TELA | "
+  my-reboot (SO | PERFIL | "
         )?;
 
         #[cfg(windows)]
-        write!(f, "TROCA-DE-PERFIL | TROCA-DE-TELA | ")?;
+        write!(f, "TROCA-DE-PERFIL | ")?;
 
         write!(
             f,
@@ -124,11 +125,6 @@ Usos:
       profile:b - Usa o perfil {profile_b} na próxima inicialização do Windows.
       profile:unset - Deixa o Windows decidir o perfil na próxima inicialização.
 
-    TELA pode ser:
-      [display:]monitor - Usa o monitor na próxima inicialização do Windows.
-      [display:]tv - Usa a TV na próxima inicialização do Windows.
-      display:unset - Deixa o Windows decidir a tela na próxima inicialização.
-
     ",
         )?;
 
@@ -140,12 +136,6 @@ Usos:
       switch:a - Troca para o perfil {profile_a}.
       switch:b - Troca para o perfil {profile_b}.
       switch:saved - Troca para o perfil definido para ser usado na próxima inicialização do Windows.
-
-    TROCA-DE-TELA pode ser:
-      switch-display[:other] - Troca para a outra tela.
-      switch-display:monitor - Troca para o monitor.
-      switch-display:tv - Troca para a TV.
-      switch-display:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.
 
     ",
         )?;

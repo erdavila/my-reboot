@@ -8,12 +8,11 @@ use display_profile_lib::{Profile, SetProfileAction};
 use super::PredefinedScript;
 use crate::configs::Configs;
 use crate::host_os::SuccessOr;
-use crate::options_types::{Display, OperatingSystem, ProfileId, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 
 pub mod configuration;
-mod get_active_display_id;
 
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
@@ -86,57 +85,6 @@ impl<'a> CurrentProfileHandler<'a> {
             Ok(())
         } else {
             bail!(text::profile::switching::TAKING_TOO_LONG);
-        }
-    }
-}
-
-pub struct CurrentDisplayHandler<'a> {
-    configs: &'a Configs,
-}
-impl<'a> CurrentDisplayHandler<'a> {
-    const DISPLAY_SWITCH_PATH: &'static str = "DisplaySwitch.exe";
-
-    pub(crate) fn new(configs: &'a Configs) -> Self {
-        Self { configs }
-    }
-
-    fn execute_display_switch(display_switch_arg: &str, wait_seconds: u64) -> Result<bool> {
-        const PROBE_INTERVAL: Duration = Duration::from_secs(1);
-
-        let display_id_before = get_active_display_id::get_active_display_id();
-
-        Command::new(Self::DISPLAY_SWITCH_PATH)
-            .arg(display_switch_arg)
-            .status()?
-            .success_or(text::display::switching::FAILED)?;
-
-        let total_wait_time: Duration = Duration::from_secs(wait_seconds);
-        let begin = Instant::now();
-
-        while Instant::now().duration_since(begin) < total_wait_time {
-            thread::sleep(PROBE_INTERVAL);
-            if get_active_display_id::get_active_display_id() != display_id_before {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
-    }
-
-    pub(crate) fn get(&self) -> Display {
-        let device_id = get_active_display_id::get_active_display_id();
-        self.configs.get_display_by_device_id(&device_id)
-    }
-
-    pub(crate) fn switch_to(&self, display: Display) -> Result<()> {
-        const WAIT_SECONDS: u64 = 10;
-
-        let display_switch_arg = self.configs.get_display_switch_arg(display);
-        let switched = Self::execute_display_switch(display_switch_arg, WAIT_SECONDS)?;
-        if switched {
-            Ok(())
-        } else {
-            bail!(text::display::switching::TAKING_TOO_LONG);
         }
     }
 }

@@ -1,10 +1,10 @@
 use super::errors::{self, ArgError};
 #[cfg(windows)]
-use crate::options_types::{Display, ProfileId};
+use crate::options_types::ProfileId;
 use crate::options_types::{OptionType, RebootAction};
-use crate::script::{Script, SetOrUnset};
 #[cfg(windows)]
-use crate::script::{SwitchToDisplay, SwitchToProfile};
+use crate::script::SwitchToProfile;
+use crate::script::{Script, SetOrUnset};
 use crate::text;
 
 pub fn parse(
@@ -37,17 +37,8 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
         return Ok(true);
     }
 
-    if parse_next_windows_boot_display(arg, script)? {
-        return Ok(true);
-    }
-
     #[cfg(windows)]
     if parse_switch_to_profile(arg, script)? {
-        return Ok(true);
-    }
-
-    #[cfg(windows)]
-    if parse_switch_to_display(arg, script)? {
         return Ok(true);
     }
 
@@ -73,15 +64,6 @@ fn parse_next_windows_boot_profile(arg: &str, script: &mut Script) -> Result<boo
         &mut script.next_windows_boot_profile,
         "profile:",
         text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-    )
-}
-
-fn parse_next_windows_boot_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    parse_boot_option(
-        arg,
-        &mut script.next_windows_boot_display,
-        "display:",
-        text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
     )
 }
 
@@ -131,22 +113,6 @@ fn parse_switch_to_profile(arg: &str, script: &mut Script) -> Result<bool, ArgEr
     )
 }
 
-#[cfg(windows)]
-fn parse_switch_to_display(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let option = match arg.strip_prefix("switch-display:") {
-        Some("saved") => SwitchToDisplay::Saved,
-        Some("other") => SwitchToDisplay::Other,
-        Some(string) => match Display::from_option_string(string) {
-            Some(display) => SwitchToDisplay::Display(display),
-            None => return errors::unknown_argument_error(arg),
-        },
-        None if arg == "switch-display" => SwitchToDisplay::Other,
-        None => return Ok(false),
-    };
-
-    set_if_none(&mut script.switch_to_display, option, arg, "troca de tela")
-}
-
 fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     let Some(option) = RebootAction::from_option_string(arg) else {
         return Ok(false);
@@ -183,7 +149,7 @@ mod tests {
     use SetOrUnset::*;
 
     use super::*;
-    use crate::options_types::{Display, OperatingSystem, ProfileId};
+    use crate::options_types::{OperatingSystem, ProfileId};
 
     #[test]
     fn test_parse() {
@@ -213,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiple_args() {
-        let arg = "display:monitor";
+        let arg = "profile:a";
         let mut args = ["os:windows".to_string()].into_iter();
 
         let result = parse(arg, &mut args);
@@ -224,10 +190,7 @@ mod tests {
             script.next_boot_operating_system,
             Some(Set(OperatingSystem::Windows))
         );
-        assert_eq!(
-            script.next_windows_boot_display,
-            Some(Set(Display::Monitor))
-        );
+        assert_eq!(script.next_windows_boot_profile, Some(Set(ProfileId::A)));
     }
 
     #[test]
@@ -266,20 +229,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_single_display() {
-        let mut script = Script::new();
-
-        let result = parse_single("display:monitor", &mut script);
-
-        let success = result.expect("result should be Ok(_)");
-        assert!(success);
-        assert_eq!(
-            script.next_windows_boot_display,
-            Some(Set(Display::Monitor))
-        );
-    }
-
-    #[test]
     #[cfg(windows)]
     fn test_parse_single_switch_to_profile() {
         let mut script = Script::new();
@@ -291,21 +240,6 @@ mod tests {
         assert_eq!(
             script.switch_to_profile,
             Some(SwitchToProfile::Profile(ProfileId::A))
-        );
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_parse_single_switch_to_display() {
-        let mut script = Script::new();
-
-        let result = parse_single("switch-display:monitor", &mut script);
-
-        let success = result.expect("result should be Ok(_)");
-        assert!(success);
-        assert_eq!(
-            script.switch_to_display,
-            Some(SwitchToDisplay::Display(Display::Monitor))
         );
     }
 
@@ -334,7 +268,7 @@ mod tests {
     fn test_parse_single_invalid() {
         let mut script = Script::new();
 
-        let result = parse_single("display:blah", &mut script);
+        let result = parse_single("profile:blah", &mut script);
 
         assert!(result.is_err());
     }
@@ -436,55 +370,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_next_windows_boot_display() {
-        let cases = [
-            ("display:monitor", Set(Display::Monitor)),
-            ("monitor", Set(Display::Monitor)),
-            ("display:tv", Set(Display::TV)),
-            ("tv", Set(Display::TV)),
-            ("display:unset", Unset),
-        ];
-
-        for (arg, expected) in cases {
-            let mut script = Script::new();
-
-            let result = parse_next_windows_boot_display(arg, &mut script);
-
-            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
-            assert_eq!(script.next_windows_boot_display, Some(expected));
-        }
-    }
-
-    #[test]
-    fn test_parse_next_windows_boot_display_invalid() {
-        let mut script = Script::new();
-
-        let result = parse_next_windows_boot_display("display:blah", &mut script);
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_parse_next_windows_boot_display_not_display_arg() {
-        let mut script = Script::new();
-        let arg = "blah".to_string();
-
-        let result = parse_next_windows_boot_display(&arg, &mut script);
-
-        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
-    }
-
-    #[test]
-    fn test_parse_next_windows_boot_display_already_set() {
-        let mut script = Script::new();
-        script.next_windows_boot_display = Some(Unset);
-
-        let result = parse_next_windows_boot_display("display:monitor", &mut script);
-
-        assert!(result.is_err());
-    }
-
-    #[test]
     #[cfg(windows)]
     fn test_parse_switch_to_profile() {
         let cases = [
@@ -533,62 +418,6 @@ mod tests {
         script.switch_to_profile = Some(SwitchToProfile::Other);
 
         let result = parse_switch_to_profile("switch:saved", &mut script);
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_parse_switch_to_display() {
-        let cases = [
-            ("switch-display", SwitchToDisplay::Other),
-            ("switch-display:other", SwitchToDisplay::Other),
-            (
-                "switch-display:monitor",
-                SwitchToDisplay::Display(Display::Monitor),
-            ),
-            ("switch-display:tv", SwitchToDisplay::Display(Display::TV)),
-            ("switch-display:saved", SwitchToDisplay::Saved),
-        ];
-
-        for (arg, expected) in cases {
-            let mut script = Script::new();
-
-            let result = parse_switch_to_display(arg, &mut script);
-
-            assert_eq!(result, Ok(true), "Result for argument \"{arg}\"");
-            assert_eq!(script.switch_to_display, Some(expected));
-        }
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_parse_switch_to_display_invalid() {
-        let mut script = Script::new();
-
-        let result = parse_switch_to_display("switch-display:blah", &mut script);
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_parse_switch_to_display_no_switch_arg() {
-        let mut script = Script::new();
-        let arg = "blah";
-
-        let result = parse_switch_to_display(arg, &mut script);
-
-        assert_eq!(result, Ok(false), "Result for argument \"{arg}\"");
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn test_parse_switch_to_display_already_set() {
-        let mut script = Script::new();
-        script.switch_to_display = Some(SwitchToDisplay::Other);
-
-        let result = parse_switch_to_display("switch-display:saved", &mut script);
 
         assert!(result.is_err());
     }

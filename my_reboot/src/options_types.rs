@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::configs::Configs;
 
 pub trait OptionType: Copy + Eq {
@@ -34,7 +36,7 @@ impl OptionType for OperatingSystem {
         }
     }
 }
-impl std::fmt::Display for OperatingSystem {
+impl Display for OperatingSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -72,7 +74,7 @@ impl OptionType for ProfileId {
         }
     }
 }
-impl std::fmt::Display for ProfileId {
+impl Display for ProfileId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -109,39 +111,9 @@ impl<'a> LabeledProfile<'a> {
         self.profile_id
     }
 }
-impl std::fmt::Display for LabeledProfile<'_> {
+impl Display for LabeledProfile<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\"{}\" ({})", self.label, self.profile_id)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Display {
-    Monitor,
-    TV,
-}
-impl OptionType for Display {
-    fn values() -> [Self; 2] {
-        [Display::Monitor, Display::TV]
-    }
-
-    fn to_option_string(&self) -> &str {
-        match self {
-            Display::Monitor => "monitor",
-            Display::TV => "tv",
-        }
-    }
-}
-impl std::fmt::Display for Display {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Display::Monitor => "monitor",
-                Display::TV => "TV",
-            }
-        )
     }
 }
 
@@ -162,7 +134,7 @@ impl OptionType for RebootAction {
         }
     }
 }
-impl std::fmt::Display for RebootAction {
+impl Display for RebootAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
