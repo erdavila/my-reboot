@@ -3,7 +3,7 @@ use std::process::Command;
 use anyhow::Result;
 
 use super::{PredefinedScript, SuccessOr};
-use crate::options_types::{Display, OperatingSystem, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 
@@ -11,19 +11,19 @@ pub const STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
 
 pub const PREDEFINED_SCRIPTS: [PredefinedScript; 2] = [
     PredefinedScript {
-        button_label: "Reiniciar no Windows usando o monitor",
-        script: reboot_on_windows_with_display(Display::Monitor),
+        button_label_template: "{reboot_action} no {next_boot_operating_system} usando o perfil {next_windows_boot_profile}",
+        script: reboot_on_windows_with_profile(ProfileId::A),
     },
     PredefinedScript {
-        button_label: "Reiniciar no Windows usando a TV",
-        script: reboot_on_windows_with_display(Display::TV),
+        button_label_template: "{reboot_action} no {next_boot_operating_system} usando o perfil {next_windows_boot_profile}",
+        script: reboot_on_windows_with_profile(ProfileId::B),
     },
 ];
 
-const fn reboot_on_windows_with_display(display: Display) -> Script {
+const fn reboot_on_windows_with_profile(profile_id: ProfileId) -> Script {
     Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Windows)),
-        next_windows_boot_display: Some(SetOrUnset::Set(display)),
+        next_windows_boot_profile: Some(SetOrUnset::Set(profile_id)),
         reboot_action: Some(RebootAction::Reboot),
     }
 }
@@ -46,6 +46,7 @@ fn systemctl(arg: &str) -> Result<()> {
 pub mod configuration {
     use std::collections::HashMap;
     use std::error::Error;
+    use std::fmt::Display;
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
@@ -57,7 +58,7 @@ pub mod configuration {
 
     #[derive(Debug)]
     struct GrubEntryNotFound(OperatingSystem);
-    impl std::fmt::Display for GrubEntryNotFound {
+    impl Display for GrubEntryNotFound {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "Entrada não encontrada para {}", self.0)
         }

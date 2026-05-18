@@ -1,3 +1,7 @@
+use std::fmt::Display;
+
+use crate::configs::Configs;
+
 pub trait OptionType: Copy + Eq {
     // We're assuming that all options have only two possible values.
     fn values() -> [Self; 2];
@@ -8,6 +12,10 @@ pub trait OptionType: Copy + Eq {
         Self::values()
             .into_iter()
             .find(|v| v.to_option_string() == option_string)
+    }
+
+    fn from_arg_string(arg_string: &str) -> Option<Self> {
+        Self::from_option_string(arg_string)
     }
 }
 
@@ -28,7 +36,7 @@ impl OptionType for OperatingSystem {
         }
     }
 }
-impl std::fmt::Display for OperatingSystem {
+impl Display for OperatingSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -42,32 +50,70 @@ impl std::fmt::Display for OperatingSystem {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Display {
-    Monitor,
-    TV,
+pub(crate) enum ProfileId {
+    A,
+    B,
 }
-impl OptionType for Display {
+impl OptionType for ProfileId {
     fn values() -> [Self; 2] {
-        [Display::Monitor, Display::TV]
+        [Self::A, Self::B]
     }
 
     fn to_option_string(&self) -> &str {
         match self {
-            Display::Monitor => "monitor",
-            Display::TV => "tv",
+            ProfileId::A => "profile-a",
+            ProfileId::B => "profile-b",
+        }
+    }
+
+    fn from_arg_string(arg_string: &str) -> Option<Self> {
+        match arg_string {
+            "a" => Some(ProfileId::A),
+            "b" => Some(ProfileId::B),
+            _ => None,
         }
     }
 }
-impl std::fmt::Display for Display {
+impl Display for ProfileId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Display::Monitor => "monitor",
-                Display::TV => "TV",
+                ProfileId::A => "A",
+                ProfileId::B => "B",
             }
         )
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct LabeledProfile<'a> {
+    profile_id: ProfileId,
+    label: &'a str,
+}
+impl<'a> LabeledProfile<'a> {
+    pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Self {
+        let label = configs.get_profile_label(profile_id);
+        Self::new(profile_id, label)
+    }
+
+    pub(crate) fn get_opt(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
+        let label = configs.get_profile_label_opt(profile_id);
+        label.map(|label| Self::new(profile_id, label))
+    }
+
+    pub(crate) fn new(profile_id: ProfileId, label: &'a str) -> Self {
+        Self { profile_id, label }
+    }
+
+    pub(crate) fn profile_id(&self) -> ProfileId {
+        self.profile_id
+    }
+}
+impl Display for LabeledProfile<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\" ({})", self.label, self.profile_id)
     }
 }
 
@@ -86,5 +132,17 @@ impl OptionType for RebootAction {
             RebootAction::Reboot => "reboot",
             RebootAction::Shutdown => "shutdown",
         }
+    }
+}
+impl Display for RebootAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                RebootAction::Reboot => "reiniciar".to_string(),
+                RebootAction::Shutdown => "desligar".to_string(),
+            }
+        )
     }
 }

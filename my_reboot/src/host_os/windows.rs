@@ -3,21 +3,21 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
+use display_profile_lib::{Profile, SetProfileAction};
 
 use super::PredefinedScript;
 use crate::configs::Configs;
 use crate::host_os::SuccessOr;
-use crate::options_types::{Display, OperatingSystem, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 
 pub mod configuration;
-mod get_active_display_id;
 
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
 pub const PREDEFINED_SCRIPTS: [PredefinedScript; 1] = [PredefinedScript {
-    button_label: "Reiniciar no Linux",
+    button_label_template: "{reboot_action} no {next_boot_operating_system}",
     script: Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Linux)),
         reboot_action: Some(RebootAction::Reboot),
@@ -41,32 +41,27 @@ fn shutdown_now(arg: &str) -> Result<()> {
         .success_or(text::reboot_action::FAILED)
 }
 
-pub struct CurrentDisplayHandler<'a> {
+pub(crate) struct CurrentProfileHandler<'a> {
     configs: &'a Configs,
 }
-impl<'a> CurrentDisplayHandler<'a> {
-    const DISPLAY_SWITCH_PATH: &'static str = "DisplaySwitch.exe";
-
+impl<'a> CurrentProfileHandler<'a> {
     pub(crate) fn new(configs: &'a Configs) -> Self {
         Self { configs }
     }
 
-    fn execute_display_switch(display_switch_arg: &str, wait_seconds: u64) -> Result<bool> {
+    fn execute_profile_switch(profile: &Profile, wait_seconds: u64) -> Result<bool> {
         const PROBE_INTERVAL: Duration = Duration::from_secs(1);
 
-        let display_id_before = get_active_display_id::get_active_display_id();
+        let profile_before = display_profile_lib::get_profile()?;
 
-        Command::new(Self::DISPLAY_SWITCH_PATH)
-            .arg(display_switch_arg)
-            .status()?
-            .success_or(text::display::switching::FAILED)?;
+        display_profile_lib::set_profile(profile, SetProfileAction::Apply)?;
 
         let total_wait_time: Duration = Duration::from_secs(wait_seconds);
         let begin = Instant::now();
 
         while Instant::now().duration_since(begin) < total_wait_time {
             thread::sleep(PROBE_INTERVAL);
-            if get_active_display_id::get_active_display_id() != display_id_before {
+            if display_profile_lib::get_profile()? != profile_before {
                 return Ok(true);
             }
         }
@@ -74,20 +69,22 @@ impl<'a> CurrentDisplayHandler<'a> {
         Ok(false)
     }
 
-    pub(crate) fn get(&self) -> Display {
-        let device_id = get_active_display_id::get_active_display_id();
-        self.configs.get_display_by_device_id(&device_id)
+    pub(crate) fn get(&self) -> Result<Option<ProfileId>> {
+        let profile = display_profile_lib::get_profile()?;
+        let profile_id = self.configs.get_profile_id(&profile);
+        Ok(profile_id)
     }
 
-    pub(crate) fn switch_to(&self, display: Display) -> Result<()> {
+    pub(crate) fn switch_to(&self, profile_id: ProfileId) -> Result<()> {
         const WAIT_SECONDS: u64 = 10;
 
-        let display_switch_arg = self.configs.get_display_switch_arg(display);
-        let switched = Self::execute_display_switch(&display_switch_arg, WAIT_SECONDS)?;
+        let profile = self.configs.get_profile_by_id(profile_id);
+
+        let switched = Self::execute_profile_switch(&profile, WAIT_SECONDS)?;
         if switched {
             Ok(())
         } else {
-            bail!(text::display::switching::TAKING_TOO_LONG);
+            bail!(text::profile::switching::TAKING_TOO_LONG);
         }
     }
 }

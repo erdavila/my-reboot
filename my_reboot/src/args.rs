@@ -2,24 +2,19 @@ mod errors;
 mod script_args;
 
 use std::env;
+use std::fmt::Display;
 
 use self::errors::ArgError;
 use crate::dialog::Mode;
 use crate::host_os::PREDEFINED_SCRIPTS;
-#[cfg(windows)]
-use crate::options_types::Display;
+use crate::options_types::{LabeledProfile, ProfileId};
 use crate::script::Script;
 
 pub enum ParsedArgs {
     Dialog(Mode),
     ShowState,
     Script(Script),
-    #[cfg(not(windows))]
     Configure,
-    #[cfg(windows)]
-    Configure {
-        initial_display: Option<Display>,
-    },
     Usage,
 }
 
@@ -38,13 +33,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
                 let index = parse_script_args(&mut args)?;
                 ParsedArgs::Script(PREDEFINED_SCRIPTS[index].script)
             }
-            #[cfg(not(windows))]
             "configure" => ParsedArgs::Configure,
-            #[cfg(windows)]
-            "configure" => {
-                let initial_display = parse_configure_args(&mut args)?;
-                ParsedArgs::Configure { initial_display }
-            }
             "-h" | "--help" => ParsedArgs::Usage,
             _ => match script_args::parse(&arg, &mut args)? {
                 Some(script) => ParsedArgs::Script(script),
@@ -82,25 +71,34 @@ fn parse_script_args(args: &mut env::Args) -> Result<usize, ArgError> {
     }
 }
 
-#[cfg(windows)]
-fn parse_configure_args(args: &mut env::Args) -> Result<Option<Display>, ArgError> {
-    use crate::options_types::OptionType;
-
-    if let Some(arg) = args.next() {
-        let display = Display::values()
-            .into_iter()
-            .find(|display| display.to_option_string() == arg);
-        if display.is_some() {
-            Ok(display)
-        } else {
-            errors::unknown_argument_error(&arg)
+pub(crate) struct Usage<'a> {
+    profile_a_label: Option<&'a str>,
+    profile_b_label: Option<&'a str>,
+}
+impl<'a> Usage<'a> {
+    #[expect(clippy::similar_names)]
+    pub(crate) fn new(profile_a_label: Option<&'a str>, profile_b_label: Option<&'a str>) -> Self {
+        Self {
+            profile_a_label,
+            profile_b_label,
         }
-    } else {
-        Ok(None)
     }
 }
+impl Display for Usage<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn profile_description(id: ProfileId, label: Option<&str>) -> impl Display {
+            std::fmt::from_fn(move |f| match label {
+                Some(label) => write!(f, "{}", LabeledProfile::new(id, label)),
+                None => write!(f, "{id} (não configurado)"),
+            })
+        }
 
-pub const USAGE: &str = "\
+        let profile_a = profile_description(ProfileId::A, self.profile_a_label);
+        let profile_b = profile_description(ProfileId::B, self.profile_b_label);
+
+        write!(
+            f,
+            "\
 Usos:
   my-reboot [dialog]
     Exibe diálogo básico.
@@ -108,24 +106,43 @@ Usos:
   my-reboot dialog -x
     Exibe diálogo avançado.
 
-  my-reboot (SO | TELA | TROCA-DE-TELA | AÇÃO)+
-    SO poder ser:
+  my-reboot (SO | PERFIL | "
+        )?;
+
+        #[cfg(windows)]
+        write!(f, "TROCA-DE-PERFIL | ")?;
+
+        write!(
+            f,
+            "AÇÃO)+
+    SO pode ser:
       [os:]windows - Inicia Windows na próxima inicialização do computador.
       [os:]linux - Inicia Linux na próxima inicialização do computador.
       os:unset - Deixa o Grub decidir o S.O. na próxima inicialização do computador.
 
-    TELA poder ser:
-      [display:]monitor - Usa o monitor na próxima inicialização do Windows.
-      [display:]tv - Usa a TV na próxima inicialização do Windows.
-      display:unset - Deixa o Windows decidir a tela na próxima inicialização do Windows.
+    PERFIL pode ser:
+      profile:a - Usa o perfil {profile_a} na próxima inicialização do Windows.
+      profile:b - Usa o perfil {profile_b} na próxima inicialização do Windows.
+      profile:unset - Deixa o Windows decidir o perfil na próxima inicialização.
 
-    TROCA-DE-TELA poder ser (somente no Windows):
-      switch[:other] - Troca para a outra tela.
-      switch:monitor - Troca para o monitor.
-      switch:tv - Troca para a TV.
-      switch:saved - Troca para a tela definida para ser usada na próxima inicialização do Windows.
+    ",
+        )?;
 
-    AÇÃO poder ser:
+        #[cfg(windows)]
+        write!(
+            f,
+            "TROCA-DE-PERFIL pode ser:
+      switch[:other] - Troca para o outro perfil.
+      switch:a - Troca para o perfil {profile_a}.
+      switch:b - Troca para o perfil {profile_b}.
+      switch:saved - Troca para o perfil definido para ser usado na próxima inicialização do Windows.
+
+    ",
+        )?;
+
+        write!(
+            f,
+            "AÇÃO pode ser:
       reboot - Reinicia o computador.
       shutdown - Desliga o computador.
 
@@ -139,4 +156,7 @@ Usos:
     Configura. Deve ser executado no Linux e no Windows ao menos uma vez.
 
   my-reboot -h|--help
-    Exibe este conteúdo.";
+    Exibe este conteúdo."
+        )
+    }
+}

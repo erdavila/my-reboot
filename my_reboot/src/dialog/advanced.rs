@@ -5,15 +5,15 @@ use iced::widget::{button, column, container, radio, row, space, text};
 use iced::{Padding, Size, Task, Theme, font};
 
 use super::{Dialog, Outcome};
-use crate::options_types::{Display, OperatingSystem, OptionType, RebootAction};
+use crate::options_types::{OperatingSystem, OptionType, ProfileId, RebootAction};
 use crate::text::Capitalized;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScriptOptions {
     pub next_boot_operating_system: Option<OperatingSystem>,
-    pub next_windows_boot_display: Option<Display>,
+    pub(crate) next_windows_boot_profile: Option<ProfileId>,
     #[cfg(windows)]
-    pub switch_display: bool,
+    pub(crate) switch_profile: bool,
     pub reboot_action: Option<RebootAction>,
 }
 
@@ -32,9 +32,9 @@ pub(crate) fn window_size() -> Size {
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Message {
     NextBootOperatingSystem(Option<OperatingSystem>),
-    NextWindowsBootDisplay(Option<Display>),
+    NextWindowsBootProfile(Option<ProfileId>),
     #[cfg(windows)]
-    SwitchDisplay(bool),
+    SwitchProfile(bool),
     Action(Option<RebootAction>),
     Confirm,
 }
@@ -45,13 +45,13 @@ pub(crate) fn update(dialog: &mut Dialog, message: Message) -> Task<Message> {
             dialog.script_options.next_boot_operating_system = os;
             Task::none()
         }
-        Message::NextWindowsBootDisplay(display) => {
-            dialog.script_options.next_windows_boot_display = display;
+        Message::NextWindowsBootProfile(profile_id) => {
+            dialog.script_options.next_windows_boot_profile = profile_id;
             Task::none()
         }
         #[cfg(windows)]
-        Message::SwitchDisplay(switch) => {
-            dialog.script_options.switch_display = switch;
+        Message::SwitchProfile(switch) => {
+            dialog.script_options.switch_profile = switch;
             Task::none()
         }
         Message::Action(action) => {
@@ -126,18 +126,23 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         )
     };
 
-    let next_win_boot_display_widgets = {
+    let next_win_boot_profile_widgets = {
         let widgets = create_option_group!(
-            Capitalized(crate::text::display::ON_NEXT_WINDOWS_BOOT_DESCRIPTION).to_string()
+            Capitalized(crate::text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION).to_string()
         );
         add_to_option_group!(
             widgets,
             option_radios!(
-                Display;
-                dialog.script_options.next_windows_boot_display,
-                |op: Display| op.to_string(),
-                crate::text::display::UNDEFINED,
-                |display| super::Message::AdvancedDialog(Message::NextWindowsBootDisplay(display)),
+                ProfileId;
+                dialog.script_options.next_windows_boot_profile,
+                |op: ProfileId| {
+                    match op {
+                        ProfileId::A => dialog.profile_labels[0].clone(),
+                        ProfileId::B => dialog.profile_labels[1].clone(),
+                    }
+                },
+                crate::text::profile::UNDEFINED,
+                |profile_id| super::Message::AdvancedDialog(Message::NextWindowsBootProfile(profile_id)),
             )
         )
     };
@@ -147,10 +152,10 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         #[cfg(windows)]
         let widgets = add_to_option_group!(
             widgets,
-            [checkbox(dialog.script_options.switch_display)
-                .label("trocar de tela antes")
+            [checkbox(dialog.script_options.switch_profile)
+                .label("trocar de perfil antes")
                 .on_toggle(
-                    |switch| super::Message::AdvancedDialog(Message::SwitchDisplay(switch))
+                    |switch| super::Message::AdvancedDialog(Message::SwitchProfile(switch))
                 )]
         );
         add_to_option_group!(
@@ -158,10 +163,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
             option_radios!(
                 RebootAction;
                 dialog.script_options.reboot_action,
-                |op| match op {
-                    RebootAction::Reboot => "reiniciar".to_string(),
-                    RebootAction::Shutdown => "desligar".to_string(),
-                },
+                |op: RebootAction| op.to_string(),
                 "continuar usando",
                 |action| super::Message::AdvancedDialog(Message::Action(action)),
             )
@@ -170,7 +172,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
 
     column![
         next_boot_os_widgets,
-        next_win_boot_display_widgets,
+        next_win_boot_profile_widgets,
         reboot_action_widgets,
         row![
             button("OK")

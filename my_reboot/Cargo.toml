@@ -15,13 +15,16 @@ edition = "2024"
 ansi_term.workspace = true
 anyhow.workspace = true
 iced = { workspace = true, features = [ "image" ] }
+serde_json.workspace = true
 
 [target."cfg(not(windows))".dependencies]
 regex.workspace = true
 
 [target."cfg(windows)".dependencies]
-enum_display_devices.workspace = true
-is_windows_11_or_greater.workspace = true
+display-profile-lib = { workspace = true, features = [ "serde" ]}
+open.workspace = true
+rustyline.workspace = true
+windows = { workspace = true, features = [ "Win32_System_Console", "Win32_UI_WindowsAndMessaging" ] }
 
 [target.'cfg(windows)'.build-dependencies]
 winres.workspace = true

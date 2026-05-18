@@ -7,4 +7,5 @@ Set WshShell = WScript.CreateObject("WScript.Shell")
 Set oLink = WshShell.CreateShortcut(WshShell.ExpandEnvironmentStrings("%UserProfile%") + "\Desktop\My Reboot.lnk")
 oLink.TargetPath = MyRebootPath
 oLink.Description = "My Reboot"
+oLink.WindowStyle = 7 'Minimized
 oLink.Save

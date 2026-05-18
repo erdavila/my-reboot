@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 use ansi_term::ANSIString;
 use ansi_term::Color::{Blue, Green, Red};
@@ -22,44 +22,72 @@ pub mod operating_system {
     }
 }
 
-pub mod display {
+pub(crate) mod profile {
     use ansi_term::ANSIString;
 
-    use crate::options_types::Display;
+    use crate::options_types::LabeledProfile;
 
-    pub const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
-        "tela a ser usada na próxima inicialização do Windows";
+    pub(crate) const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
+        "perfil a ser usado na próxima inicialização do Windows";
 
-    #[cfg(windows)]
-    pub const CURRENT: &str = "tela atual";
-
-    pub const WAS_UPDATED_TO: &str = "foi atualizada para";
-
-    pub const UNDEFINED: &str = "indefinida";
+    pub(crate) const WAS_UPDATED_TO: &str = "foi atualizado para";
 
     #[cfg(windows)]
-    pub mod switching {
-        pub const TO: &str = "Trocando de tela para";
-        pub const TAKING_TOO_LONG: &str = "A tela não trocou no tempo limite";
-        pub const FAILED: &str = "A troca de tela falhou";
-        pub const IS_ALREADY_CURRENT: &str = "já é a tela atual";
+    pub(crate) const CURRENT: &str = "perfil atual";
+
+    pub(crate) const UNDEFINED: &str = "indefinido";
+
+    #[cfg(windows)]
+    const UNRECOGNIZED: &str = "não reconhecido";
+
+    #[cfg(windows)]
+    pub(crate) mod switching {
+        pub(crate) const TO: &str = "Trocando de perfil para";
+        pub(crate) const TAKING_TOO_LONG: &str = "O perfil não trocou no tempo limite";
+        pub(crate) const IS_ALREADY_CURRENT: &str = "já é o perfil atual";
     }
 
-    pub fn value_text(display: Option<Display>) -> ANSIString<'static> {
-        super::two_values_option_value_text(display, UNDEFINED)
+    pub(crate) fn next_boot_value_text(
+        labeled_profile: Option<LabeledProfile>,
+    ) -> ANSIString<'static> {
+        value_text(labeled_profile, UNDEFINED)
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn current_value_text(
+        labeled_profile: Option<LabeledProfile>,
+    ) -> ANSIString<'static> {
+        value_text(labeled_profile, UNRECOGNIZED)
+    }
+
+    fn value_text(
+        labeled_profile: Option<LabeledProfile>,
+        undefined_text: &str,
+    ) -> ANSIString<'static> {
+        let profile_label = labeled_profile.map(|lp| (lp.profile_id(), lp.to_string()));
+        super::two_values_text(profile_label, undefined_text)
     }
 }
 
 pub mod reboot_action {
+    pub(crate) const UNDEFINED: &str = "indefinida";
     pub const FAILED: &str = "A ação de reinicialização falhou";
 }
 
-fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
+fn two_values_option_value_text<T: OptionType + ToString>(
     current_value: Option<T>,
     undefined_text: &str,
 ) -> ANSIString<'static> {
+    let current_value = current_value.map(|value| (value, value.to_string()));
+    two_values_text(current_value, undefined_text)
+}
+
+fn two_values_text<T: OptionType>(
+    current_value: Option<(T, String)>,
+    undefined_text: &str,
+) -> ANSIString<'static> {
     let (color, text) = match current_value {
-        Some(current_value) => {
+        Some((current_value, text)) => {
             let [value1, value2] = T::values();
             let color = if current_value == value1 {
                 Blue
@@ -68,7 +96,7 @@ fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
             } else {
                 unimplemented!()
             };
-            (color, current_value.to_string())
+            (color, text)
         }
         None => (Red, undefined_text.to_string()),
     };
@@ -76,7 +104,7 @@ fn two_values_option_value_text<T: OptionType + PartialEq + ToString>(
 }
 
 pub(crate) struct Capitalized<T>(pub(crate) T);
-impl<T: std::fmt::Display> std::fmt::Display for Capitalized<T> {
+impl<T: Display> Display for Capitalized<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         struct Adapter<'a, 'b> {
             inner: &'a mut std::fmt::Formatter<'b>,
