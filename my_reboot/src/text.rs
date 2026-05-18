@@ -98,6 +98,7 @@ pub mod display {
 }
 
 pub mod reboot_action {
+    pub(crate) const UNDEFINED: &str = "indefinida";
     pub const FAILED: &str = "A ação de reinicialização falhou";
 }
 

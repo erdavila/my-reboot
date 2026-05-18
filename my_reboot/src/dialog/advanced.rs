@@ -163,10 +163,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
             option_radios!(
                 RebootAction;
                 dialog.script_options.reboot_action,
-                |op| match op {
-                    RebootAction::Reboot => "reiniciar".to_string(),
-                    RebootAction::Shutdown => "desligar".to_string(),
-                },
+                |op: RebootAction| op.to_string(),
                 "continuar usando",
                 |action| super::Message::AdvancedDialog(Message::Action(action)),
             )

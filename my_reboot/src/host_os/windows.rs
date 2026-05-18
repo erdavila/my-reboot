@@ -18,7 +18,7 @@ mod get_active_display_id;
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
 pub const PREDEFINED_SCRIPTS: [PredefinedScript; 1] = [PredefinedScript {
-    button_label: "Reiniciar no Linux",
+    button_label_template: "{reboot_action} no {next_boot_operating_system}",
     script: Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Linux)),
         reboot_action: Some(RebootAction::Reboot),

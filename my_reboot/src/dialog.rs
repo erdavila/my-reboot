@@ -35,7 +35,7 @@ pub enum Outcome {
 
 pub fn show(
     initial_mode: Mode,
-    predefined_script_labels: Vec<&'static str>,
+    predefined_script_labels: Vec<String>,
     initial_script_options: ScriptOptions,
     profile_labels: [String; 2],
 ) -> Result<Option<Outcome>> {
@@ -95,7 +95,7 @@ enum Message {
 
 struct Dialog {
     mode: Mode,
-    predefined_script_labels: Vec<&'static str>,
+    predefined_script_labels: Vec<String>,
     script_options: ScriptOptions,
     profile_labels: [String; 2],
     outcome: Rc<Cell<Option<Outcome>>>,

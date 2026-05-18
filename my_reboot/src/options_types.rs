@@ -162,3 +162,15 @@ impl OptionType for RebootAction {
         }
     }
 }
+impl std::fmt::Display for RebootAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                RebootAction::Reboot => "reiniciar".to_string(),
+                RebootAction::Shutdown => "desligar".to_string(),
+            }
+        )
+    }
+}

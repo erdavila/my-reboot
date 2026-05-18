@@ -44,12 +44,13 @@ fn main() -> Result<()> {
 }
 
 fn show_dialog(mode: Mode) -> Result<()> {
+    let provider = StateProvider::new()?;
+
     let labels: Vec<_> = PREDEFINED_SCRIPTS
         .iter()
-        .map(|ps| ps.button_label)
+        .map(|ps| ps.resolve_label(provider.configs()))
         .collect();
 
-    let provider = StateProvider::new()?;
     let state = provider.get_state()?;
     let script_options = dialog::ScriptOptions {
         next_boot_operating_system: state.next_boot_operating_system,

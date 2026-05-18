@@ -3,7 +3,7 @@ use iced::{Fill, Size, Task, Theme};
 
 use super::{Dialog, Outcome};
 
-const WINDOW_WIDTH: f32 = 350.0;
+const WINDOW_WIDTH: f32 = 500.0;
 const PADDING: f32 = 12.0;
 const BUTTON_HEIGHT: f32 = 32.0;
 #[cfg(windows)]
@@ -38,7 +38,7 @@ pub(crate) fn view(dialog: &Dialog) -> iced::Element<'_, super::Message, Theme, 
         .iter()
         .enumerate()
         .fold(column![], |column, (index, label)| {
-            let button = button(*label)
+            let button = button(label.as_str())
                 .on_press(super::Message::BasicDialog(Message::Confirm(index)))
                 .height(BUTTON_HEIGHT)
                 .width(WINDOW_WIDTH - 2.0 * PADDING);

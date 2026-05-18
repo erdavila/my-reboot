@@ -302,7 +302,7 @@ pub enum SetOrUnset<T> {
     Unset,
 }
 impl<T: Copy> SetOrUnset<T> {
-    fn to_option(self) -> Option<T> {
+    pub(crate) fn to_option(self) -> Option<T> {
         match self {
             SetOrUnset::Set(value) => Some(value),
             SetOrUnset::Unset => None,
@@ -332,4 +332,14 @@ pub enum SwitchToDisplay {
     Other,
     Display(Display),
     Saved,
+}
+#[cfg(windows)]
+impl std::fmt::Display for SwitchToDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SwitchToDisplay::Other => write!(f, "outra"),
+            SwitchToDisplay::Display(display) => write!(f, "{display}"),
+            SwitchToDisplay::Saved => write!(f, "salva"),
+        }
+    }
 }
