@@ -857,13 +857,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "869b0adbda23651a9c5c0c3d270aac9fcb52e8622a8f2b17e57802d7791962f2"
 
 [[package]]
-name = "enum_display_devices"
-version = "0.1.0"
-dependencies = [
- "windows 0.62.2",
-]
-
-[[package]]
 name = "enumflags2"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1687,13 +1680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "is_windows_11_or_greater"
-version = "0.1.0"
-dependencies = [
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2008,9 +1994,7 @@ dependencies = [
  "ansi_term",
  "anyhow",
  "display-profile-lib",
- "enum_display_devices",
  "iced",
- "is_windows_11_or_greater",
  "open",
  "regex",
  "rustyline",

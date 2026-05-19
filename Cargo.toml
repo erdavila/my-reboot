@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "my_reboot",
-    "enum_display_devices",
-    "is_windows_11_or_greater",
     "display-profile/lib",
     "display-profile/cli",
     "windows-display-config",
@@ -14,10 +12,8 @@ resolver = "3"
 [workspace.dependencies]
 ansi_term = "0.12.1"
 anyhow = "1.0"
-enum_display_devices.path = "enum_display_devices"
 display-profile-lib.path = "display-profile/lib"
 iced = "0.14.0"
-is_windows_11_or_greater.path = "is_windows_11_or_greater"
 open = "5"
 regex = "1.10.2"
 rustyline = "18.0"

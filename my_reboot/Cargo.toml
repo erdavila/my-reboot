@@ -22,8 +22,6 @@ regex.workspace = true
 
 [target."cfg(windows)".dependencies]
 display-profile-lib = { workspace = true, features = [ "serde" ]}
-enum_display_devices.workspace = true
-is_windows_11_or_greater.workspace = true
 open.workspace = true
 rustyline.workspace = true
 windows = { workspace = true, features = [ "Win32_System_Console", "Win32_UI_WindowsAndMessaging" ] }

@@ -68,8 +68,6 @@ doc *ARGS:
   cargo +nightly doc --all-features --no-deps \
     -p windows-display-config \
     -p display-profile-lib \
-    -p enum_display_devices \
-    -p is_windows_11_or_greater \
     {{ARGS}}
 
 doc-open: (doc '--open')
@@ -92,14 +90,3 @@ profile-dump ACTION FILE: (_profile 'dump' ACTION FILE)
 [windows]
 _profile FEATURES ACTION FILE:
   cargo run -q -p display-profile-cli --features {{FEATURES}} -- {{ACTION}} {{FILE}}
-
-
-[windows]
-[group('binary execution')]
-enum-display-devices:
-  cargo run -q -p enum_display_devices
-
-[windows]
-[group('binary execution')]
-is-windows-11-or-greater:
-  cargo run -q -p is_windows_11_or_greater
