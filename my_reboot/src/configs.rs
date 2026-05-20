@@ -1,227 +1,237 @@
-use std::borrow::Borrow;
-use std::fmt::Debug;
-use std::io;
-use std::marker::PhantomData;
+use std::ops::Index;
+use std::path::PathBuf;
+use std::{fs, io};
 
+use anyhow::{Context, Result};
 #[cfg(windows)]
 use display_profile_lib::Profile;
+use serde::{Deserialize, Serialize};
 
+use crate::host_os::STATE_DIR_PATH;
 use crate::options_types::{OperatingSystem, OptionType, ProfileId};
-use crate::properties::Properties;
 
-const CONFIGS_FILENAME: &str = "my-reboot-configs.properties";
+const CONFIGS_FILENAME: &str = "my-reboot-configs.toml";
 
-pub struct Configs {
-    props: Properties,
-    grub_entry_handler: ConfigHandler<OperatingSystem>,
-    #[cfg(windows)]
-    profile_configs_handler: ConfigHandler<ProfileId, ProfileSerialization>,
-    profile_label_handler: ConfigHandler<ProfileId>,
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Configs {
+    pub(crate) operating_system: OperatingSystemsConfigs,
+    pub(crate) profile: ProfilesConfigs,
 }
-
 impl Configs {
-    pub fn load(must_exist: bool) -> io::Result<Configs> {
-        let props = Properties::load(CONFIGS_FILENAME, must_exist)?;
-        Ok(Configs {
-            props,
-            grub_entry_handler: ConfigHandler::new("grubEntry", OperatingSystem::Linux),
-            #[cfg(windows)]
-            profile_configs_handler: ConfigHandler::new("configs", OperatingSystem::Windows),
-            profile_label_handler: ConfigHandler::new("label", OperatingSystem::Windows),
-        })
-    }
-
-    pub fn get_operating_system_by_grub_entry(&self, grub_entry: &str) -> OperatingSystem {
-        self.grub_entry_handler
-            .get_object_by_value(grub_entry, &self.props)
-    }
-
-    pub fn get_grub_entry(&self, os: OperatingSystem) -> &str {
-        self.grub_entry_handler.get_value(os, &self.props)
-    }
-
-    #[cfg(windows)]
-    pub(crate) fn get_profile_id(&self, profile: &Profile) -> Option<ProfileId> {
-        self.profile_configs_handler
-            .get_object_by_value_opt(profile, &self.props)
-    }
-
-    #[cfg(windows)]
-    pub(crate) fn get_profile_by_id(&self, profile_id: ProfileId) -> Profile {
-        self.profile_configs_handler
-            .get_value(profile_id, &self.props)
-    }
-
-    pub(crate) fn get_profile_label(&self, profile_id: ProfileId) -> &str {
-        self.profile_label_handler
-            .get_value(profile_id, &self.props)
-    }
-
-    pub(crate) fn get_profile_label_opt(&self, profile_id: ProfileId) -> Option<&str> {
-        self.profile_label_handler
-            .get_value_opt(profile_id, &self.props)
-    }
-}
-
-pub struct ConfigsWriter {
-    configs: Configs,
-}
-impl ConfigsWriter {
-    pub fn load(must_exist: bool) -> io::Result<ConfigsWriter> {
-        let configs = Configs::load(must_exist)?;
-        Ok(Self { configs })
-    }
-
-    #[cfg(not(windows))]
-    pub fn set_grub_entry(&mut self, os: OperatingSystem, value: &str) {
-        self.configs
-            .grub_entry_handler
-            .set_value(os, value, &mut self.configs.props);
-    }
-
-    #[cfg(windows)]
-    pub(crate) fn set_profile_configs(&mut self, profile_id: ProfileId, configs: &Profile) {
-        self.configs.profile_configs_handler.set_value(
-            profile_id,
-            configs,
-            &mut self.configs.props,
-        );
-    }
-
-    #[cfg(windows)]
-    pub(crate) fn set_profile_label(&mut self, profile_id: ProfileId, label: &str) {
-        self.configs
-            .profile_label_handler
-            .set_value(profile_id, label, &mut self.configs.props);
-    }
-
-    pub fn save(&mut self) -> io::Result<()> {
-        self.configs.props.save()
-    }
-}
-
-struct ConfigHandler<O, S = StringSerialization> {
-    attribute: &'static str,
-    config_provider_os: OperatingSystem,
-    _option_type: PhantomData<(O, S)>,
-}
-impl<O, S> ConfigHandler<O, S>
-where
-    O: OptionType,
-    S: Serialization,
-{
-    fn new(attribute: &'static str, config_provider_os: OperatingSystem) -> Self {
-        Self {
-            attribute,
-            config_provider_os,
-            _option_type: PhantomData,
+    pub(crate) fn load() -> Result<Configs> {
+        match fs::read_to_string(Self::path()) {
+            Ok(content) => {
+                let configs =
+                    Self::from_serialized(&content).with_context(|| "O conteúdo do arquivo de configurações está incompleto ou é inválido.")?;
+                Ok(configs)
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                Err(e).context("Arquivo de configurações não encontrado. Execute 'my-reboot configure' no Windows e no Linux para criar o arquivo com todo o conteúdo necessário.")
+            },
+            Err(e) => Err(e.into()),
         }
     }
 
-    fn get_object_by_value<W>(&self, value: &W, props: &Properties) -> O
-    where
-        for<'a> S::DeserializeOutput<'a>: Borrow<W>,
-        W: PartialEq + Debug + ?Sized,
-    {
-        self.get_object_by_value_opt(value, props)
-            .unwrap_or_else(|| {
-                panic!(
-                    "{}",
-                    configuration_error(
-                        &format!(
-                            "Configuração '{}' com valor {value:?} não encontrada",
-                            self.attribute
-                        ),
-                        self.config_provider_os,
-                    )
-                )
-            })
+    fn from_serialized(serialized: &str) -> Result<Self> {
+        let configs = toml::from_str(serialized)?;
+        Ok(configs)
     }
 
-    fn get_object_by_value_opt<W>(&self, value: &W, props: &Properties) -> Option<O>
-    where
-        for<'a> S::DeserializeOutput<'a>: Borrow<W>,
-        W: PartialEq + Debug + ?Sized,
-    {
-        O::values()
+    pub(crate) fn operating_system_by_grub_entry(&self, grub_entry: &str) -> OperatingSystem {
+        OperatingSystem::values()
             .into_iter()
-            .find(|&o| self.get_value(o, props).borrow() == value)
+            .find(|os| self.operating_system[*os].grub_entry == grub_entry)
+            .unwrap()
     }
 
-    fn get_value<'a>(&self, object: O, props: &'a Properties) -> S::DeserializeOutput<'a> {
-        self.get_value_opt(object, props).unwrap_or_else(|| {
-            let key = self.key_for(object);
-            panic!(
-                "{}",
-                configuration_error(
-                    &format!("Configuração '{key}' não encontrada"),
-                    self.config_provider_os,
-                )
-            )
-        })
+    #[cfg(windows)]
+    pub(crate) fn profile_id_by_config(&self, profile: &Profile) -> Result<Option<ProfileId>> {
+        for id in ProfileId::values() {
+            let config: Profile = serde_json::from_str(&self.profile[id].configs)?;
+            if config == *profile {
+                return Ok(Some(id));
+            }
+        }
+
+        Ok(None)
     }
 
-    fn get_value_opt<'a>(
-        &self,
-        object: O,
-        props: &'a Properties,
-    ) -> Option<S::DeserializeOutput<'a>> {
-        let key = self.key_for(object);
-        props.get(&key).map(|str| S::deserialize(str))
-    }
-
-    fn set_value(&mut self, object: O, value: S::SerializeInput<'_>, props: &mut Properties) {
-        let key = self.key_for(object);
-        let value = S::serialize(value);
-        props.set(&key, value.as_ref());
-    }
-
-    fn key_for(&self, object: O) -> String {
-        format!("{}.{}", object.to_option_string(), self.attribute)
+    fn path() -> PathBuf {
+        [STATE_DIR_PATH, CONFIGS_FILENAME].iter().collect()
     }
 }
 
-trait Serialization {
-    type SerializeInput<'a>;
-    type SerializeOutput<'a>: AsRef<str>;
-    type DeserializeOutput<'a>;
-
-    fn serialize(value: Self::SerializeInput<'_>) -> Self::SerializeOutput<'_>;
-    fn deserialize(str: &str) -> Self::DeserializeOutput<'_>;
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct OperatingSystemsConfigs {
+    windows: OperatingSystemConfigs,
+    linux: OperatingSystemConfigs,
 }
+impl Index<OperatingSystem> for OperatingSystemsConfigs {
+    type Output = OperatingSystemConfigs;
 
-struct StringSerialization;
-impl Serialization for StringSerialization {
-    type SerializeInput<'a> = &'a str;
-    type SerializeOutput<'a> = &'a str;
-    type DeserializeOutput<'a> = &'a str;
-
-    fn serialize(value: Self::SerializeInput<'_>) -> Self::SerializeOutput<'_> {
-        value
-    }
-
-    fn deserialize(str: &str) -> Self::DeserializeOutput<'_> {
-        str
+    fn index(&self, index: OperatingSystem) -> &Self::Output {
+        match index {
+            OperatingSystem::Windows => &self.windows,
+            OperatingSystem::Linux => &self.linux,
+        }
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct OperatingSystemConfigs {
+    pub(crate) grub_entry: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ProfilesConfigs {
+    pub(crate) a: ProfileConfigs,
+    pub(crate) b: ProfileConfigs,
+}
+impl Index<ProfileId> for ProfilesConfigs {
+    type Output = ProfileConfigs;
+
+    fn index(&self, index: ProfileId) -> &Self::Output {
+        match index {
+            ProfileId::A => &self.a,
+            ProfileId::B => &self.b,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ProfileConfigs {
+    pub(crate) label: String,
+    pub(crate) configs: String,
+}
 #[cfg(windows)]
-struct ProfileSerialization;
-#[cfg(windows)]
-impl Serialization for ProfileSerialization {
-    type SerializeInput<'a> = &'a Profile;
-    type SerializeOutput<'a> = String;
-    type DeserializeOutput<'a> = Profile;
-
-    fn serialize(value: Self::SerializeInput<'_>) -> Self::SerializeOutput<'_> {
-        serde_json::to_string(value).unwrap()
-    }
-
-    fn deserialize(str: &str) -> Self::DeserializeOutput<'_> {
-        serde_json::from_str(str).unwrap()
+impl ProfileConfigs {
+    pub(crate) fn configs(&self) -> Result<Profile> {
+        let profile = serde_json::from_str(&self.configs)?;
+        Ok(profile)
     }
 }
 
-fn configuration_error(message: &str, config_provider_os: OperatingSystem) -> String {
-    format!("{message}. Execute 'my-reboot configure' no {config_provider_os}")
+pub(crate) struct ConfigsWriter {
+    content: toml::Table,
+}
+impl ConfigsWriter {
+    pub(crate) fn load() -> Result<ConfigsWriter> {
+        match fs::read_to_string(Configs::path()) {
+            Ok(content) => {
+                let content: toml::Table = toml::from_str(&content)?;
+                Ok(ConfigsWriter { content })
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(ConfigsWriter {
+                content: toml::Table::new(),
+            }),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    #[cfg(any(not(windows), test))]
+    pub(crate) fn set_grub_entry(&mut self, os: OperatingSystem, grub_entry: &str) -> Result<()> {
+        self.add_to_table(
+            "operating_system",
+            os,
+            OperatingSystemConfigs {
+                grub_entry: grub_entry.to_string(),
+            },
+        )
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn set_profile(
+        &mut self,
+        id: ProfileId,
+        label: &str,
+        configs: &Profile,
+    ) -> Result<()> {
+        self.set_profile_strs(id, label, &serde_json::to_string(configs)?)
+    }
+
+    #[cfg(any(windows, test))]
+    fn set_profile_strs(&mut self, id: ProfileId, label: &str, configs: &str) -> Result<()> {
+        self.add_to_table(
+            "profile",
+            id,
+            ProfileConfigs {
+                label: label.to_string(),
+                configs: configs.to_string(),
+            },
+        )
+    }
+
+    fn add_to_table<K, V>(&mut self, table_key: &str, key: K, value: V) -> Result<()>
+    where
+        K: Serialize,
+        V: Serialize,
+    {
+        let key = toml::Value::try_from(key)?.as_str().unwrap().to_string();
+        let value = toml::Value::try_from(value)?;
+
+        self.content
+            .entry(table_key)
+            .or_insert_with(|| toml::Table::new().into())
+            .as_table_mut()
+            .unwrap()
+            .insert(key, value);
+
+        Ok(())
+    }
+
+    pub(crate) fn save(&self) -> Result<()> {
+        fs::write(Configs::path(), self.serialized()?)?;
+        Ok(())
+    }
+
+    fn serialized(&self) -> Result<String> {
+        let content = toml::to_string(&self.content)?;
+        Ok(content)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_written_by_the_writer_can_be_read_by_the_reader() -> Result<()> {
+        let mut writer = ConfigsWriter {
+            content: toml::Table::new(),
+        };
+
+        writer.set_grub_entry(OperatingSystem::Windows, "windows-grub-entry")?;
+        writer.set_grub_entry(OperatingSystem::Linux, "linux-grub-entry")?;
+        writer.set_profile_strs(ProfileId::A, "profile-a-label", "profile-a-configs")?;
+        writer.set_profile_strs(ProfileId::B, "profile-b-label", "profile-b-configs")?;
+
+        let serialized = writer.serialized()?;
+        let configs = Configs::from_serialized(&serialized)?;
+
+        assert_eq!(
+            configs,
+            Configs {
+                operating_system: OperatingSystemsConfigs {
+                    windows: OperatingSystemConfigs {
+                        grub_entry: "windows-grub-entry".to_string()
+                    },
+                    linux: OperatingSystemConfigs {
+                        grub_entry: "linux-grub-entry".to_string()
+                    },
+                },
+                profile: ProfilesConfigs {
+                    a: ProfileConfigs {
+                        label: "profile-a-label".to_string(),
+                        configs: "profile-a-configs".to_string(),
+                    },
+                    b: ProfileConfigs {
+                        label: "profile-b-label".to_string(),
+                        configs: "profile-b-configs".to_string(),
+                    },
+                }
+            }
+        );
+
+        Ok(())
+    }
 }

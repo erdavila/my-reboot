@@ -73,11 +73,9 @@ impl Configure {
         Self::print_profile_summary(ProfileId::B, &profile_b_label, &profile_b);
         println!();
 
-        let mut configs = ConfigsWriter::load(false)?;
-        configs.set_profile_configs(ProfileId::A, &profile_a);
-        configs.set_profile_configs(ProfileId::B, &profile_b);
-        configs.set_profile_label(ProfileId::A, &profile_a_label);
-        configs.set_profile_label(ProfileId::B, &profile_b_label);
+        let mut configs = ConfigsWriter::load()?;
+        configs.set_profile(ProfileId::A, &profile_a_label, &profile_a)?;
+        configs.set_profile(ProfileId::B, &profile_b_label, &profile_b)?;
         println!("Salvando as configurações...");
         configs.save()?;
         println!();

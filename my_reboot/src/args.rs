@@ -4,10 +4,12 @@ mod script_args;
 use std::env;
 use std::fmt::Display;
 
+use anyhow::Result;
+
 use self::errors::ArgError;
 use crate::dialog::Mode;
 use crate::host_os::PREDEFINED_SCRIPTS;
-use crate::options_types::{LabeledProfile, ProfileId};
+use crate::options_types::{LabeledProfile, OptionType as _, ProfileId};
 use crate::script::Script;
 
 pub enum ParsedArgs {
@@ -71,30 +73,25 @@ fn parse_script_args(args: &mut env::Args) -> Result<usize, ArgError> {
     }
 }
 
-pub(crate) struct Usage<'a> {
-    profile_a_label: Option<&'a str>,
-    profile_b_label: Option<&'a str>,
+pub(crate) struct Usage {
+    profile_labels: Result<[String; 2]>,
 }
-impl<'a> Usage<'a> {
-    #[expect(clippy::similar_names)]
-    pub(crate) fn new(profile_a_label: Option<&'a str>, profile_b_label: Option<&'a str>) -> Self {
-        Self {
-            profile_a_label,
-            profile_b_label,
-        }
+impl Usage {
+    pub(crate) fn new(profile_labels: Result<[String; 2]>) -> Self {
+        Self { profile_labels }
     }
 }
-impl Display for Usage<'_> {
+impl Display for Usage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fn profile_description(id: ProfileId, label: Option<&str>) -> impl Display {
-            std::fmt::from_fn(move |f| match label {
-                Some(label) => write!(f, "{}", LabeledProfile::new(id, label)),
-                None => write!(f, "{id} (não configurado)"),
+        let [profile_a, profile_b] = ProfileId::values().map(|id| {
+            std::fmt::from_fn(move |f| {
+                if let Ok(labels) = &self.profile_labels {
+                    write!(f, "{}", LabeledProfile::new(id, &labels[id as usize]))
+                } else {
+                    write!(f, "{id} (*)")
+                }
             })
-        }
-
-        let profile_a = profile_description(ProfileId::A, self.profile_a_label);
-        let profile_b = profile_description(ProfileId::B, self.profile_b_label);
+        });
 
         write!(
             f,
@@ -157,6 +154,18 @@ Usos:
 
   my-reboot -h|--help
     Exibe este conteúdo."
-        )
+        )?;
+
+        if let Err(e) = &self.profile_labels {
+            write!(
+                f,
+                "
+
+
+(*): {e}"
+            )?;
+        }
+
+        Ok(())
     }
 }

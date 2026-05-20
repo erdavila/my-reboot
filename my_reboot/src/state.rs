@@ -1,5 +1,3 @@
-use std::io;
-
 use anyhow::Result;
 
 use crate::configs::Configs;
@@ -26,10 +24,10 @@ pub struct StateProvider {
     configs: Configs,
 }
 impl StateProvider {
-    pub fn new() -> io::Result<StateProvider> {
+    pub fn new() -> Result<StateProvider> {
         let grubenv = Grubenv::load()?;
         let options = Properties::load(OPTIONS_FILENAME, false)?;
-        let configs = Configs::load(true)?;
+        let configs = Configs::load()?;
         Ok(StateProvider {
             grubenv,
             options,
@@ -50,11 +48,11 @@ impl StateProvider {
     fn get_next_boot_operating_system(&self) -> Option<OperatingSystem> {
         self.grubenv
             .get(GRUB_ENTRY)
-            .map(|grub_entry| self.configs.get_operating_system_by_grub_entry(grub_entry))
+            .map(|grub_entry| self.configs.operating_system_by_grub_entry(grub_entry))
     }
 
     pub fn set_next_boot_operating_system(&mut self, os: OperatingSystem) {
-        let grub_entry = self.configs.get_grub_entry(os);
+        let grub_entry = &self.configs.operating_system[os].grub_entry;
         self.grubenv.set(GRUB_ENTRY, grub_entry);
         self.grubenv.save().unwrap();
     }

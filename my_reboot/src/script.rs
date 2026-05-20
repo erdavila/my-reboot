@@ -74,10 +74,12 @@ impl ScriptExecutor {
     }
 
     fn apply_next_windows_boot_profile(&mut self, profile_option: SetOrUnset<ProfileId>) {
-        // Store the label as an owned String to avoid capturing the state_provider lifetime.
+        // Clone the label to avoid capturing the state_provider lifetime.
         let profile_option = profile_option.to_option().map(|profile_id| {
-            let label = self.state_provider.configs().get_profile_label(profile_id);
-            (profile_id, label.to_string())
+            let label = self.state_provider.configs().profile[profile_id]
+                .label
+                .clone();
+            (profile_id, label)
         });
         let profile_option = profile_option
             .as_ref()

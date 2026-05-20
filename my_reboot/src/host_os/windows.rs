@@ -71,14 +71,14 @@ impl<'a> CurrentProfileHandler<'a> {
 
     pub(crate) fn get(&self) -> Result<Option<ProfileId>> {
         let profile = display_profile_lib::get_profile()?;
-        let profile_id = self.configs.get_profile_id(&profile);
+        let profile_id = self.configs.profile_id_by_config(&profile)?;
         Ok(profile_id)
     }
 
     pub(crate) fn switch_to(&self, profile_id: ProfileId) -> Result<()> {
         const WAIT_SECONDS: u64 = 10;
 
-        let profile = self.configs.get_profile_by_id(profile_id);
+        let profile = self.configs.profile[profile_id].configs()?;
 
         let switched = Self::execute_profile_switch(&profile, WAIT_SECONDS)?;
         if switched {

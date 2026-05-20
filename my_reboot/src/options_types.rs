@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 use crate::configs::Configs;
 
 pub trait OptionType: Copy + Eq {
@@ -19,9 +21,11 @@ pub trait OptionType: Copy + Eq {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum OperatingSystem {
+    #[serde(rename = "windows")]
     Windows,
+    #[serde(rename = "linux")]
     Linux,
 }
 impl OptionType for OperatingSystem {
@@ -49,9 +53,11 @@ impl Display for OperatingSystem {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub(crate) enum ProfileId {
+    #[serde(rename = "a")]
     A,
+    #[serde(rename = "b")]
     B,
 }
 impl OptionType for ProfileId {
@@ -94,13 +100,8 @@ pub(crate) struct LabeledProfile<'a> {
 }
 impl<'a> LabeledProfile<'a> {
     pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Self {
-        let label = configs.get_profile_label(profile_id);
+        let label = &configs.profile[profile_id].label;
         Self::new(profile_id, label)
-    }
-
-    pub(crate) fn get_opt(profile_id: ProfileId, configs: &'a Configs) -> Option<Self> {
-        let label = configs.get_profile_label_opt(profile_id);
-        label.map(|label| Self::new(profile_id, label))
     }
 
     pub(crate) fn new(profile_id: ProfileId, label: &'a str) -> Self {

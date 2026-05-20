@@ -31,7 +31,10 @@ fn main() -> Result<()> {
         ParsedArgs::Script(script) => execute_script(script),
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::Configure => configure(),
-        ParsedArgs::Usage => show_usage(),
+        ParsedArgs::Usage => {
+            show_usage();
+            Ok(())
+        }
     }
 }
 
@@ -106,7 +109,7 @@ fn show_state() -> Result<()> {
         text::profile::next_boot_value_text(
             state
                 .next_windows_boot_profile
-                .and_then(|id| LabeledProfile::get_opt(id, provider.configs()))
+                .map(|id| LabeledProfile::get(id, provider.configs()))
         )
     );
     #[cfg(windows)]
@@ -116,7 +119,7 @@ fn show_state() -> Result<()> {
         text::profile::current_value_text(
             state
                 .current_profile
-                .and_then(|id| LabeledProfile::get_opt(id, provider.configs()))
+                .map(|id| LabeledProfile::get(id, provider.configs()))
         )
     );
 
@@ -127,14 +130,11 @@ fn configure() -> Result<()> {
     host_os::configuration::configure()
 }
 
-fn show_usage() -> Result<()> {
-    let configs = Configs::load(true)?;
+fn show_usage() {
+    let profile_labels =
+        Configs::load().map(|configs| [configs.profile.a.label, configs.profile.b.label]);
 
-    let usage = args::Usage::new(
-        configs.get_profile_label_opt(ProfileId::A),
-        configs.get_profile_label_opt(ProfileId::B),
-    );
+    let usage = args::Usage::new(profile_labels);
 
     println!("{usage}");
-    Ok(())
 }

@@ -94,18 +94,15 @@ pub mod configuration {
             }
         }
 
-        let mut configs = ConfigsWriter::load(false)?;
+        let mut configs = ConfigsWriter::load()?;
         for os in OperatingSystem::values() {
             if let Some(grub_entry) = entries.get(&os) {
-                configs.set_grub_entry(os, grub_entry);
+                configs.set_grub_entry(os, grub_entry)?;
             } else {
                 return Err(GrubEntryNotFound(os).into());
             }
         }
 
-        for (os, grub_entry) in entries {
-            configs.set_grub_entry(os, &grub_entry);
-        }
         println!("Salvando configurações...");
         configs.save()?;
 
