@@ -114,7 +114,7 @@ fn parse_switch_to_profile(arg: &str, script: &mut Script) -> Result<bool, ArgEr
 }
 
 fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let Some(option) = RebootAction::from_option_string(arg) else {
+    let Some(option) = RebootAction::from_arg_string(arg) else {
         return Ok(false);
     };
 

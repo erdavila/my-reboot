@@ -8,16 +8,12 @@ pub trait OptionType: Copy + Eq {
     // We're assuming that all options have only two possible values.
     fn values() -> [Self; 2];
 
-    fn to_option_string(&self) -> &str;
-
-    fn from_option_string(option_string: &str) -> Option<Self> {
-        Self::values()
-            .into_iter()
-            .find(|v| v.to_option_string() == option_string)
-    }
+    fn to_arg_string(&self) -> &str;
 
     fn from_arg_string(arg_string: &str) -> Option<Self> {
-        Self::from_option_string(arg_string)
+        Self::values()
+            .into_iter()
+            .find(|v| v.to_arg_string() == arg_string)
     }
 }
 
@@ -33,7 +29,7 @@ impl OptionType for OperatingSystem {
         [OperatingSystem::Windows, OperatingSystem::Linux]
     }
 
-    fn to_option_string(&self) -> &str {
+    fn to_arg_string(&self) -> &str {
         match self {
             OperatingSystem::Windows => "windows",
             OperatingSystem::Linux => "linux",
@@ -65,18 +61,10 @@ impl OptionType for ProfileId {
         [Self::A, Self::B]
     }
 
-    fn to_option_string(&self) -> &str {
+    fn to_arg_string(&self) -> &str {
         match self {
-            ProfileId::A => "profile-a",
-            ProfileId::B => "profile-b",
-        }
-    }
-
-    fn from_arg_string(arg_string: &str) -> Option<Self> {
-        match arg_string {
-            "a" => Some(ProfileId::A),
-            "b" => Some(ProfileId::B),
-            _ => None,
+            ProfileId::A => "a",
+            ProfileId::B => "b",
         }
     }
 }
@@ -128,7 +116,7 @@ impl OptionType for RebootAction {
         [RebootAction::Reboot, RebootAction::Shutdown]
     }
 
-    fn to_option_string(&self) -> &str {
+    fn to_arg_string(&self) -> &str {
         match self {
             RebootAction::Reboot => "reboot",
             RebootAction::Shutdown => "shutdown",
@@ -141,8 +129,8 @@ impl Display for RebootAction {
             f,
             "{}",
             match self {
-                RebootAction::Reboot => "reiniciar".to_string(),
-                RebootAction::Shutdown => "desligar".to_string(),
+                RebootAction::Reboot => "reiniciar",
+                RebootAction::Shutdown => "desligar",
             }
         )
     }
