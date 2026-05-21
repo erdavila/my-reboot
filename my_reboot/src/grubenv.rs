@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::{fs, io, iter};
 
-use crate::file_content_as_map::{file_content_to_map, map_to_file_content};
-use crate::host_os::STATE_DIR_PATH;
+use crate::host_os::state_path;
 
 const GRUBENV_CONTENT_LENGTH: usize = 1024;
 const GRUBENV_HEADER_LINE: &str = "# GRUB Environment Block\n";
@@ -15,9 +15,20 @@ pub struct Grubenv {
 impl Grubenv {
     pub fn load() -> io::Result<Grubenv> {
         let file_content = fs::read_to_string(Self::path())?;
-        Ok(Grubenv {
-            content: file_content_to_map(&file_content),
-        })
+        Ok(Self::from_file_content(&file_content))
+    }
+
+    fn from_file_content(file_content: &str) -> Grubenv {
+        let content = file_content
+            .lines()
+            .filter(|line| !line.starts_with('#'))
+            .map(|line| {
+                let (key, value) = line.split_once('=').unwrap();
+                (key.to_string(), value.to_string())
+            })
+            .collect();
+
+        Grubenv { content }
     }
 
     pub fn get(&self, key: &str) -> Option<&String> {
@@ -38,31 +49,43 @@ impl Grubenv {
     }
 
     fn to_file_content(&self) -> String {
-        let mut content = String::from(GRUBENV_HEADER_LINE);
-        content += &map_to_file_content(&self.content);
+        let mut content = String::with_capacity(GRUBENV_CONTENT_LENGTH);
+        content.push_str(GRUBENV_HEADER_LINE);
 
-        assert!(
-            content.len() <= GRUBENV_CONTENT_LENGTH,
-            "Grubenv content is too large!"
-        );
-
-        if content.len() < GRUBENV_CONTENT_LENGTH {
-            let padding = iter::repeat_n('#', GRUBENV_CONTENT_LENGTH - content.len());
-            content.extend(padding);
-            assert_eq!(content.len(), GRUBENV_CONTENT_LENGTH);
+        for (key, value) in &self.content {
+            let _ = writeln!(content, "{key}={value}");
         }
+
+        let Some(padding_len) = GRUBENV_CONTENT_LENGTH.checked_sub(content.len()) else {
+            panic!("Grubenv content is too large!");
+        };
+
+        let padding = iter::repeat_n('#', padding_len);
+        content.extend(padding);
+        assert_eq!(content.len(), GRUBENV_CONTENT_LENGTH);
 
         content
     }
 
     fn path() -> PathBuf {
-        [STATE_DIR_PATH, "grubenv"].iter().collect()
+        state_path("grubenv")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn from_file_content() {
+        let file_content = "abc=xyz\n#ignored line\njjj=123";
+
+        let grubenv = Grubenv::from_file_content(file_content);
+
+        assert_eq!(grubenv.content.len(), 2);
+        assert_eq!(grubenv.content["abc"], "xyz");
+        assert_eq!(grubenv.content["jjj"], "123");
+    }
 
     #[test]
     fn get() {
@@ -99,9 +122,8 @@ mod tests {
     fn to_file_content() {
         const EXPECTED_LINE_1: &str = "abc=xyz\n";
         const EXPECTED_LINE_2: &str = "jjj=123\n";
-        let expected_lines_1_and_2 = format!("{EXPECTED_LINE_1}{EXPECTED_LINE_2}");
-        let expected_lines_2_and_1 = format!("{EXPECTED_LINE_2}{EXPECTED_LINE_1}");
-        assert_eq!(expected_lines_1_and_2.len(), expected_lines_2_and_1.len());
+        // Entries are sorted because we are using a BTreeMap.
+        let expected_lines = format!("{EXPECTED_LINE_1}{EXPECTED_LINE_2}");
 
         let grubenv = create_grubenv();
 
@@ -111,12 +133,9 @@ mod tests {
         assert!(file_content.starts_with(GRUBENV_HEADER_LINE));
 
         let remaining = &file_content[GRUBENV_HEADER_LINE.len()..];
-        assert!(
-            remaining.starts_with(&expected_lines_1_and_2)
-                || remaining.starts_with(&expected_lines_2_and_1)
-        );
+        assert!(remaining.starts_with(&expected_lines));
 
-        let remaining = &remaining[expected_lines_1_and_2.len()..];
+        let remaining = &remaining[expected_lines.len()..];
         assert!(!remaining.contains(|c| c != '#'));
     }
 

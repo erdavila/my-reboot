@@ -1,7 +1,6 @@
 mod args;
 mod configs;
 mod dialog;
-mod file_content_as_map;
 mod grubenv;
 mod host_os;
 mod options;
