@@ -118,7 +118,7 @@ impl TemplateResolver {
     }
 
     fn set_or_unset_option_to_option<T: Copy>(option: Option<SetOrUnset<T>>) -> Option<T> {
-        option.and_then(SetOrUnset::to_option)
+        option.and_then(SetOrUnset::into_option)
     }
 }
 

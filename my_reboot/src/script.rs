@@ -64,9 +64,9 @@ impl ScriptExecutor {
 
     fn apply_next_boot_operating_system(&mut self, os_option: SetOrUnset<OperatingSystem>) {
         self.apply_option(
-            &os_option,
-            |sp, &os| sp.set_next_boot_operating_system(os),
-            StateProvider::unset_next_boot_operating_system,
+            os_option,
+            StateProvider::set_next_boot_operating_system,
+            std::convert::identity,
             text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
             text::operating_system::WAS_UPDATED_TO,
             text::operating_system::value_text,
@@ -75,7 +75,7 @@ impl ScriptExecutor {
 
     fn apply_next_windows_boot_profile(&mut self, profile_option: SetOrUnset<ProfileId>) {
         // Clone the label to avoid capturing the state_provider lifetime.
-        let profile_option = profile_option.to_option().map(|profile_id| {
+        let profile_option = profile_option.into_option().map(|profile_id| {
             let label = self.state_provider.configs().profile[profile_id]
                 .label
                 .clone();
@@ -87,47 +87,40 @@ impl ScriptExecutor {
             .into();
 
         self.apply_option(
-            &profile_option,
-            |sp, lp| sp.set_next_windows_boot_profile(lp.profile_id()),
-            StateProvider::unset_next_windows_boot_profile,
+            profile_option,
+            StateProvider::set_next_windows_boot_profile,
+            LabeledProfile::profile_id,
             text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
             text::profile::WAS_UPDATED_TO,
             text::profile::next_boot_value_text,
         );
     }
 
-    fn apply_option<T, S, U, V>(
+    fn apply_option<T: Copy, U>(
         &mut self,
-        option: &SetOrUnset<T>,
-        set: S,
-        unset: U,
+        option: SetOrUnset<T>,
+        set: impl FnOnce(&mut StateProvider, Option<U>),
+        extract: impl FnOnce(T) -> U,
         description: &str,
         was_updated_to: &str,
-        value_text: V,
-    ) where
-        T: Copy,
-        S: FnOnce(&mut StateProvider, &T),
-        U: FnOnce(&mut StateProvider),
-        V: Fn(Option<T>) -> ANSIString<'static>,
-    {
-        use SetOrUnset::{Set, Unset};
-
+        value_text: impl FnOnce(Option<T>) -> ANSIString<'static>,
+    ) {
         match option {
-            Set(value) => set(&mut self.state_provider, value),
-            Unset => unset(&mut self.state_provider),
+            SetOrUnset::Set(option) => set(&mut self.state_provider, Some(extract(option))),
+            SetOrUnset::Unset => set(&mut self.state_provider, None),
         }
 
         println!(
             "{} {} {}.",
             description,
             was_updated_to,
-            value_text(option.to_option())
+            value_text(option.into_option())
         );
     }
 
     #[cfg(windows)]
     fn apply_switch_to_profile(&mut self, switch_to: SwitchToProfile) -> Result<()> {
-        let from_profile = self.state_provider.get_current_profile()?;
+        let from_profile = self.state_provider.current_profile()?;
 
         match switch_to {
             SwitchToProfile::Other => {
@@ -155,7 +148,7 @@ impl ScriptExecutor {
                     self.switch_profile_to(to_profile)?;
                 }
             }
-            SwitchToProfile::Saved => match self.state_provider.get_next_windows_boot_profile() {
+            SwitchToProfile::Saved => match self.state_provider.next_windows_boot_profile() {
                 Some(to_profile) => {
                     if Some(to_profile) == from_profile {
                         let labeled_profile =
@@ -167,7 +160,7 @@ impl ScriptExecutor {
                         );
                     } else {
                         self.switch_profile_to(to_profile)?;
-                        self.state_provider.unset_next_windows_boot_profile();
+                        self.state_provider.next_windows_boot_profile();
                     }
                 }
                 None => {
@@ -217,8 +210,8 @@ pub enum SetOrUnset<T> {
     Set(T),
     Unset,
 }
-impl<T: Copy> SetOrUnset<T> {
-    pub(crate) fn to_option(self) -> Option<T> {
+impl<T> SetOrUnset<T> {
+    pub(crate) fn into_option(self) -> Option<T> {
         match self {
             SetOrUnset::Set(value) => Some(value),
             SetOrUnset::Unset => None,

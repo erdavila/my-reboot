@@ -34,48 +34,46 @@ impl StateProvider {
     }
 
     #[cfg_attr(not(windows), expect(clippy::unnecessary_wraps))]
-    pub fn get_state(&self) -> Result<State> {
+    pub fn state(&self) -> Result<State> {
         Ok(State {
-            next_boot_operating_system: self.get_next_boot_operating_system(),
-            next_windows_boot_profile: self.get_next_windows_boot_profile(),
+            next_boot_operating_system: self.next_boot_operating_system(),
+            next_windows_boot_profile: self.next_windows_boot_profile(),
             #[cfg(windows)]
-            current_profile: self.get_current_profile()?,
+            current_profile: self.current_profile()?,
         })
     }
 
-    fn get_next_boot_operating_system(&self) -> Option<OperatingSystem> {
+    fn next_boot_operating_system(&self) -> Option<OperatingSystem> {
         self.grubenv
             .get(GRUB_ENTRY)
             .map(|grub_entry| self.configs.operating_system_by_grub_entry(grub_entry))
     }
 
-    pub fn set_next_boot_operating_system(&mut self, os: OperatingSystem) {
-        let grub_entry = &self.configs.operating_system[os].grub_entry;
-        self.grubenv.set(GRUB_ENTRY, grub_entry);
+    pub fn set_next_boot_operating_system(&mut self, os: Option<OperatingSystem>) {
+        match os {
+            Some(os) => {
+                let grub_entry = &self.configs.operating_system[os].grub_entry;
+                self.grubenv.set(GRUB_ENTRY, grub_entry);
+            }
+            None => {
+                self.grubenv.unset(GRUB_ENTRY);
+            }
+        }
+
         self.grubenv.save().unwrap();
     }
 
-    pub fn unset_next_boot_operating_system(&mut self) {
-        self.grubenv.unset(GRUB_ENTRY);
-        self.grubenv.save().unwrap();
-    }
-
-    pub(crate) fn get_next_windows_boot_profile(&self) -> Option<ProfileId> {
+    pub(crate) fn next_windows_boot_profile(&self) -> Option<ProfileId> {
         self.options.operating_system.windows.profile
     }
 
-    pub(crate) fn set_next_windows_boot_profile(&mut self, profile_id: ProfileId) {
-        self.options.operating_system.windows.profile = Some(profile_id);
-        self.options.save().unwrap();
-    }
-
-    pub(crate) fn unset_next_windows_boot_profile(&mut self) {
-        self.options.operating_system.windows.profile = None;
+    pub(crate) fn set_next_windows_boot_profile(&mut self, profile_id: Option<ProfileId>) {
+        self.options.operating_system.windows.profile = profile_id;
         self.options.save().unwrap();
     }
 
     #[cfg(windows)]
-    pub(crate) fn get_current_profile(&self) -> Result<Option<ProfileId>> {
+    pub(crate) fn current_profile(&self) -> Result<Option<ProfileId>> {
         self.current_profile_handler().get()
     }
 

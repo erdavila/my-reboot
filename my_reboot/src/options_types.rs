@@ -96,7 +96,7 @@ impl<'a> LabeledProfile<'a> {
         Self { profile_id, label }
     }
 
-    pub(crate) fn profile_id(&self) -> ProfileId {
+    pub(crate) fn profile_id(self) -> ProfileId {
         self.profile_id
     }
 }

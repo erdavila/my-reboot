@@ -61,7 +61,7 @@ fn show_dialog(mode: Mode) -> Result<()> {
         .map(|ps| ps.resolve_label(provider.configs()))
         .collect();
 
-    let state = provider.get_state()?;
+    let state = provider.state()?;
     let script_options = dialog::ScriptOptions {
         next_boot_operating_system: state.next_boot_operating_system,
         next_windows_boot_profile: state.next_windows_boot_profile,
@@ -98,7 +98,7 @@ fn execute_script(script: Script) -> Result<()> {
 
 fn show_state() -> Result<()> {
     let provider = StateProvider::new()?;
-    let state = provider.get_state()?;
+    let state = provider.state()?;
 
     println!(
         "{}: {}",
