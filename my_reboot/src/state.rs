@@ -4,12 +4,10 @@ use crate::configs::Configs;
 use crate::grubenv::Grubenv;
 #[cfg(windows)]
 use crate::host_os;
-use crate::options_types::{OperatingSystem, OptionType as _, ProfileId};
-use crate::properties::Properties;
+use crate::options::Options;
+use crate::options_types::{OperatingSystem, ProfileId};
 
 const GRUB_ENTRY: &str = "saved_entry";
-const WINDOWS_PROFILE_KEY: &str = "windows.profile";
-const OPTIONS_FILENAME: &str = "my-reboot-options.properties";
 
 pub struct State {
     pub next_boot_operating_system: Option<OperatingSystem>,
@@ -20,13 +18,13 @@ pub struct State {
 
 pub struct StateProvider {
     grubenv: Grubenv,
-    options: Properties,
+    options: Options,
     configs: Configs,
 }
 impl StateProvider {
     pub fn new() -> Result<StateProvider> {
         let grubenv = Grubenv::load()?;
-        let options = Properties::load(OPTIONS_FILENAME, false)?;
+        let options = Options::load()?;
         let configs = Configs::load()?;
         Ok(StateProvider {
             grubenv,
@@ -63,19 +61,16 @@ impl StateProvider {
     }
 
     pub(crate) fn get_next_windows_boot_profile(&self) -> Option<ProfileId> {
-        self.options
-            .get(WINDOWS_PROFILE_KEY)
-            .and_then(|code| ProfileId::from_option_string(code))
+        self.options.operating_system.windows.profile
     }
 
     pub(crate) fn set_next_windows_boot_profile(&mut self, profile_id: ProfileId) {
-        self.options
-            .set(WINDOWS_PROFILE_KEY, profile_id.to_option_string());
+        self.options.operating_system.windows.profile = Some(profile_id);
         self.options.save().unwrap();
     }
 
     pub(crate) fn unset_next_windows_boot_profile(&mut self) {
-        self.options.unset(WINDOWS_PROFILE_KEY);
+        self.options.operating_system.windows.profile = None;
         self.options.save().unwrap();
     }
 

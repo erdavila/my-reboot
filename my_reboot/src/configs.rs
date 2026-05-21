@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use display_profile_lib::Profile;
 use serde::{Deserialize, Serialize};
 
-use crate::host_os::STATE_DIR_PATH;
+use crate::host_os::state_path;
 use crate::options_types::{OperatingSystem, OptionType, ProfileId};
 
 const CONFIGS_FILENAME: &str = "my-reboot-configs.toml";
@@ -57,7 +57,7 @@ impl Configs {
     }
 
     fn path() -> PathBuf {
-        [STATE_DIR_PATH, CONFIGS_FILENAME].iter().collect()
+        state_path(CONFIGS_FILENAME)
     }
 }
 

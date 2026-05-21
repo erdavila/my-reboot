@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::process::ExitStatus;
 
 use anyhow::{Result, bail};
@@ -15,6 +16,10 @@ use crate::text::{self, Capitalized};
 mod linux;
 #[cfg(windows)]
 mod windows;
+
+pub(crate) fn state_path(filename: &str) -> PathBuf {
+    PathBuf::from(STATE_DIR_PATH).join(filename)
+}
 
 pub struct PredefinedScript {
     pub button_label_template: &'static str,
