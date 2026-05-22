@@ -64,12 +64,14 @@ clippy:
   cargo clippy --all-targets -p my-reboot
 
 
+[windows]
 doc *ARGS:
   cargo +nightly doc --all-features --no-deps \
     -p windows-display-config \
     -p display-profile-lib \
     {{ARGS}}
 
+[windows]
 doc-open: (doc '--open')
 
 # Runs my-reboot
