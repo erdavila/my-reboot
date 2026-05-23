@@ -3,8 +3,8 @@ use anyhow::Result;
 use display_profile_lib::{Profile, Rotation, SetProfileAction, get_profile, set_profile};
 use rustyline::DefaultEditor;
 
-use crate::configs::ConfigsWriter;
 use crate::options_types::{LabeledProfile, ProfileId};
+use crate::persist::configs::ConfigsWriter;
 
 pub(crate) fn configure() -> Result<()> {
     let mut configure = Configure::new()?;

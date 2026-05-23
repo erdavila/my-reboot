@@ -6,9 +6,9 @@ use anyhow::{Result, bail};
 use display_profile_lib::{Profile, SetProfileAction};
 
 use super::PredefinedScript;
-use crate::configs::Configs;
 use crate::host_os::SuccessOr;
 use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
+use crate::persist::configs::Configs;
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 

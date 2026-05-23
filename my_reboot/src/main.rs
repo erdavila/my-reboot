@@ -1,13 +1,16 @@
 mod args;
-mod configs;
 mod dialog;
-mod grubenv;
 mod host_os;
-mod options;
 mod options_types;
 mod script;
 mod state;
 mod text;
+
+mod persist {
+    pub(crate) mod configs;
+    pub(crate) mod grubenv;
+    pub(crate) mod options;
+}
 
 use anyhow::{Context, Result};
 use dialog::Mode;
@@ -17,8 +20,8 @@ use script::Script;
 use script::SwitchToProfile;
 
 use crate::args::ParsedArgs;
-use crate::configs::Configs;
 use crate::options_types::{LabeledProfile, OptionType, ProfileId};
+use crate::persist::configs::Configs;
 use crate::state::StateProvider;
 
 fn main() -> Result<()> {

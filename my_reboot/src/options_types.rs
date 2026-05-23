@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::configs::Configs;
+use crate::persist::configs::Configs;
 
 pub trait OptionType: Copy + Eq {
     // We're assuming that all options have only two possible values.

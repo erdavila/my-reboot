@@ -53,8 +53,8 @@ pub mod configuration {
     use anyhow::Result;
     use regex::Regex;
 
-    use crate::configs::ConfigsWriter;
     use crate::options_types::{OperatingSystem, OptionType};
+    use crate::persist::configs::ConfigsWriter;
 
     #[derive(Debug)]
     struct GrubEntryNotFound(OperatingSystem);

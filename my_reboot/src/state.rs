@@ -1,11 +1,11 @@
 use anyhow::Result;
 
-use crate::configs::Configs;
-use crate::grubenv::Grubenv;
 #[cfg(windows)]
 use crate::host_os;
-use crate::options::Options;
 use crate::options_types::{OperatingSystem, ProfileId};
+use crate::persist::configs::Configs;
+use crate::persist::grubenv::Grubenv;
+use crate::persist::options::Options;
 
 const GRUB_ENTRY: &str = "saved_entry";
 

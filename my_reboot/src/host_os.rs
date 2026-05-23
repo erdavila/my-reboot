@@ -7,8 +7,8 @@ pub use linux::*;
 #[cfg(windows)]
 pub use windows::*;
 
-use crate::configs::Configs;
 use crate::options_types::LabeledProfile;
+use crate::persist::configs::Configs;
 use crate::script::{Script, SetOrUnset};
 use crate::text::{self, Capitalized};
 
