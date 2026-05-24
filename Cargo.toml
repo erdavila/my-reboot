@@ -3,8 +3,8 @@ name = "my-reboot"
 version = "3.0.0"
 description = "An application to manage switching between Windows and Linux, and switching between TV and monitor on Windows"
 authors = ["Eduardo R. D'Avila <erdavila@gmail.com>"]
-license = ""
-repository = ""
+license = "MIT"
+repository = "https://github.com/erdavila/my-reboot"
 edition = "2024"
 
 [package.metadata.winres]
