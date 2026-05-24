@@ -1,94 +1,21 @@
-# Runs checks, tests, formatting, and clippy with focus on the my-reboot package
-default: cross-check test fmt clippy
-
-# Runs checks, tests, formatting, and clippy on all packages
-[windows]
-all: check test fmt clippy
-
-
-# Runs my-reboot
-run *ARGS: (my-reboot ARGS)
+# check + test + fmt + clippy
+default: check test fmt clippy
 
 
 # For cross-checks, the targets must be added with: rustup target add x86_64-pc-windows-gnu x86_64-unknown-linux-gnu
-# Cross-checks the my-reboot package
-[group('cross-check')]
-cross-check:
-  cargo check -p my-reboot --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-pc-windows-gnu
-  cargo check -p my-reboot --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-unknown-linux-gnu
+# Cross-checks
+check:
+  cargo check --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-pc-windows-gnu
+  cargo check --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-unknown-linux-gnu
 
-
-[windows]
-check: cross-check
-  cargo check --workspace \
-    --exclude my-reboot \
-    --exclude display-profile-lib \
-    --exclude display-profile-cli
-  @# Checks the different combinations of features:
-  cargo check -p windows-display-config --no-default-features
-  cargo check -p windows-display-config --no-default-features --features dump
-  cargo check -p display-profile-lib --no-default-features
-  cargo check -p display-profile-lib --no-default-features --features serde
-  cargo check -p display-profile-lib --no-default-features --features dump
-  cargo check -p display-profile-cli --no-default-features
-  cargo check -p display-profile-cli --no-default-features --features dump
-
-[linux]
-check: cross-check
-
-
-# Tests all packages
-[windows]
 test:
-  cargo test --workspace
+  cargo test
 
-# Tests only the my-reboot package
-[linux]
-test:
-  cargo test -p my-reboot
-
-
-# Formats all packages
 fmt:
   cargo +nightly fmt --all -- --config group_imports=StdExternalCrate --config imports_granularity=Module
 
-
-# Runs clippy on all packages
-[windows]
 clippy:
-  cargo clippy --all-targets --all-features --workspace
+  cargo clippy --all-targets
 
-# Runs clippy only on my-reboot package
-[linux]
-clippy:
-  cargo clippy --all-targets -p my-reboot
-
-
-[windows]
-doc *ARGS:
-  cargo +nightly doc --all-features --no-deps \
-    -p windows-display-config \
-    -p display-profile-lib \
-    {{ARGS}}
-
-[windows]
-doc-open: (doc '--open')
-
-# Runs my-reboot
-[group('binary execution')]
-my-reboot *ARGS:
+run *ARGS:
   cargo run -q -p my-reboot -- {{ARGS}}
-
-# Runs the display-profile CLI
-[windows]
-[group('binary execution')]
-profile ACTION FILE: (_profile '""' ACTION FILE)
-
-# Runs the display-profile CLI with the "dump" feature
-[windows]
-[group('binary execution')]
-profile-dump ACTION FILE: (_profile 'dump' ACTION FILE)
-
-[windows]
-_profile FEATURES ACTION FILE:
-  cargo run -q -p display-profile-cli --features {{FEATURES}} -- {{ACTION}} {{FILE}}

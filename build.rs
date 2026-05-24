@@ -5,7 +5,7 @@ cfg_select! {
                 && std::env::var("SKIP_WINDOWS_ICON").is_err()
             {
                 winres::WindowsResource::new()
-                    .set_icon("../assets/icon.ico")
+                    .set_icon("assets/icon.ico")
                     .compile()?;
             }
 

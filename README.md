@@ -20,8 +20,3 @@ just --list
 ## Referências
 * [Rust Standard Library](https://doc.rust-lang.org/std/index.html)
 * [iced](https://iced.rs/)
-* [`windows` crate](https://microsoft.github.io/windows-docs-rs/doc/windows/index.html)
-* APIs do Windows:
-  * [`QueryDisplayConfig`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-querydisplayconfig)
-  * [`SetDisplayConfig`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setdisplayconfig)
-  * [`DisplayConfigGetDeviceInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-displayconfiggetdeviceinfo)
