@@ -5,26 +5,15 @@ use std::time::{Duration, Instant};
 use anyhow::{Result, bail};
 use display_profile_lib::{Profile, SetProfileAction};
 
-use super::PredefinedScript;
 use crate::host_os::SuccessOr;
-use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId};
 use crate::persist::configs::Configs;
-use crate::script::{Script, SetOrUnset};
 use crate::text;
 
 pub mod configuration;
 
 pub const HOST_OS: OperatingSystem = OperatingSystem::Windows;
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
-
-pub const PREDEFINED_SCRIPTS: [PredefinedScript; 1] = [PredefinedScript {
-    button_label_template: "{reboot_action} no {next_boot_operating_system}",
-    script: Script {
-        next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Linux)),
-        reboot_action: Some(RebootAction::Reboot),
-        ..Script::new()
-    },
-}];
 
 pub fn reboot() -> Result<()> {
     shutdown_now("/g")

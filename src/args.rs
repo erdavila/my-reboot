@@ -4,6 +4,7 @@ pub(crate) mod script_args;
 use std::env;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 
 use anyhow::Result;
 
@@ -14,7 +15,6 @@ use crate::args::script_args::{
     NEXT_BOOT_OPERATING_SYSTEM_PREFIX, NEXT_WINDOWS_BOOT_PROFILE_PREFIX,
 };
 use crate::dialog::Mode;
-use crate::host_os::PREDEFINED_SCRIPTS;
 use crate::options_types::{
     LabeledProfile, OperatingSystem, ProfileId, SerializeToString, Values as _,
 };
@@ -24,6 +24,7 @@ pub enum ParsedArgs {
     Dialog(Mode),
     ShowState,
     Script(Script),
+    PredefinedScriptNumber(NonZeroUsize),
     Configure,
     Usage,
 }
@@ -40,8 +41,8 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
             }
             "show" => ParsedArgs::ShowState,
             "script" => {
-                let index = parse_script_args(&mut args)?;
-                ParsedArgs::Script(PREDEFINED_SCRIPTS[index].script)
+                let number = parse_script_args(&mut args)?;
+                ParsedArgs::PredefinedScriptNumber(number)
             }
             "configure" => ParsedArgs::Configure,
             "-h" | "--help" => ParsedArgs::Usage,
@@ -65,18 +66,11 @@ fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
     }
 }
 
-fn parse_script_args(args: &mut env::Args) -> Result<usize, ArgError> {
+fn parse_script_args(args: &mut env::Args) -> Result<NonZeroUsize, ArgError> {
     match args.next() {
-        Some(arg) => match arg.parse::<usize>() {
-            Ok(number) if number >= 1 && number <= PREDEFINED_SCRIPTS.len() => Ok(number - 1),
-            _ => Err(ArgError::new(
-                &format!(
-                    "Número inválido de script para o sistema operacional atual (mín: 1; máx: {})",
-                    PREDEFINED_SCRIPTS.len()
-                ),
-                &arg,
-            )),
-        },
+        Some(arg) => arg
+            .parse()
+            .map_err(|e| ArgError::new(&format!("Número inválido de script {arg:?}: {e}"), &arg)),
         None => errors::missing_argument_error("NÚMERO"),
     }
 }

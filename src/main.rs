@@ -13,14 +13,16 @@ mod persist {
     pub(crate) mod options;
 }
 
-use anyhow::{Context, Result};
+use std::num::NonZeroUsize;
+
+use anyhow::{Context, Result, bail};
 use dialog::Mode;
-use host_os::PREDEFINED_SCRIPTS;
 use script::Script;
 #[cfg(all(windows, not(test)))]
 use script::SwitchToProfile;
 
 use crate::args::ParsedArgs;
+use crate::host_os::HOST_OS;
 use crate::options_types::{LabeledProfile, ProfileId, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
@@ -32,6 +34,7 @@ fn main() -> Result<()> {
     match args {
         ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
+        ParsedArgs::PredefinedScriptNumber(number) => execute_predefined_script(number),
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::Configure => configure(),
         ParsedArgs::Usage => {
@@ -57,7 +60,8 @@ fn show_dialog(mode: Mode) -> Result<()> {
 
     let provider = StateProvider::new()?;
 
-    let labels: Vec<_> = PREDEFINED_SCRIPTS
+    let labels: Vec<_> = provider.configs().operating_system[HOST_OS]
+        .scripts
         .iter()
         .map(|ps| ps.resolve_label(provider.configs()))
         .collect();
@@ -77,22 +81,43 @@ fn show_dialog(mode: Mode) -> Result<()> {
 
     match outcome {
         Some(dialog::Outcome::PredefinedScriptIndex(index)) => {
-            PREDEFINED_SCRIPTS[index].script.execute()
+            provider.configs().operating_system[HOST_OS].scripts[index]
+                .script
+                .execute()
         }
         Some(dialog::Outcome::ScriptOptions(options)) => {
             let script = Script {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
                 next_windows_boot_profile: Some(options.next_windows_boot_profile.into()),
-                #[cfg(all(windows, not(test)))]
-                switch_to_profile: options.switch_profile.then_some(SwitchToProfile::Other),
-                #[cfg(test)]
-                switch_to_profile: None,
+                switch_to_profile: cfg_select! {
+                    all(windows, not(test)) => options.switch_profile.then_some(SwitchToProfile::Other),
+                    _ => None,
+                },
                 reboot_action: options.reboot_action,
             };
             script.execute()
         }
         None => Ok(()),
     }
+}
+
+fn execute_predefined_script(number: NonZeroUsize) -> Result<()> {
+    let index = number.get() - 1;
+
+    let configs = Configs::load()?;
+    let predef_scripts = &configs.operating_system[HOST_OS].scripts;
+    let Some(predef_script) = predef_scripts.get(index) else {
+        bail!(
+            "Número inválido de script para o sistema operacional atual (mín: 1; máx: {})",
+            predef_scripts.len()
+        );
+    };
+
+    println!(
+        "Executando script '{}'",
+        predef_script.resolve_label(&configs)
+    );
+    predef_script.script.execute()
 }
 
 fn execute_script(script: Script) -> Result<()> {

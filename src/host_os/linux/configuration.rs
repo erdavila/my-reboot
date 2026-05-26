@@ -41,7 +41,7 @@ pub fn configure(configurer: &mut Configurer) -> Result<()> {
         let grub_entry = entries[os as usize]
             .as_ref()
             .ok_or_else(|| anyhow!("Entrada não encontrada para {os}"))?;
-        configurer.configs.set_grub_entry(os, grub_entry)?;
+        configurer.configs.set_grub_entry(os, grub_entry);
     }
 
     Ok(())

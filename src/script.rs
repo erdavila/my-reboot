@@ -11,11 +11,10 @@ use crate::options_types::{LabeledProfile, OperatingSystem, ProfileId, RebootAct
 use crate::state::StateProvider;
 use crate::{host_os, text};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub(crate) next_windows_boot_profile: Option<SetOrUnset<ProfileId>>,
-    #[cfg(any(windows, test))]
     pub(crate) switch_to_profile: Option<SwitchToProfile>,
     pub reboot_action: Option<RebootAction>,
 }
@@ -24,7 +23,6 @@ impl Script {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_profile: None,
-            #[cfg(any(windows, test))]
             switch_to_profile: None,
             reboot_action: None,
         }
@@ -52,9 +50,17 @@ impl ScriptExecutor {
             self.apply_next_windows_boot_profile(profile_option);
         }
 
-        #[cfg(windows)]
-        if let Some(switch_to) = script.switch_to_profile {
-            self.apply_switch_to_profile(switch_to)?;
+        cfg_select! {
+            windows => {
+                if let Some(switch_to) = script.switch_to_profile {
+                    self.apply_switch_to_profile(switch_to)?;
+                }
+            },
+            _ => {
+                if script.switch_to_profile.is_some() {
+                    anyhow::bail!("Troca de perfil é suportada somente no Windows");
+                }
+            },
         }
 
         if let Some(reboot_action) = script.reboot_action {
@@ -236,7 +242,6 @@ impl<T> From<Option<T>> for SetOrUnset<T> {
     }
 }
 
-#[cfg(any(windows, test))]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub(crate) enum SwitchToProfile {
     #[serde(rename = "other")]
