@@ -17,11 +17,11 @@ use anyhow::{Context, Result};
 use dialog::Mode;
 use host_os::PREDEFINED_SCRIPTS;
 use script::Script;
-#[cfg(windows)]
+#[cfg(all(windows, not(test)))]
 use script::SwitchToProfile;
 
 use crate::args::ParsedArgs;
-use crate::options_types::{LabeledProfile, OptionType, ProfileId};
+use crate::options_types::{LabeledProfile, ProfileId, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
 
@@ -83,8 +83,10 @@ fn show_dialog(mode: Mode) -> Result<()> {
             let script = Script {
                 next_boot_operating_system: Some(options.next_boot_operating_system.into()),
                 next_windows_boot_profile: Some(options.next_windows_boot_profile.into()),
-                #[cfg(windows)]
+                #[cfg(all(windows, not(test)))]
                 switch_to_profile: options.switch_profile.then_some(SwitchToProfile::Other),
+                #[cfg(test)]
+                switch_to_profile: None,
                 reboot_action: options.reboot_action,
             };
             script.execute()

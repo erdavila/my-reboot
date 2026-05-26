@@ -3,7 +3,7 @@ use std::fmt::{Display, Write};
 use ansi_term::ANSIString;
 use ansi_term::Color::{Blue, Green, Red};
 
-use crate::options_types::OptionType;
+use crate::options_types::Values;
 
 pub mod operating_system {
     use ansi_term::ANSIString;
@@ -29,6 +29,9 @@ pub(crate) mod profile {
 
     pub(crate) const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
         "perfil a ser usado na próxima inicialização do Windows";
+
+    #[cfg(any(windows, test))]
+    pub(crate) const SWITCH_DESCRIPTION: &str = "troca de perfil";
 
     pub(crate) const WAS_UPDATED_TO: &str = "foi atualizado para";
 
@@ -70,11 +73,12 @@ pub(crate) mod profile {
 }
 
 pub mod reboot_action {
+    pub(crate) const ACTION_DESCRIPTION: &str = "ação";
     pub(crate) const UNDEFINED: &str = "indefinida";
     pub const FAILED: &str = "A ação de reinicialização falhou";
 }
 
-fn two_values_option_value_text<T: OptionType + ToString>(
+fn two_values_option_value_text<T: Values + PartialEq + ToString>(
     current_value: Option<T>,
     undefined_text: &str,
 ) -> ANSIString<'static> {
@@ -82,7 +86,7 @@ fn two_values_option_value_text<T: OptionType + ToString>(
     two_values_text(current_value, undefined_text)
 }
 
-fn two_values_text<T: OptionType>(
+fn two_values_text<T: Values + PartialEq>(
     current_value: Option<(T, String)>,
     undefined_text: &str,
 ) -> ANSIString<'static> {

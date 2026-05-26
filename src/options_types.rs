@@ -1,20 +1,13 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
+use serde::de::value::StrDeserializer;
 use serde::{Deserialize, Serialize};
 
 use crate::persist::configs::Configs;
 
-pub trait OptionType: Copy + Eq {
+pub(crate) trait Values: Copy {
     // We're assuming that all options have only two possible values.
     fn values() -> [Self; 2];
-
-    fn to_arg_string(&self) -> &str;
-
-    fn from_arg_string(arg_string: &str) -> Option<Self> {
-        Self::values()
-            .into_iter()
-            .find(|v| v.to_arg_string() == arg_string)
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -24,16 +17,9 @@ pub enum OperatingSystem {
     #[serde(rename = "linux")]
     Linux,
 }
-impl OptionType for OperatingSystem {
+impl Values for OperatingSystem {
     fn values() -> [Self; 2] {
         [OperatingSystem::Windows, OperatingSystem::Linux]
-    }
-
-    fn to_arg_string(&self) -> &str {
-        match self {
-            OperatingSystem::Windows => "windows",
-            OperatingSystem::Linux => "linux",
-        }
     }
 }
 impl Display for OperatingSystem {
@@ -56,16 +42,9 @@ pub(crate) enum ProfileId {
     #[serde(rename = "b")]
     B,
 }
-impl OptionType for ProfileId {
+impl Values for ProfileId {
     fn values() -> [Self; 2] {
         [Self::A, Self::B]
-    }
-
-    fn to_arg_string(&self) -> &str {
-        match self {
-            ProfileId::A => "a",
-            ProfileId::B => "b",
-        }
     }
 }
 impl Display for ProfileId {
@@ -106,21 +85,16 @@ impl Display for LabeledProfile<'_> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RebootAction {
+    #[serde(rename = "reboot")]
     Reboot,
+    #[serde(rename = "shutdown")]
     Shutdown,
 }
-impl OptionType for RebootAction {
+impl Values for RebootAction {
     fn values() -> [Self; 2] {
         [RebootAction::Reboot, RebootAction::Shutdown]
-    }
-
-    fn to_arg_string(&self) -> &str {
-        match self {
-            RebootAction::Reboot => "reboot",
-            RebootAction::Shutdown => "shutdown",
-        }
     }
 }
 impl Display for RebootAction {
@@ -133,5 +107,24 @@ impl Display for RebootAction {
                 RebootAction::Shutdown => "desligar",
             }
         )
+    }
+}
+
+pub(crate) trait SerializeToString {
+    fn serialize_to_string(&self) -> String;
+}
+impl<T: Serialize> SerializeToString for T {
+    fn serialize_to_string(&self) -> String {
+        std::fmt::from_fn(|f| self.serialize(f)).to_string()
+    }
+}
+
+pub(crate) trait DeserializeFromString: Sized {
+    fn deserialize_from_string(s: &str) -> Option<Self>;
+}
+impl<'de, T: Deserialize<'de>> DeserializeFromString for T {
+    fn deserialize_from_string(s: &str) -> Option<Self> {
+        let deserializer = StrDeserializer::<serde::de::value::Error>::new(s);
+        T::deserialize(deserializer).ok()
     }
 }

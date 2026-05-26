@@ -1,19 +1,21 @@
 use std::env;
+use std::fmt::Debug;
 
 use ansi_term::{ANSIString, Color};
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 #[cfg(windows)]
-use crate::options_types::OptionType as _;
+use crate::options_types::Values as _;
 use crate::options_types::{LabeledProfile, OperatingSystem, ProfileId, RebootAction};
 use crate::state::StateProvider;
 use crate::{host_os, text};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Script {
     pub next_boot_operating_system: Option<SetOrUnset<OperatingSystem>>,
     pub(crate) next_windows_boot_profile: Option<SetOrUnset<ProfileId>>,
-    #[cfg(windows)]
+    #[cfg(any(windows, test))]
     pub(crate) switch_to_profile: Option<SwitchToProfile>,
     pub reboot_action: Option<RebootAction>,
 }
@@ -22,7 +24,7 @@ impl Script {
         Script {
             next_boot_operating_system: None,
             next_windows_boot_profile: None,
-            #[cfg(windows)]
+            #[cfg(any(windows, test))]
             switch_to_profile: None,
             reboot_action: None,
         }
@@ -205,10 +207,12 @@ impl ScriptExecutor {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum SetOrUnset<T> {
-    Set(T),
+    #[serde(rename = "unset")]
     Unset,
+    #[serde(untagged)]
+    Set(T),
 }
 impl<T> SetOrUnset<T> {
     pub(crate) fn into_option(self) -> Option<T> {
@@ -216,6 +220,11 @@ impl<T> SetOrUnset<T> {
             SetOrUnset::Set(value) => Some(value),
             SetOrUnset::Unset => None,
         }
+    }
+}
+impl<T> From<T> for SetOrUnset<T> {
+    fn from(value: T) -> Self {
+        SetOrUnset::Set(value)
     }
 }
 impl<T> From<Option<T>> for SetOrUnset<T> {
@@ -227,10 +236,114 @@ impl<T> From<Option<T>> for SetOrUnset<T> {
     }
 }
 
-#[cfg(windows)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg(any(windows, test))]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub(crate) enum SwitchToProfile {
+    #[serde(rename = "other")]
     Other,
-    Profile(ProfileId),
+    #[serde(rename = "saved")]
     Saved,
+    #[serde(untagged)]
+    Profile(ProfileId),
+}
+#[cfg(windows)]
+impl From<ProfileId> for SwitchToProfile {
+    fn from(value: ProfileId) -> Self {
+        SwitchToProfile::Profile(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::options_types::{DeserializeFromString as _, SerializeToString as _};
+
+    #[test]
+    fn set_or_unset_operating_system_serialize_to_string() {
+        let cases = [
+            (SetOrUnset::Set(OperatingSystem::Windows), "windows"),
+            (SetOrUnset::Set(OperatingSystem::Linux), "linux"),
+            (SetOrUnset::Unset, "unset"),
+        ];
+
+        for (value, expected) in cases {
+            assert_eq!(value.serialize_to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn set_or_unset_operating_system_deserialize_from_string() {
+        let cases = [
+            ("windows", Some(SetOrUnset::Set(OperatingSystem::Windows))),
+            ("linux", Some(SetOrUnset::Set(OperatingSystem::Linux))),
+            ("unset", Some(SetOrUnset::Unset)),
+            ("invalid", None),
+        ];
+
+        for (s, expected) in cases {
+            assert_eq!(
+                SetOrUnset::<OperatingSystem>::deserialize_from_string(s),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn set_or_unset_profile_id_serialize_to_string() {
+        let cases = [
+            (SetOrUnset::Set(ProfileId::A), "a"),
+            (SetOrUnset::Set(ProfileId::B), "b"),
+            (SetOrUnset::Unset, "unset"),
+        ];
+
+        for (value, expected) in cases {
+            assert_eq!(value.serialize_to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn set_or_unset_profile_id_deserialize_from_string() {
+        let cases = [
+            ("a", Some(SetOrUnset::Set(ProfileId::A))),
+            ("b", Some(SetOrUnset::Set(ProfileId::B))),
+            ("unset", Some(SetOrUnset::Unset)),
+            ("invalid", None),
+        ];
+
+        for (s, expected) in cases {
+            assert_eq!(
+                SetOrUnset::<ProfileId>::deserialize_from_string(s),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn switch_to_profile_serialize_to_string() {
+        let cases = [
+            (SwitchToProfile::Other, "other"),
+            (SwitchToProfile::Saved, "saved"),
+            (SwitchToProfile::Profile(ProfileId::A), "a"),
+            (SwitchToProfile::Profile(ProfileId::B), "b"),
+        ];
+
+        for (value, expected) in cases {
+            assert_eq!(value.serialize_to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn switch_to_profile_deserialize_from_string() {
+        let cases = [
+            ("other", Some(SwitchToProfile::Other)),
+            ("saved", Some(SwitchToProfile::Saved)),
+            ("a", Some(SwitchToProfile::Profile(ProfileId::A))),
+            ("b", Some(SwitchToProfile::Profile(ProfileId::B))),
+            ("invalid", None),
+        ];
+
+        for (s, expected) in cases {
+            assert_eq!(SwitchToProfile::deserialize_from_string(s), expected);
+        }
+    }
 }

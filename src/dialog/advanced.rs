@@ -5,7 +5,7 @@ use iced::widget::{button, column, container, radio, row, space, text};
 use iced::{Padding, Size, Task, Theme, font};
 
 use super::{Dialog, Outcome};
-use crate::options_types::{OperatingSystem, OptionType, ProfileId, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId, RebootAction, Values as _};
 use crate::text::Capitalized;
 
 #[derive(Clone, Copy, Debug)]

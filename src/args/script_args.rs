@@ -1,11 +1,16 @@
+use serde::Deserialize;
+
 use super::errors::{self, ArgError};
-#[cfg(windows)]
-use crate::options_types::ProfileId;
-use crate::options_types::{OptionType, RebootAction};
-#[cfg(windows)]
+use crate::options_types::{DeserializeFromString as _, OperatingSystem, RebootAction};
+#[cfg(any(windows, test))]
 use crate::script::SwitchToProfile;
 use crate::script::{Script, SetOrUnset};
 use crate::text;
+
+pub(super) const NEXT_BOOT_OPERATING_SYSTEM_PREFIX: &str = "os";
+pub(super) const NEXT_WINDOWS_BOOT_PROFILE_PREFIX: &str = "profile";
+#[cfg(any(windows, test))]
+pub(super) const SWITCH_TO_PROFILE_PREFIX: &str = "switch";
 
 pub fn parse(
     arg: &str,
@@ -26,8 +31,6 @@ pub fn parse(
     Ok(Some(script))
 }
 
-static UNSET_OPTION: &str = "unset";
-
 fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
     if parse_next_boot_operating_system(arg, script)? {
         return Ok(true);
@@ -37,7 +40,7 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
         return Ok(true);
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, test))]
     if parse_switch_to_profile(arg, script)? {
         return Ok(true);
     }
@@ -50,96 +53,81 @@ fn parse_single(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
 }
 
 fn parse_next_boot_operating_system(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    parse_boot_option(
-        arg,
+    let with_prefix = || SetOrUnset::from_str_with_prefix(arg, NEXT_BOOT_OPERATING_SYSTEM_PREFIX);
+    let without_prefix = || OperatingSystem::deserialize_from_string(arg).map(SetOrUnset::Set);
+
+    set_option(
+        with_prefix().or_else(without_prefix),
         &mut script.next_boot_operating_system,
-        "os:",
         text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
+        arg,
     )
 }
 
 fn parse_next_windows_boot_profile(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    parse_boot_option(
-        arg,
+    set_option(
+        SetOrUnset::from_str_with_prefix(arg, NEXT_WINDOWS_BOOT_PROFILE_PREFIX),
         &mut script.next_windows_boot_profile,
-        "profile:",
         text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+        arg,
     )
 }
 
-fn parse_boot_option<T: OptionType>(
-    arg: &str,
-    value: &mut Option<SetOrUnset<T>>,
-    prefix: &str,
-    descr: &str,
-) -> Result<bool, ArgError> {
-    let option = if let Some(string) = arg.strip_prefix(prefix) {
-        if string == UNSET_OPTION {
-            SetOrUnset::<T>::Unset
-        } else {
-            match T::from_arg_string(string).map(SetOrUnset::Set) {
-                Some(option) => option,
-                None => return errors::unknown_argument_error(arg),
-            }
-        }
-    } else {
-        match T::from_arg_string(arg).map(SetOrUnset::Set) {
-            Some(option) => option,
-            None => return Ok(false),
-        }
-    };
-
-    set_if_none(value, option, arg, descr)
-}
-
-#[cfg(windows)]
+#[cfg(any(windows, test))]
 fn parse_switch_to_profile(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let option = match arg.strip_prefix("switch:") {
-        Some("saved") => SwitchToProfile::Saved,
-        Some("other") => SwitchToProfile::Other,
-        Some(string) => match ProfileId::from_arg_string(string) {
-            Some(profile_id) => SwitchToProfile::Profile(profile_id),
-            None => return errors::unknown_argument_error(arg),
-        },
-        None if arg == "switch" => SwitchToProfile::Other,
-        None => return Ok(false),
+    let full = || {
+        strip_prefix(arg, SWITCH_TO_PROFILE_PREFIX)
+            .and_then(SwitchToProfile::deserialize_from_string)
     };
+    let prefix_only = || (arg == SWITCH_TO_PROFILE_PREFIX).then_some(SwitchToProfile::Other);
 
-    set_if_none(
+    set_option(
+        full().or_else(prefix_only),
         &mut script.switch_to_profile,
-        option,
+        text::profile::SWITCH_DESCRIPTION,
         arg,
-        "troca de perfil",
     )
 }
 
 fn parse_reboot_action(arg: &str, script: &mut Script) -> Result<bool, ArgError> {
-    let Some(option) = RebootAction::from_arg_string(arg) else {
-        return Ok(false);
-    };
-
-    set_if_none(&mut script.reboot_action, option, arg, "ação")
+    set_option(
+        RebootAction::deserialize_from_string(arg),
+        &mut script.reboot_action,
+        text::reboot_action::ACTION_DESCRIPTION,
+        arg,
+    )
 }
 
-fn set_if_none<T>(
-    current: &mut Option<T>,
-    new: T,
-    arg: &str,
+fn set_option<T>(
+    option: Option<T>,
+    value: &mut Option<T>,
     descr: &str,
+    arg: &str,
 ) -> Result<bool, ArgError> {
-    if current.is_none() {
-        current.replace(new);
-        Ok(true)
+    if let Some(option) = option {
+        if value.is_none() {
+            value.replace(option);
+            Ok(true)
+        } else {
+            Err(ArgError::new(
+                &format!("A opção de {descr} não pode ser usada mais de uma vez"),
+                arg,
+            ))
+        }
     } else {
-        repeated_option_error(descr, arg)
+        Ok(false)
     }
 }
 
-fn repeated_option_error<T>(option: &str, arg: &str) -> Result<T, ArgError> {
-    Err(ArgError::new(
-        &format!("A opção de {option} não pode ser usada mais de uma vez"),
-        arg,
-    ))
+impl<'de, T: Deserialize<'de>> SetOrUnset<T> {
+    pub(crate) fn from_str_with_prefix(s: &str, prefix: &str) -> Option<Self> {
+        strip_prefix(s, prefix).and_then(SetOrUnset::deserialize_from_string)
+    }
+}
+
+fn strip_prefix<'a>(arg: &'a str, prefix: &str) -> Option<&'a str> {
+    (arg.starts_with(prefix) && arg.chars().nth(prefix.len()) == Some(':'))
+        .then(|| &arg[prefix.len() + 1..])
 }
 
 #[cfg(test)]
@@ -149,7 +137,7 @@ mod tests {
     use SetOrUnset::*;
 
     use super::*;
-    use crate::options_types::{OperatingSystem, ProfileId};
+    use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 
     #[test]
     fn test_parse() {
@@ -229,7 +217,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_parse_single_switch_to_profile() {
         let mut script = Script::new();
 
@@ -270,7 +257,8 @@ mod tests {
 
         let result = parse_single("profile:blah", &mut script);
 
-        assert!(result.is_err());
+        assert_eq!(result, Ok(false));
+        assert_eq!(script, Script::new());
     }
 
     #[test]
@@ -299,7 +287,8 @@ mod tests {
 
         let result = parse_next_boot_operating_system("os:blah", &mut script);
 
-        assert!(result.is_err());
+        assert_eq!(result, Ok(false));
+        assert_eq!(script.next_boot_operating_system, None);
     }
 
     #[test]
@@ -346,7 +335,8 @@ mod tests {
 
         let result = parse_next_windows_boot_profile("profile:blah", &mut script);
 
-        assert!(result.is_err());
+        assert_eq!(result, Ok(false));
+        assert_eq!(script.next_windows_boot_profile, None);
     }
 
     #[test]
@@ -370,7 +360,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_parse_switch_to_profile() {
         let cases = [
             ("switch", SwitchToProfile::Other),
@@ -391,17 +380,16 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_parse_switch_to_profile_invalid() {
         let mut script = Script::new();
 
         let result = parse_switch_to_profile("switch:blah", &mut script);
 
-        assert!(result.is_err());
+        assert_eq!(result, Ok(false));
+        assert_eq!(script.switch_to_profile, None);
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_parse_switch_to_profile_no_switch_arg() {
         let mut script = Script::new();
         let arg = "blah";
@@ -412,7 +400,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_parse_switch_to_profile_already_set() {
         let mut script = Script::new();
         script.switch_to_profile = Some(SwitchToProfile::Other);

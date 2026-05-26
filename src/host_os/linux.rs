@@ -27,6 +27,8 @@ const fn reboot_on_windows_with_profile(profile_id: ProfileId) -> Script {
     Script {
         next_boot_operating_system: Some(SetOrUnset::Set(OperatingSystem::Windows)),
         next_windows_boot_profile: Some(SetOrUnset::Set(profile_id)),
+        #[cfg(test)]
+        switch_to_profile: None,
         reboot_action: Some(RebootAction::Reboot),
     }
 }

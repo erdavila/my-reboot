@@ -8,7 +8,7 @@ use display_profile_lib::Profile;
 use serde::{Deserialize, Serialize};
 
 use crate::host_os::state_path;
-use crate::options_types::{OperatingSystem, OptionType, ProfileId};
+use crate::options_types::{OperatingSystem, ProfileId, Values as _};
 
 const CONFIGS_FILENAME: &str = "my-reboot-configs.toml";
 

@@ -5,7 +5,7 @@ use anyhow::{Result, anyhow};
 use regex::Regex;
 
 use crate::configuration::Configurer;
-use crate::options_types::{OperatingSystem, OptionType};
+use crate::options_types::{OperatingSystem, Values as _};
 
 pub fn configure(configurer: &mut Configurer) -> Result<()> {
     const GRUB_CFG: &str = "/boot/grub/grub.cfg";

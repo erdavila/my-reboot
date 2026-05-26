@@ -2,7 +2,7 @@ use anyhow::Result;
 use rustyline::DefaultEditor;
 
 use crate::host_os::{self, HOST_OS};
-use crate::options_types::{OperatingSystem, OptionType, ProfileId};
+use crate::options_types::{OperatingSystem, ProfileId, Values as _};
 use crate::persist::configs::ConfigsWriter;
 
 pub(crate) fn configure() -> Result<()> {
