@@ -1,15 +1,16 @@
 use ansi_term::Color;
 use anyhow::Result;
 use display_profile_lib::{Profile, Rotation, SetProfileAction, get_profile, set_profile};
-use rustyline::DefaultEditor;
+use rustyline::Prompt;
 
+use crate::configuration::Configurer;
 use crate::options_types::{LabeledProfile, ProfileId};
 use crate::persist::configs::ConfigsWriter;
 
-pub(crate) fn configure() -> Result<()> {
-    let mut configure = Configure::new()?;
-    configure.configure()?;
-    configure.finalize()?;
+pub(crate) fn configure(configurer: &mut Configurer) -> Result<()> {
+    let mut configurer = WindowsConfigurer::new(configurer)?;
+    configurer.configure()?;
+    configurer.finalize()?;
     Ok(())
 }
 
@@ -19,18 +20,17 @@ macro_rules! print_error {
     };
 }
 
-struct Configure {
+struct WindowsConfigurer<'a> {
     initial_profile: Profile,
-    readline: DefaultEditor,
+    inner: &'a mut Configurer,
 }
 
-impl Configure {
-    fn new() -> Result<Self> {
+impl<'a> WindowsConfigurer<'a> {
+    fn new(inner: &'a mut Configurer) -> Result<Self> {
         let initial_profile = get_profile()?;
-        let readline = DefaultEditor::new()?;
         Ok(Self {
             initial_profile,
-            readline,
+            inner,
         })
     }
 
@@ -73,14 +73,11 @@ impl Configure {
         Self::print_profile_summary(ProfileId::B, &profile_b_label, &profile_b);
         println!();
 
-        let mut configs = ConfigsWriter::load()?;
-        configs.set_profile(ProfileId::A, &profile_a_label, &profile_a)?;
-        configs.set_profile(ProfileId::B, &profile_b_label, &profile_b)?;
-        println!("Salvando as configurações...");
-        configs.save()?;
-        println!();
+        self.configs()
+            .set_profile_configs(ProfileId::A, &profile_a_label, &profile_a)?;
+        self.configs()
+            .set_profile_configs(ProfileId::B, &profile_b_label, &profile_b)?;
 
-        println!("Configuração finalizada.");
         Ok(())
     }
 
@@ -95,7 +92,7 @@ impl Configure {
             println!("1. A configuração de tela atual corresponde ao perfil {id}");
             println!("2. Abrir as configurações de tela do Windows");
 
-            match self.readline.readline("> ")?.as_str() {
+            match self.readline("> ")?.as_str() {
                 "1" => {
                     let profile = get_profile()?;
                     match validate(&profile) {
@@ -119,9 +116,7 @@ impl Configure {
     ) -> Result<String> {
         loop {
             println!();
-            let label = self
-                .readline
-                .readline(&format!("Digite um nome para o perfil {id}: "))?;
+            let label = self.readline(&format!("Digite um nome para o perfil {id}: "))?;
             if label.is_empty() {
                 print_error!("O nome não pode ser vazio");
             } else if let Err(msg) = validate(&label) {
@@ -130,6 +125,15 @@ impl Configure {
                 return Ok(label);
             }
         }
+    }
+
+    fn readline<P: Prompt + ?Sized>(&mut self, prompt: &P) -> Result<String> {
+        let input = self.inner.readline.readline(prompt)?;
+        Ok(input)
+    }
+
+    fn configs(&mut self) -> &mut ConfigsWriter {
+        &mut self.inner.configs
     }
 
     fn finalize(self) -> Result<()> {

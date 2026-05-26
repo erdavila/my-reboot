@@ -14,6 +14,7 @@ use crate::text;
 
 pub mod configuration;
 
+pub const HOST_OS: OperatingSystem = OperatingSystem::Windows;
 pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
 pub const PREDEFINED_SCRIPTS: [PredefinedScript; 1] = [PredefinedScript {
@@ -78,7 +79,7 @@ impl<'a> CurrentProfileHandler<'a> {
     pub(crate) fn switch_to(&self, profile_id: ProfileId) -> Result<()> {
         const WAIT_SECONDS: u64 = 10;
 
-        let profile = self.configs.profile[profile_id].configs()?;
+        let profile = self.configs.profile[profile_id].display_configs()?;
 
         let switched = Self::execute_profile_switch(&profile, WAIT_SECONDS)?;
         if switched {

@@ -7,6 +7,7 @@ use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 use crate::script::{Script, SetOrUnset};
 use crate::text;
 
+pub const HOST_OS: OperatingSystem = OperatingSystem::Linux;
 pub const STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
 
 pub const PREDEFINED_SCRIPTS: [PredefinedScript; 2] = [
@@ -45,27 +46,16 @@ fn systemctl(arg: &str) -> Result<()> {
 
 pub mod configuration {
     use std::collections::HashMap;
-    use std::error::Error;
-    use std::fmt::Display;
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    use anyhow::Result;
+    use anyhow::{Result, bail};
     use regex::Regex;
 
+    use crate::configuration::Configurer;
     use crate::options_types::{OperatingSystem, OptionType};
-    use crate::persist::configs::ConfigsWriter;
 
-    #[derive(Debug)]
-    struct GrubEntryNotFound(OperatingSystem);
-    impl Display for GrubEntryNotFound {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "Entrada não encontrada para {}", self.0)
-        }
-    }
-    impl Error for GrubEntryNotFound {}
-
-    pub fn configure() -> Result<()> {
+    pub fn configure(configurer: &mut Configurer) -> Result<()> {
         const GRUB_CFG: &str = "/boot/grub/grub.cfg";
 
         let grub_entry_re = Regex::new(r".*'([a-zA-Z0-9_-]+)'\s*\{.*")?;
@@ -94,19 +84,14 @@ pub mod configuration {
             }
         }
 
-        let mut configs = ConfigsWriter::load()?;
         for os in OperatingSystem::values() {
             if let Some(grub_entry) = entries.get(&os) {
-                configs.set_grub_entry(os, grub_entry)?;
+                configurer.configs.set_grub_entry(os, grub_entry)?;
             } else {
-                return Err(GrubEntryNotFound(os).into());
+                bail!("Entrada não encontrada para {os}");
             }
         }
 
-        println!("Salvando configurações...");
-        configs.save()?;
-
-        println!("Configuração finalizada.");
         Ok(())
     }
 }

@@ -1,4 +1,5 @@
 mod args;
+mod configuration;
 mod dialog;
 mod host_os;
 mod options_types;
@@ -129,7 +130,7 @@ fn show_state() -> Result<()> {
 }
 
 fn configure() -> Result<()> {
-    host_os::configuration::configure()
+    configuration::configure()
 }
 
 fn show_usage() {
