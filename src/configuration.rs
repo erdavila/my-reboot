@@ -31,9 +31,8 @@ impl Configurer {
     fn do_configuration(&mut self) -> Result<()> {
         if self.is_configured(HOST_OS) {
             println!("A configuração no {HOST_OS} já está feita.");
-            println!("Tecle ENTER para refazê-la, ou Ctrl+C para cancelar.");
-
-            self.readline.readline("> ")?;
+            self.readline
+                .readline("Tecle ENTER para refazê-la, ou Ctrl+C para cancelar.")?;
             println!();
         }
 
@@ -41,7 +40,6 @@ impl Configurer {
 
         println!("Salvando configurações...");
         self.configs.save()?;
-        println!();
         Ok(())
     }
 
