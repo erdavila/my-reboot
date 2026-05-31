@@ -21,9 +21,9 @@ use script::Script;
 #[cfg(all(windows, not(test)))]
 use script::SwitchToProfile;
 
-use crate::args::ParsedArgs;
+use crate::args::{ParsedArgs, PredefinedScriptParsedArgs};
 use crate::host_os::HOST_OS;
-use crate::options_types::{LabeledProfile, ProfileId, Values as _};
+use crate::options_types::{LabeledProfile, ProfileId, SerializeToString, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
 
@@ -34,7 +34,10 @@ fn main() -> Result<()> {
     match args {
         ParsedArgs::Dialog(mode) => show_dialog(mode),
         ParsedArgs::Script(script) => execute_script(script),
-        ParsedArgs::PredefinedScriptNumber(number) => execute_predefined_script(number),
+        ParsedArgs::PredefinedScript(PredefinedScriptParsedArgs::Number(number)) => {
+            execute_predefined_script(number)
+        }
+        ParsedArgs::PredefinedScript(PredefinedScriptParsedArgs::List) => list_predefined_scripts(),
         ParsedArgs::ShowState => show_state(),
         ParsedArgs::Configure => configure(),
         ParsedArgs::Usage => {
@@ -118,6 +121,39 @@ fn execute_predefined_script(number: NonZeroUsize) -> Result<()> {
         predef_script.resolve_label(&configs)
     );
     predef_script.script.execute()
+}
+
+fn list_predefined_scripts() -> Result<()> {
+    let configs = Configs::load()?;
+
+    for (i, predef_script) in configs.operating_system[HOST_OS].scripts.iter().enumerate() {
+        let number = i + 1;
+
+        let label = predef_script.resolve_label(&configs);
+        let Script {
+            next_boot_operating_system,
+            next_windows_boot_profile,
+            switch_to_profile,
+            reboot_action,
+        } = &predef_script.script;
+
+        macro_rules! print_option {
+            ($name:ident) => {
+                $name.inspect(|value| {
+                    println!("  {}: {}", stringify!($name), value.serialize_to_string())
+                });
+            };
+        }
+
+        println!("{number}: '{label}'");
+        print_option!(next_boot_operating_system);
+        print_option!(next_windows_boot_profile);
+        print_option!(switch_to_profile);
+        print_option!(reboot_action);
+        println!();
+    }
+
+    Ok(())
 }
 
 fn execute_script(script: Script) -> Result<()> {

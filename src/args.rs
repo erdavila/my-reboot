@@ -24,9 +24,14 @@ pub enum ParsedArgs {
     Dialog(Mode),
     ShowState,
     Script(Script),
-    PredefinedScriptNumber(NonZeroUsize),
+    PredefinedScript(PredefinedScriptParsedArgs),
     Configure,
     Usage,
+}
+
+pub(crate) enum PredefinedScriptParsedArgs {
+    Number(NonZeroUsize),
+    List,
 }
 
 pub fn parse() -> Result<ParsedArgs, ArgError> {
@@ -41,8 +46,8 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
             }
             "show" => ParsedArgs::ShowState,
             "script" => {
-                let number = parse_script_args(&mut args)?;
-                ParsedArgs::PredefinedScriptNumber(number)
+                let script_arg = parse_script_args(&mut args)?;
+                ParsedArgs::PredefinedScript(script_arg)
             }
             "configure" => ParsedArgs::Configure,
             "-h" | "--help" => ParsedArgs::Usage,
@@ -66,12 +71,14 @@ fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
     }
 }
 
-fn parse_script_args(args: &mut env::Args) -> Result<NonZeroUsize, ArgError> {
+fn parse_script_args(args: &mut env::Args) -> Result<PredefinedScriptParsedArgs, ArgError> {
     match args.next() {
+        Some(arg) if arg == "list" => Ok(PredefinedScriptParsedArgs::List),
         Some(arg) => arg
             .parse()
+            .map(PredefinedScriptParsedArgs::Number)
             .map_err(|e| ArgError::new(&format!("Número inválido de script {arg:?}: {e}"), &arg)),
-        None => errors::missing_argument_error("NÚMERO"),
+        None => errors::missing_argument_error("'list' ou NÚMERO"),
     }
 }
 
@@ -183,7 +190,12 @@ impl Display for Usage {
             })?;
 
             f.write_block("my-reboot script NÚMERO", |f| {
-                f.write("Executa o script correspondente às ações disponíveis no diálogo básico do S.O. atual.")?;
+                f.write("Executa o script pré-definido para o S.O. atual.")?;
+                f.write("")
+            })?;
+
+            f.write_block("my-reboot script list", |f| {
+                f.write("Lista os scripts pré-definidos para o S.O. atual.")?;
                 f.write("")
             })?;
 
