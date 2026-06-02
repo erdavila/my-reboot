@@ -28,6 +28,10 @@ display-profile-lib = { version = "0.1.1", features = [ "serde" ] }
 open = "5"
 windows = { version = "0.62.2", features = [ "Win32_System_Console", "Win32_UI_WindowsAndMessaging" ] }
 
+[build-dependencies]
+anyhow = "1.0"
+chrono = "0.4"
+
 [target."cfg(windows)".build-dependencies]
 winres = "0.1"
 

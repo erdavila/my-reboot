@@ -44,6 +44,10 @@ fn main() -> Result<()> {
             show_usage();
             Ok(())
         }
+        ParsedArgs::Version => {
+            show_version();
+            Ok(())
+        }
     }
 }
 
@@ -203,4 +207,22 @@ fn show_usage() {
     let usage = args::Usage::new(profile_labels);
 
     println!("{usage}");
+}
+
+fn show_version() {
+    println!(
+        "{} {} ({})",
+        env!("MY_REBOOT_NAME"),
+        env!("MY_REBOOT_VERSION"),
+        env!("MY_REBOOT_TIMESTAMP")
+    );
+
+    let vcs_revision = env!("MY_REBOOT_VCS_REVISION");
+    if let Some(jj_ids) = vcs_revision.strip_prefix("JJ:") {
+        let (change_id, commit_id) = jj_ids.split_once(' ').unwrap();
+        println!("JJ change/commit ID: {change_id}/{commit_id}");
+    } else {
+        let git_head = vcs_revision.strip_prefix("Git:").unwrap();
+        println!("Git HEAD: {git_head}");
+    }
 }

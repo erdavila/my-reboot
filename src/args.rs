@@ -27,6 +27,7 @@ pub enum ParsedArgs {
     PredefinedScript(PredefinedScriptParsedArgs),
     Configure,
     Usage,
+    Version,
 }
 
 pub(crate) enum PredefinedScriptParsedArgs {
@@ -51,6 +52,7 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
             }
             "configure" => ParsedArgs::Configure,
             "-h" | "--help" => ParsedArgs::Usage,
+            "-v" | "--version" => ParsedArgs::Version,
             _ => match script_args::parse(&arg, &mut args)? {
                 Some(script) => ParsedArgs::Script(script),
                 None => return errors::unknown_argument_error(&arg),
@@ -205,7 +207,12 @@ impl Display for Usage {
             })?;
 
             f.write_block("my-reboot -h|--help", |f| {
-                f.write("Exibe este conteúdo.")
+                f.write("Exibe este conteúdo.")?;
+                f.write("")
+            })?;
+
+            f.write_block("my-reboot -v|--version", |f| {
+                f.write("Exibe versão e informações de build.")
             })
         })?;
 
