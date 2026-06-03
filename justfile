@@ -5,8 +5,8 @@ default: check test fmt clippy
 # For cross-checks, the targets must be added with: rustup target add x86_64-pc-windows-gnu x86_64-unknown-linux-gnu
 # Cross-checks
 check:
-  cargo check --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-pc-windows-gnu
-  cargo check --config "env.SKIP_WINDOWS_ICON='1'" --target x86_64-unknown-linux-gnu
+  cargo check --target x86_64-pc-windows-gnu
+  cargo check --target x86_64-unknown-linux-gnu
 
 test:
   cargo test

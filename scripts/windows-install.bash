@@ -1,4 +1,5 @@
 EXE_NAME=my-reboot.exe
+CARGO_CFG="--config env.WINDOWS_ICON='true'"
 DEST_DIR=~/bin
 SWITCH_PROFILE_TITLE="Trocar Perfil"
 

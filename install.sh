@@ -4,7 +4,7 @@ set -e
 
 function prepare_executable() {
   echo "* Compilando..."
-  cargo build --release
+  cargo build --release $CARGO_CFG
   echo
 
   echo "* Copiando $EXE_NAME para $DEST_DIR ..."

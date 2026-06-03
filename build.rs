@@ -2,40 +2,43 @@ use std::io::BufRead as _;
 use std::process::{Command, Output};
 
 use anyhow::Result;
+use build_rs::input::{cargo_pkg_name, cargo_pkg_version};
+use build_rs::output::rustc_env;
 use chrono::Local;
 
 fn main() -> Result<()> {
+    build_rs::output::rerun_if_changed("src/");
+
     generate_version_env_vars()?;
 
     #[cfg(windows)]
-    if std::env::var("CARGO_CFG_TARGET_OS").is_ok_and(|var| var == "windows")
-        && std::env::var("SKIP_WINDOWS_ICON").is_err()
     {
-        winres::WindowsResource::new()
-            .set_icon("assets/icon.ico")
-            .compile()?;
+        use build_rs::output::rerun_if_env_changed;
+
+        const WINDOWS_ICON_ENV_VAR: &str = "WINDOWS_ICON";
+
+        rerun_if_env_changed(WINDOWS_ICON_ENV_VAR);
+        if std::env::var(WINDOWS_ICON_ENV_VAR).is_ok_and(|value| value == "true") {
+            winres::WindowsResource::new()
+                .set_icon("assets/icon.ico")
+                .compile()?;
+        }
     }
 
     Ok(())
 }
 
 fn generate_version_env_vars() -> Result<()> {
-    println!("cargo::rustc-env=MY_REBOOT_NAME={}", env!("CARGO_PKG_NAME"));
-    println!(
-        "cargo::rustc-env=MY_REBOOT_VERSION={}",
-        env!("CARGO_PKG_VERSION")
-    );
-    println!(
-        "cargo::rustc-env=MY_REBOOT_TIMESTAMP={}",
-        Local::now().to_rfc2822()
-    );
-
     let (vcs, revision) = if let Some(jj_ids) = jj_ids() {
         ("JJ", jj_ids?)
     } else {
         ("Git", git_head()?)
     };
-    println!("cargo::rustc-env=MY_REBOOT_VCS_REVISION={vcs}:{revision}");
+
+    rustc_env("MY_REBOOT_NAME", &cargo_pkg_name());
+    rustc_env("MY_REBOOT_VERSION", &cargo_pkg_version());
+    rustc_env("MY_REBOOT_TIMESTAMP", &Local::now().to_rfc2822());
+    rustc_env("MY_REBOOT_VCS_REVISION", &format!("{vcs}:{revision}"));
 
     Ok(())
 }
