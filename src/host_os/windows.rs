@@ -13,7 +13,7 @@ use crate::text;
 pub mod configuration;
 
 pub const HOST_OS: OperatingSystem = OperatingSystem::Windows;
-pub const STATE_DIR_PATH: &str = r"C:\grubenv.dir";
+pub(super) const DEFAULT_STATE_DIR_PATH: &str = r"C:\grubenv.dir";
 
 pub fn reboot() -> Result<()> {
     shutdown_now("/g")

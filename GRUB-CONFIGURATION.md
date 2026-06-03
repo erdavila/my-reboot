@@ -130,5 +130,21 @@ On the instructions below, replace `<UUID>` and `<GRUB-ID>` with the values you 
 On the Disk Management tool, map the `grubenv` partitition to the folder `C:\grubenv.dir`.
 
 
+## Using different paths for the shared `grubenv`
+
+To use a different paths for the shared `grubenv`, use the `STATE_DIR_PATH` environment variable during installation.
+
+On Linux:
+```bash
+STATE_DIR_PATH=/boot/grub/other-grubenv.dir ./install.sh
+```
+
+On Windows (PowerShell):
+```powershell
+$env:STATE_DIR_PATH = "C:\other-grubenv.dir"; .\install.ps1
+```
+
+Also, use the desired path on all the instructions below.
+
 
 [GRUB environment block]: https://www.gnu.org/software/grub/manual/grub/html_node/Environment-block.html

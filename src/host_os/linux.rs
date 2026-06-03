@@ -9,7 +9,7 @@ use crate::text;
 pub mod configuration;
 
 pub const HOST_OS: OperatingSystem = OperatingSystem::Linux;
-pub const STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
+pub(super) const DEFAULT_STATE_DIR_PATH: &str = "/boot/grub/grubenv.dir";
 
 pub fn reboot() -> Result<()> {
     systemctl("reboot")

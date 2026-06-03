@@ -15,7 +15,8 @@ mod linux;
 mod windows;
 
 pub(crate) fn state_path(filename: &str) -> PathBuf {
-    PathBuf::from(STATE_DIR_PATH).join(filename)
+    let state_dir_path = option_env!("STATE_DIR_PATH").unwrap_or(DEFAULT_STATE_DIR_PATH);
+    PathBuf::from(state_dir_path).join(filename)
 }
 
 pub(crate) struct TemplateResolver {
