@@ -1,3 +1,5 @@
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+
 # check + test + fmt + clippy
 default: check test fmt clippy
 
