@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::options_types::Values as _;
 use crate::options_types::{LabeledProfile, OperatingSystem, ProfileId, RebootAction};
 use crate::state::StateProvider;
+use crate::text::Capitalized;
 use crate::{host_os, text};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -120,7 +121,7 @@ impl ScriptExecutor {
 
         println!(
             "{} {} {}.",
-            description,
+            Capitalized(description),
             was_updated_to,
             value_text(option.into_option())
         );

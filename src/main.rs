@@ -26,6 +26,7 @@ use crate::host_os::HOST_OS;
 use crate::options_types::{LabeledProfile, ProfileId, SerializeToString, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
+use crate::text::Capitalized;
 
 fn main() -> Result<()> {
     let args = args::parse()
@@ -170,12 +171,12 @@ fn show_state() -> Result<()> {
 
     println!(
         "{}: {}",
-        text::operating_system::ON_NEXT_BOOT_DESCRIPTION,
+        Capitalized(text::operating_system::ON_NEXT_BOOT_DESCRIPTION),
         text::operating_system::value_text(state.next_boot_operating_system)
     );
     println!(
         "{}: {}",
-        text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
+        Capitalized(text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION),
         text::profile::next_boot_value_text(
             state
                 .next_windows_boot_profile
@@ -185,7 +186,7 @@ fn show_state() -> Result<()> {
     #[cfg(windows)]
     println!(
         "{}: {}",
-        text::profile::CURRENT,
+        Capitalized(text::profile::CURRENT),
         text::profile::current_value_text(
             state
                 .current_profile
