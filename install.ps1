@@ -1,4 +1,8 @@
-﻿$ErrorActionPreference = "Stop"
+﻿<#
+    ATTENTION: Ensure that this file is saved as UTF-8 with BOM to avoid encoding issues in PowerShell.
+#>
+
+$ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ScriptDir = $PSScriptRoot
@@ -23,10 +27,42 @@ function Initialize-Executable {
     return Join-Path $DestDir $ExeName
 }
 
-function New-Shortcut($exePath) {
+function New-Shortcut {
+    param(
+        [Parameter(Mandatory = $true)][string]$title,
+        [Parameter(Mandatory = $true)][string]$exePath,
+        [string]$arguments,
+        [string]$iconLocation,
+        [string]$hotkey
+    )
+
+    $WshShell = New-Object -ComObject WScript.Shell
+    $DesktopPath = [System.Environment]::GetFolderPath("Desktop")
+
+    $Shortcut = $WshShell.CreateShortcut((Join-Path $DesktopPath "$title.lnk"))
+    $Shortcut.TargetPath = $exePath
+    if ($PSBoundParameters.ContainsKey("arguments")) {
+        $Shortcut.Arguments = $arguments
+    }
+    $Shortcut.Description = $title
+    $Shortcut.WindowStyle = 7 # Minimized
+    if ($PSBoundParameters.ContainsKey("iconLocation")) {
+        $Shortcut.IconLocation = $iconLocation
+    }
+    if ($PSBoundParameters.ContainsKey("hotkey")) {
+        $Shortcut.Hotkey = $hotkey
+    }
+
+    $Shortcut.Save()
+}
+
+function Install-Shortcuts($exePath) {
     Write-Host "* Criando atalho para My Reboot na Área de Trabalho..."
-    $script = Join-Path $ScriptDir "scripts\CreateMyRebootShortcut.vbs"
-    cscript //NoLogo "$script" "$exePath"
+    $mainShortcutParams = @{
+        title = "My Reboot"
+        exePath = $exePath
+    }
+    New-Shortcut @mainShortcutParams
 
     $displaySwitchPath = (Get-Command DisplaySwitch.exe -ErrorAction SilentlyContinue).Source
     if (-not $displaySwitchPath) {
@@ -34,8 +70,14 @@ function New-Shortcut($exePath) {
     }
 
     Write-Host "* Criando atalho para $SwitchProfileTitle na Área de Trabalho..."
-    $script = Join-Path $ScriptDir "scripts\CreateProfileSwitchShortcut.vbs"
-    cscript //NoLogo "$script" "$exePath" "$SwitchProfileTitle" "$displaySwitchPath"
+    $profileSwitchShortcutParams = @{
+        title = $SwitchProfileTitle
+        exePath = $exePath
+        arguments = "switch:other"
+        iconLocation = "$displaySwitchPath,2"
+        hotkey = "ALT+CTRL+X"
+    }
+    New-Shortcut @profileSwitchShortcutParams
 }
 
 function Set-ProfileSwitchRunOnStartup($exePath) {
@@ -63,7 +105,7 @@ function Add-ToPath($dir) {
 }
 
 $exePath = Initialize-Executable
-New-Shortcut $exePath
+Install-Shortcuts $exePath
 Set-ProfileSwitchRunOnStartup $exePath
 Add-ToPath $DestDir
 
