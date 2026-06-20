@@ -1,7 +1,6 @@
 use ansi_term::Color;
 use anyhow::Result;
 use display_profile_lib::{Profile, Rotation, SetProfileAction, get_profile, set_profile};
-use rustyline::Prompt;
 
 use crate::configuration::Configurer;
 use crate::options_types::{LabeledProfile, ProfileId};
@@ -42,29 +41,32 @@ impl<'a> WindowsConfigurer<'a> {
             ProfileId::B
         );
 
-        let profile_a = self.configure_profile(ProfileId::A, accept_anything)?;
-        let profile_a_label = self.ask_label(ProfileId::A, accept_anything)?;
+        let (profile_a, profile_a_label) =
+            self.configure_profile_and_label(ProfileId::A, accept_anything, accept_anything)?;
 
-        let profile_b = self.configure_profile(ProfileId::B, |profile| {
-            if *profile == profile_a {
-                Err(format!(
-                    "A configuração não pode ser igual à do perfil {}",
-                    ProfileId::A
-                ))
-            } else {
-                Ok(())
-            }
-        })?;
-        let profile_b_label = self.ask_label(ProfileId::B, |label| {
-            if *label == profile_a_label {
-                Err(format!(
-                    "O nome não pode ser igual ao do perfil {}",
-                    ProfileId::A
-                ))
-            } else {
-                Ok(())
-            }
-        })?;
+        let (profile_b, profile_b_label) = self.configure_profile_and_label(
+            ProfileId::B,
+            |profile| {
+                if *profile == profile_a {
+                    Err(format!(
+                        "A configuração não pode ser igual à do perfil {}",
+                        ProfileId::A
+                    ))
+                } else {
+                    Ok(())
+                }
+            },
+            |label| {
+                if *label == profile_a_label {
+                    Err(format!(
+                        "O nome não pode ser igual ao do perfil {}",
+                        ProfileId::A
+                    ))
+                } else {
+                    Ok(())
+                }
+            },
+        )?;
 
         println!();
 
@@ -73,26 +75,56 @@ impl<'a> WindowsConfigurer<'a> {
         Self::print_profile_summary(ProfileId::B, &profile_b_label, &profile_b);
         println!();
 
-        self.configs()
+        self.configs_mut()
             .set_profile_configs(ProfileId::A, &profile_a_label, &profile_a)?;
-        self.configs()
+        self.configs_mut()
             .set_profile_configs(ProfileId::B, &profile_b_label, &profile_b)?;
 
         Ok(())
     }
 
+    fn current_profile(&self, id: ProfileId) -> Option<(String, Profile)> {
+        self.configs().profile_configs(id).and_then(Result::ok)
+    }
+
+    fn configure_profile_and_label(
+        &mut self,
+        id: ProfileId,
+        validate_profile: impl Fn(&Profile) -> Result<(), String>,
+        validate_label: impl Fn(&str) -> Result<(), String>,
+    ) -> Result<(Profile, String)> {
+        let current = self.current_profile(id);
+        let (current_label, current_profile) = current.unzip();
+
+        let profile = self.configure_profile(
+            id,
+            current_label.as_deref().zip(current_profile),
+            validate_profile,
+        )?;
+        let label = self.ask_label(id, current_label, validate_label)?;
+
+        Ok((profile, label))
+    }
+
     fn configure_profile(
         &mut self,
         id: ProfileId,
+        current: Option<(&str, Profile)>,
         validate: impl Fn(&Profile) -> Result<(), String>,
     ) -> Result<Profile> {
+        let current = current.filter(|(_label, profile)| validate(profile).is_ok());
+
         loop {
             println!();
             println!("Escolha uma das opções para configurar o perfil {id}:");
             println!("1. A configuração de tela atual corresponde ao perfil {id}");
             println!("2. Abrir as configurações de tela do Windows");
+            if let Some((label, profile)) = &current {
+                println!("Tecle ENTER para manter a configuração");
+                Self::print_profile_summary(id, label, profile);
+            }
 
-            match self.readline("> ")?.as_str() {
+            match self.readline()?.as_str() {
                 "1" => {
                     let profile = get_profile()?;
                     match validate(&profile) {
@@ -104,6 +136,7 @@ impl<'a> WindowsConfigurer<'a> {
                     }
                 }
                 "2" => open::that("ms-settings:display")?,
+                "" if let Some((_label, profile)) = current => return Ok(profile),
                 other => print_error!("Opção inválida: {other:?}"),
             }
         }
@@ -112,12 +145,23 @@ impl<'a> WindowsConfigurer<'a> {
     fn ask_label(
         &mut self,
         id: ProfileId,
+        current: Option<String>,
         validate: impl Fn(&str) -> Result<(), String>,
     ) -> Result<String> {
+        let current = current.filter(|label| validate(label).is_ok());
+
         loop {
             println!();
-            let label = self.readline(&format!("Digite um nome para o perfil {id}: "))?;
+            println!("Digite um nome para o perfil {id}:");
+            if let Some(label) = &current {
+                println!("Tecle ENTER para manter o nome \"{label}\"");
+            }
+
+            let label = self.readline()?;
             if label.is_empty() {
+                if let Some(label) = current {
+                    return Ok(label);
+                }
                 print_error!("O nome não pode ser vazio");
             } else if let Err(msg) = validate(&label) {
                 print_error!("{msg}");
@@ -127,12 +171,16 @@ impl<'a> WindowsConfigurer<'a> {
         }
     }
 
-    fn readline<P: Prompt + ?Sized>(&mut self, prompt: &P) -> Result<String> {
-        let input = self.inner.readline.readline(prompt)?;
+    fn readline(&mut self) -> Result<String> {
+        let input = self.inner.readline.readline("> ")?;
         Ok(input)
     }
 
-    fn configs(&mut self) -> &mut ConfigsWriter {
+    fn configs(&self) -> &ConfigsWriter {
+        &self.inner.configs
+    }
+
+    fn configs_mut(&mut self) -> &mut ConfigsWriter {
         &mut self.inner.configs
     }
 

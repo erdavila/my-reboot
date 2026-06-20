@@ -226,12 +226,30 @@ impl ConfigsWriter {
         Ok(())
     }
 
-    pub(crate) fn has_profile_configs(&self, id: ProfileId) -> bool {
+    #[cfg(windows)]
+    pub(crate) fn profile_configs(&self, id: ProfileId) -> Option<Result<(String, Profile)>> {
+        self.profile_configs_strs(id).map(|result| {
+            result.and_then(|cfgs| {
+                cfgs.display_configs()
+                    .map(|display_configs| (cfgs.label, display_configs))
+            })
+        })
+    }
+
+    fn profile_configs_strs(&self, id: ProfileId) -> Option<Result<ProfileConfigs>> {
         self.content
             .profile_configs_table(id)
-            .is_some_and(|profile_configs| {
-                profile_configs.clone().try_into::<ProfileConfigs>().is_ok()
+            .map(|profile_configs| {
+                profile_configs
+                    .clone()
+                    .try_into::<ProfileConfigs>()
+                    .map_err(Into::into)
             })
+    }
+
+    pub(crate) fn has_profile_configs(&self, id: ProfileId) -> bool {
+        self.profile_configs_strs(id)
+            .is_some_and(|result| result.is_ok())
     }
 
     pub(crate) fn save(&self) -> Result<()> {
@@ -423,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn writer_set_and_get_grub_entry() {
+    fn writer_grub_entry() {
         let mut writer = ConfigsWriter {
             content: Content(toml::Table::new()),
         };
@@ -440,26 +458,53 @@ mod tests {
     }
 
     #[test]
-    fn writer_set_and_has_profile_configs() -> Result<()> {
+    #[allow(clippy::similar_names)]
+    fn writer_profile_configs() -> Result<()> {
         let mut writer = ConfigsWriter {
             content: Content(toml::Table::new()),
         };
+        assert!(writer.profile_configs_strs(ProfileId::A).is_none());
+        assert!(writer.profile_configs_strs(ProfileId::B).is_none());
         assert!(!writer.has_profile_configs(ProfileId::A));
         assert!(!writer.has_profile_configs(ProfileId::B));
 
+        let profile_a_configs = ProfileConfigs {
+            label: "profile-a-label".to_string(),
+            display_configs: "profile-a-display-configs".to_string(),
+        };
         writer.set_profile_configs_strs(
             ProfileId::A,
-            "profile-a-label",
-            "profile-a-display-configs",
+            &profile_a_configs.label,
+            &profile_a_configs.display_configs,
         )?;
+        assert!(
+            writer
+                .profile_configs_strs(ProfileId::A)
+                .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_a_configs))
+        );
+        assert!(writer.profile_configs_strs(ProfileId::B).is_none());
         assert!(writer.has_profile_configs(ProfileId::A));
         assert!(!writer.has_profile_configs(ProfileId::B));
 
+        let profile_b_configs = ProfileConfigs {
+            label: "profile-b-label".to_string(),
+            display_configs: "profile-b-display-configs".to_string(),
+        };
         writer.set_profile_configs_strs(
             ProfileId::B,
-            "profile-b-label",
-            "profile-b-display-configs",
+            &profile_b_configs.label,
+            &profile_b_configs.display_configs,
         )?;
+        assert!(
+            writer
+                .profile_configs_strs(ProfileId::A)
+                .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_a_configs))
+        );
+        assert!(
+            writer
+                .profile_configs_strs(ProfileId::B)
+                .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_b_configs))
+        );
         assert!(writer.has_profile_configs(ProfileId::A));
         assert!(writer.has_profile_configs(ProfileId::B));
 
