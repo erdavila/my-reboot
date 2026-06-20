@@ -168,36 +168,48 @@ const PROFILE_KEY: &str = "profile";
 const GRUB_ENTRY_KEY: &str = "grub_entry";
 const SCRIPTS_KEY: &str = "scripts";
 
-pub(crate) struct ConfigsWriter {
-    content: Content,
-}
-impl ConfigsWriter {
-    pub(crate) fn load() -> Result<ConfigsWriter> {
-        match fs::read_to_string(Configs::path()) {
-            Ok(content) => {
-                let content: toml::Table = toml::from_str(&content)?;
-                let content = Content::from(content);
-                Ok(ConfigsWriter { content })
+pub(crate) struct UntypedConfigs(toml::Table);
+impl UntypedConfigs {
+    pub(crate) fn load_or_default() -> Result<UntypedConfigs> {
+        let content = Self::load_content().or_else(|e| {
+            if is_not_found_io_error(&e) {
+                Ok(toml::Table::new())
+            } else {
+                Err(e)
             }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                let content = Content::default();
-                Ok(ConfigsWriter { content })
-            }
-            Err(e) => Err(e.into()),
-        }
+        })?;
+
+        let mut configs = UntypedConfigs(content);
+        configs.ensure_defaults();
+
+        Ok(configs)
+    }
+
+    #[cfg(test)]
+    fn empty() -> UntypedConfigs {
+        UntypedConfigs(toml::Table::new())
+    }
+
+    fn load_content() -> Result<toml::Table> {
+        let string_content = fs::read_to_string(Configs::path())?;
+        let content = toml::from_str(&string_content)?;
+        Ok(content)
     }
 
     #[cfg(any(not(windows), test))]
     pub(crate) fn set_grub_entry(&mut self, os: OperatingSystem, grub_entry: &str) {
-        self.content
-            .ensure_operating_system_configs_table(os)
+        self.ensure_operating_system_configs_table(os)
             .insert(GRUB_ENTRY_KEY.to_string(), grub_entry.into());
     }
 
+    pub(crate) fn grub_entry(&self, os: OperatingSystem) -> Option<&str> {
+        let os_configs = self.operating_system_configs_table(os)?;
+        let value = os_configs.get(GRUB_ENTRY_KEY)?;
+        value.as_str()
+    }
+
     pub(crate) fn has_grub_entry(&self, os: OperatingSystem) -> bool {
-        self.content
-            .operating_system_configs_table(os)
-            .is_some_and(|os_configs| os_configs.contains_key(GRUB_ENTRY_KEY))
+        self.grub_entry(os).is_some()
     }
 
     #[cfg(windows)]
@@ -217,7 +229,7 @@ impl ConfigsWriter {
         label: &str,
         configs: &str,
     ) -> Result<()> {
-        let profile_table = self.content.ensure_profile_configs_table(id);
+        let profile_table = self.ensure_profile_configs_table(id);
         *profile_table = toml::Table::try_from(ProfileConfigs {
             label: label.to_string(),
             display_configs: configs.to_string(),
@@ -237,14 +249,12 @@ impl ConfigsWriter {
     }
 
     fn profile_configs_strs(&self, id: ProfileId) -> Option<Result<ProfileConfigs>> {
-        self.content
-            .profile_configs_table(id)
-            .map(|profile_configs| {
-                profile_configs
-                    .clone()
-                    .try_into::<ProfileConfigs>()
-                    .map_err(Into::into)
-            })
+        self.profile_configs_table(id).map(|profile_configs| {
+            profile_configs
+                .clone()
+                .try_into::<ProfileConfigs>()
+                .map_err(Into::into)
+        })
     }
 
     pub(crate) fn has_profile_configs(&self, id: ProfileId) -> bool {
@@ -252,39 +262,44 @@ impl ConfigsWriter {
             .is_some_and(|result| result.is_ok())
     }
 
-    pub(crate) fn save(&self) -> Result<()> {
-        fs::write(Configs::path(), self.serialized()?)?;
+    fn set_scripts(
+        &mut self,
+        os: OperatingSystem,
+        scripts: impl IntoIterator<Item = PredefinedScript>,
+    ) -> Result<()> {
+        let scripts: Vec<_> = scripts.into_iter().collect();
+        self.ensure_operating_system_configs_table(os)
+            .insert(SCRIPTS_KEY.to_string(), toml::Value::try_from(scripts)?);
         Ok(())
     }
 
-    fn serialized(&self) -> Result<String> {
-        let content = toml::to_string(&self.content.0)?;
-        Ok(content)
-    }
-}
-
-struct Content(toml::Table);
-impl Content {
-    fn operating_system_configs_table(&self, os: OperatingSystem) -> Option<&toml::Table> {
-        self.0.table_at(OPERATING_SYSTEM_KEY)?.table_at(os)
+    fn set_scripts_if_none(
+        &mut self,
+        os: OperatingSystem,
+        scripts: impl IntoIterator<Item = PredefinedScript>,
+    ) {
+        if self.scripts(os).is_none() {
+            self.set_scripts(os, scripts).unwrap();
+        }
     }
 
-    fn ensure_operating_system_configs_table(&mut self, os: OperatingSystem) -> &mut toml::Table {
-        self.0
-            .ensure_table_at(OPERATING_SYSTEM_KEY)
-            .ensure_table_at(os)
+    pub(crate) fn scripts(&self, os: OperatingSystem) -> Option<Result<Vec<PredefinedScript>>> {
+        let os_configs = self.operating_system_configs_table(os)?;
+        let value = os_configs.get(SCRIPTS_KEY)?;
+        let script_values = value.as_array()?;
+        let scripts = script_values
+            .iter()
+            .map(|value| {
+                value
+                    .clone()
+                    .try_into::<PredefinedScript>()
+                    .map_err(Into::into)
+            })
+            .collect();
+        Some(scripts)
     }
 
-    fn profile_configs_table(&self, id: ProfileId) -> Option<&toml::Table> {
-        self.0.table_at(PROFILE_KEY)?.table_at(id)
-    }
-
-    #[cfg(any(windows, test))]
-    fn ensure_profile_configs_table(&mut self, id: ProfileId) -> &mut toml::Table {
-        self.0.ensure_table_at(PROFILE_KEY).ensure_table_at(id)
-    }
-
-    fn ensure_default(&mut self) {
+    fn ensure_defaults(&mut self) {
         self.set_scripts_if_none(
             OperatingSystem::Windows,
             [PredefinedScript {
@@ -312,36 +327,41 @@ impl Content {
         );
     }
 
-    fn set_scripts_if_none(
-        &mut self,
-        os: OperatingSystem,
-        scripts: impl IntoIterator<Item = PredefinedScript>,
-    ) {
-        let has_scripts = self
-            .operating_system_configs_table(os)
-            .is_some_and(|os_table| os_table.get(SCRIPTS_KEY).is_some());
+    fn operating_system_configs_table(&self, os: OperatingSystem) -> Option<&toml::Table> {
+        self.0.table_at(OPERATING_SYSTEM_KEY)?.table_at(os)
+    }
 
-        if !has_scripts {
-            let scripts = scripts.into_iter().collect::<Vec<_>>();
-            self.ensure_operating_system_configs_table(os).insert(
-                SCRIPTS_KEY.to_string(),
-                toml::Value::try_from(scripts).unwrap(),
-            );
-        }
+    fn ensure_operating_system_configs_table(&mut self, os: OperatingSystem) -> &mut toml::Table {
+        self.0
+            .ensure_table_at(OPERATING_SYSTEM_KEY)
+            .ensure_table_at(os)
+    }
+
+    fn profile_configs_table(&self, id: ProfileId) -> Option<&toml::Table> {
+        self.0.table_at(PROFILE_KEY)?.table_at(id)
+    }
+
+    #[cfg(any(windows, test))]
+    fn ensure_profile_configs_table(&mut self, id: ProfileId) -> &mut toml::Table {
+        self.0.ensure_table_at(PROFILE_KEY).ensure_table_at(id)
+    }
+
+    pub(crate) fn save(&self) -> Result<()> {
+        fs::write(Configs::path(), self.serialized()?)?;
+        Ok(())
+    }
+
+    fn serialized(&self) -> Result<String> {
+        let content = toml::to_string(&self.0)?;
+        Ok(content)
     }
 }
-impl From<toml::Table> for Content {
-    fn from(value: toml::Table) -> Self {
-        let mut content = Content(value);
-        content.ensure_default();
-        content
-    }
-}
-impl Default for Content {
-    fn default() -> Self {
-        let mut content = Content(toml::Table::new());
-        content.ensure_default();
-        content
+
+fn is_not_found_io_error(e: &anyhow::Error) -> bool {
+    if let Some(io_error) = e.downcast_ref::<io::Error>() {
+        io_error.kind() == io::ErrorKind::NotFound
+    } else {
+        false
     }
 }
 
@@ -365,37 +385,25 @@ impl TableExt for toml::Table {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::script::SwitchToProfile;
+
+    fn predef_script_with_label(label: &str) -> PredefinedScript {
+        PredefinedScript {
+            script: Script::new(),
+            label_template: label.to_string(),
+        }
+    }
 
     #[test]
-    fn content_written_by_the_writer_can_be_read_by_the_reader() -> Result<()> {
+    fn content_set_by_the_untyped_configs_can_be_read_by_the_typed_configs() -> Result<()> {
         let expected = Configs {
             operating_system: OperatingSystemsConfigs {
                 windows: OperatingSystemConfigs {
                     grub_entry: "windows-grub-entry".to_string(),
-                    scripts: vec![PredefinedScript {
-                        script: Script {
-                            next_boot_operating_system: None,
-                            next_windows_boot_profile: None,
-                            switch_to_profile: None,
-                            reboot_action: None,
-                        },
-                        label_template: "windows-script-label".to_string(),
-                    }],
+                    scripts: vec![predef_script_with_label("windows-script-label")],
                 },
                 linux: OperatingSystemConfigs {
                     grub_entry: "linux-grub-entry".to_string(),
-                    scripts: vec![PredefinedScript {
-                        script: Script {
-                            next_boot_operating_system: Some(SetOrUnset::Set(
-                                OperatingSystem::Linux,
-                            )),
-                            next_windows_boot_profile: Some(SetOrUnset::Unset),
-                            switch_to_profile: Some(SwitchToProfile::Other),
-                            reboot_action: Some(RebootAction::Reboot),
-                        },
-                        label_template: "linux-script-label".to_string(),
-                    }],
+                    scripts: vec![predef_script_with_label("linux-script-label")],
                 },
             },
             profile: ProfilesConfigs {
@@ -410,120 +418,136 @@ mod tests {
             },
         };
 
-        // Sets the content via the writer.
-        let writer = {
-            let mut content = Content(toml::Table::new());
-            for os in OperatingSystem::values() {
-                content.set_scripts_if_none(os, expected.operating_system[os].scripts.clone());
-            }
-
-            let mut writer = ConfigsWriter { content };
+        // Sets the content via the untyped_configs.
+        let untyped_configs = {
+            let mut untyped_configs = UntypedConfigs::empty();
 
             for os in OperatingSystem::values() {
-                writer.set_grub_entry(os, &expected.operating_system[os].grub_entry);
+                untyped_configs.set_scripts(os, expected.operating_system[os].scripts.clone())?;
+                untyped_configs.set_grub_entry(os, &expected.operating_system[os].grub_entry);
             }
             for profile_id in ProfileId::values() {
-                writer.set_profile_configs_strs(
+                untyped_configs.set_profile_configs_strs(
                     profile_id,
                     &expected.profile[profile_id].label,
                     &expected.profile[profile_id].display_configs,
                 )?;
             }
 
-            writer
+            untyped_configs
         };
 
-        // Initializes the reader with the writer content.
-        let configs = Configs::from_serialized(&writer.serialized()?)?;
+        // Initializes the typed configs with the untyped configs content.
+        let configs = Configs::from_serialized(&untyped_configs.serialized()?)?;
 
         assert_eq!(configs, expected);
         Ok(())
     }
 
     #[test]
-    fn writer_grub_entry() {
-        let mut writer = ConfigsWriter {
-            content: Content(toml::Table::new()),
-        };
-        assert!(!writer.has_grub_entry(OperatingSystem::Windows));
-        assert!(!writer.has_grub_entry(OperatingSystem::Linux));
+    fn untyped_configs_grub_entry() {
+        let mut configs = UntypedConfigs::empty();
+        assert!(!configs.has_grub_entry(OperatingSystem::Windows));
+        assert!(!configs.has_grub_entry(OperatingSystem::Linux));
 
-        writer.set_grub_entry(OperatingSystem::Windows, "windows-grub-entry");
-        assert!(writer.has_grub_entry(OperatingSystem::Windows));
-        assert!(!writer.has_grub_entry(OperatingSystem::Linux));
+        configs.set_grub_entry(OperatingSystem::Windows, "windows-grub-entry");
+        assert!(configs.has_grub_entry(OperatingSystem::Windows));
+        assert!(!configs.has_grub_entry(OperatingSystem::Linux));
 
-        writer.set_grub_entry(OperatingSystem::Linux, "linux-grub-entry");
-        assert!(writer.has_grub_entry(OperatingSystem::Windows));
-        assert!(writer.has_grub_entry(OperatingSystem::Linux));
+        configs.set_grub_entry(OperatingSystem::Linux, "linux-grub-entry");
+        assert!(configs.has_grub_entry(OperatingSystem::Windows));
+        assert!(configs.has_grub_entry(OperatingSystem::Linux));
     }
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn writer_profile_configs() -> Result<()> {
-        let mut writer = ConfigsWriter {
-            content: Content(toml::Table::new()),
-        };
-        assert!(writer.profile_configs_strs(ProfileId::A).is_none());
-        assert!(writer.profile_configs_strs(ProfileId::B).is_none());
-        assert!(!writer.has_profile_configs(ProfileId::A));
-        assert!(!writer.has_profile_configs(ProfileId::B));
+    fn untyped_configs_profile_configs() -> Result<()> {
+        let mut configs = UntypedConfigs::empty();
+        assert!(configs.profile_configs_strs(ProfileId::A).is_none());
+        assert!(configs.profile_configs_strs(ProfileId::B).is_none());
+        assert!(!configs.has_profile_configs(ProfileId::A));
+        assert!(!configs.has_profile_configs(ProfileId::B));
 
         let profile_a_configs = ProfileConfigs {
             label: "profile-a-label".to_string(),
             display_configs: "profile-a-display-configs".to_string(),
         };
-        writer.set_profile_configs_strs(
+        configs.set_profile_configs_strs(
             ProfileId::A,
             &profile_a_configs.label,
             &profile_a_configs.display_configs,
         )?;
         assert!(
-            writer
+            configs
                 .profile_configs_strs(ProfileId::A)
                 .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_a_configs))
         );
-        assert!(writer.profile_configs_strs(ProfileId::B).is_none());
-        assert!(writer.has_profile_configs(ProfileId::A));
-        assert!(!writer.has_profile_configs(ProfileId::B));
+        assert!(configs.profile_configs_strs(ProfileId::B).is_none());
+        assert!(configs.has_profile_configs(ProfileId::A));
+        assert!(!configs.has_profile_configs(ProfileId::B));
 
         let profile_b_configs = ProfileConfigs {
             label: "profile-b-label".to_string(),
             display_configs: "profile-b-display-configs".to_string(),
         };
-        writer.set_profile_configs_strs(
+        configs.set_profile_configs_strs(
             ProfileId::B,
             &profile_b_configs.label,
             &profile_b_configs.display_configs,
         )?;
         assert!(
-            writer
+            configs
                 .profile_configs_strs(ProfileId::A)
                 .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_a_configs))
         );
         assert!(
-            writer
+            configs
                 .profile_configs_strs(ProfileId::B)
                 .is_some_and(|result| result.is_ok_and(|cfgs| cfgs == profile_b_configs))
         );
-        assert!(writer.has_profile_configs(ProfileId::A));
-        assert!(writer.has_profile_configs(ProfileId::B));
+        assert!(configs.has_profile_configs(ProfileId::A));
+        assert!(configs.has_profile_configs(ProfileId::B));
 
         Ok(())
     }
 
-    mod content_set_scripts_if_none {
+    #[test]
+    fn untyped_configs_scripts() -> Result<()> {
+        let mut configs = UntypedConfigs::empty();
+
+        assert!(configs.scripts(OperatingSystem::Windows).is_none());
+        assert!(configs.scripts(OperatingSystem::Linux).is_none());
+
+        let windows_scripts = vec![predef_script_with_label("windows script")];
+        configs.set_scripts(OperatingSystem::Windows, windows_scripts.clone())?;
+        assert!(
+            configs
+                .scripts(OperatingSystem::Windows)
+                .is_some_and(|result| result.is_ok_and(|scripts| scripts == windows_scripts))
+        );
+        assert!(configs.scripts(OperatingSystem::Linux).is_none());
+
+        let linux_scripts = vec![predef_script_with_label("linux script")];
+        configs.set_scripts(OperatingSystem::Linux, linux_scripts.clone())?;
+        assert!(
+            configs
+                .scripts(OperatingSystem::Windows)
+                .is_some_and(|result| result.is_ok_and(|scripts| scripts == windows_scripts))
+        );
+        assert!(
+            configs
+                .scripts(OperatingSystem::Linux)
+                .is_some_and(|result| result.is_ok_and(|scripts| scripts == linux_scripts))
+        );
+        Ok(())
+    }
+
+    mod untyped_configs_set_scripts_if_none {
         use super::*;
 
-        fn predef_script_with_label(label: &str) -> PredefinedScript {
-            PredefinedScript {
-                script: Script::new(),
-                label_template: label.to_string(),
-            }
-        }
-
         macro_rules! get_scripts {
-            ($content:expr, $os:expr) => {{
-                let os = $content
+            ($configs:expr, $os:expr) => {{
+                let os = $configs
                     .operating_system_configs_table($os)
                     .expect("should not be None");
                 let scripts = os.get(SCRIPTS_KEY).expect("should not be None");
@@ -533,16 +557,16 @@ mod tests {
 
         #[test]
         fn no_os_table() -> Result<()> {
-            let mut content = Content(toml::Table::new());
+            let mut configs = UntypedConfigs::empty();
             assert_eq!(
-                content.operating_system_configs_table(OperatingSystem::Linux),
+                configs.operating_system_configs_table(OperatingSystem::Linux),
                 None
             );
             let ps = predef_script_with_label("new");
 
-            content.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
+            configs.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
 
-            let scripts = get_scripts!(content, OperatingSystem::Linux);
+            let scripts = get_scripts!(configs, OperatingSystem::Linux);
             assert_eq!(scripts.len(), 1);
             assert_eq!(scripts[0].clone().try_into::<PredefinedScript>()?, ps);
             Ok(())
@@ -550,17 +574,17 @@ mod tests {
 
         #[test]
         fn os_table_exists() -> Result<()> {
-            let mut content = Content(toml::Table::new());
-            content.ensure_operating_system_configs_table(OperatingSystem::Linux);
+            let mut configs = UntypedConfigs::empty();
+            configs.ensure_operating_system_configs_table(OperatingSystem::Linux);
             assert_ne!(
-                content.operating_system_configs_table(OperatingSystem::Linux),
+                configs.operating_system_configs_table(OperatingSystem::Linux),
                 None
             );
             let ps = predef_script_with_label("new");
 
-            content.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
+            configs.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
 
-            let scripts = get_scripts!(content, OperatingSystem::Linux);
+            let scripts = get_scripts!(configs, OperatingSystem::Linux);
             assert_eq!(scripts.len(), 1);
             assert_eq!(scripts[0].clone().try_into::<PredefinedScript>()?, ps);
             Ok(())
@@ -568,17 +592,17 @@ mod tests {
 
         #[test]
         fn scripts_exists() -> Result<()> {
-            let mut content = Content(toml::Table::new());
+            let mut configs = UntypedConfigs::empty();
             let ps = predef_script_with_label("new");
-            content.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
-            let scripts = get_scripts!(content, OperatingSystem::Linux);
+            configs.set_scripts_if_none(OperatingSystem::Linux, [ps.clone()]);
+            let scripts = get_scripts!(configs, OperatingSystem::Linux);
             assert_eq!(scripts.len(), 1);
             assert_eq!(scripts[0].clone().try_into::<PredefinedScript>()?, ps);
             let ps_other = predef_script_with_label("other");
 
-            content.set_scripts_if_none(OperatingSystem::Linux, [ps_other.clone()]);
+            configs.set_scripts_if_none(OperatingSystem::Linux, [ps_other.clone()]);
 
-            let scripts = get_scripts!(content, OperatingSystem::Linux);
+            let scripts = get_scripts!(configs, OperatingSystem::Linux);
             assert_eq!(scripts.len(), 1);
             assert_ne!(scripts[0].clone().try_into::<PredefinedScript>()?, ps_other);
             assert_eq!(scripts[0].clone().try_into::<PredefinedScript>()?, ps);

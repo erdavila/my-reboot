@@ -3,7 +3,7 @@ use rustyline::DefaultEditor;
 
 use crate::host_os::{self, HOST_OS};
 use crate::options_types::{OperatingSystem, ProfileId, Values as _};
-use crate::persist::configs::ConfigsWriter;
+use crate::persist::configs::UntypedConfigs;
 
 pub(crate) fn configure() -> Result<()> {
     let mut configurer = Configurer::new()?;
@@ -11,13 +11,13 @@ pub(crate) fn configure() -> Result<()> {
 }
 
 pub(crate) struct Configurer {
-    pub(crate) configs: ConfigsWriter,
+    pub(crate) configs: UntypedConfigs,
     pub(crate) readline: DefaultEditor,
 }
 
 impl Configurer {
     fn new() -> Result<Self> {
-        let configs = ConfigsWriter::load()?;
+        let configs = UntypedConfigs::load_or_default()?;
         let readline = DefaultEditor::new()?;
         Ok(Configurer { configs, readline })
     }

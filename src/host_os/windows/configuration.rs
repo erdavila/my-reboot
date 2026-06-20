@@ -6,7 +6,7 @@ use display_profile_lib::{Profile, SetProfileAction, get_profile, set_profile};
 
 use crate::configuration::Configurer;
 use crate::options_types::{LabeledProfile, ProfileId};
-use crate::persist::configs::ConfigsWriter;
+use crate::persist::configs::UntypedConfigs;
 use crate::text::{IndentedBlockWriter, IndentedBlockWriterExt as _};
 
 pub(crate) fn configure(configurer: &mut Configurer) -> Result<()> {
@@ -189,11 +189,11 @@ impl<'a> WindowsConfigurer<'a> {
         Ok(input)
     }
 
-    fn configs(&self) -> &ConfigsWriter {
+    fn configs(&self) -> &UntypedConfigs {
         &self.inner.configs
     }
 
-    fn configs_mut(&mut self) -> &mut ConfigsWriter {
+    fn configs_mut(&mut self) -> &mut UntypedConfigs {
         &mut self.inner.configs
     }
 
