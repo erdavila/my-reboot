@@ -6,8 +6,6 @@ use std::fmt::Display;
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
-use anyhow::Result;
-
 use self::errors::ArgError;
 #[cfg(windows)]
 use crate::args::script_args::SWITCH_TO_PROFILE_PREFIX;
@@ -19,6 +17,8 @@ use crate::options_types::{
     LabeledProfile, OperatingSystem, ProfileId, SerializeToString, Values as _,
 };
 use crate::script::{Script, SetOrUnset};
+
+type Result<T, E = ArgError> = anyhow::Result<T, E>;
 
 pub enum ParsedArgs {
     Dialog(Mode),
@@ -35,28 +35,26 @@ pub(crate) enum PredefinedScriptParsedArgs {
     List,
 }
 
-pub fn parse() -> Result<ParsedArgs, ArgError> {
+pub fn parse() -> Result<ParsedArgs> {
     let mut args = env::args();
     args.next();
 
-    let parsed_args = match args.next() {
-        Some(arg) => match &arg[..] {
-            "dialog" => {
-                let mode = parse_dialog_args(&mut args)?;
-                ParsedArgs::Dialog(mode)
-            }
-            "show" => ParsedArgs::ShowState,
-            "script" => {
-                let script_arg = parse_script_args(&mut args)?;
-                ParsedArgs::PredefinedScript(script_arg)
-            }
-            "configure" => ParsedArgs::Configure,
-            "-h" | "--help" => ParsedArgs::Usage,
-            "-v" | "--version" => ParsedArgs::Version,
-            _ => match script_args::parse(&arg, &mut args)? {
-                Some(script) => ParsedArgs::Script(script),
-                None => return errors::unknown_argument_error(&arg),
-            },
+    let parsed_args = match args.next().as_deref() {
+        Some("dialog") => {
+            let mode = parse_dialog_args(&mut args)?;
+            ParsedArgs::Dialog(mode)
+        }
+        Some("show") => ParsedArgs::ShowState,
+        Some("script") => {
+            let script_arg = parse_script_args(&mut args)?;
+            ParsedArgs::PredefinedScript(script_arg)
+        }
+        Some("configure") => ParsedArgs::Configure,
+        Some("-h" | "--help") => ParsedArgs::Usage,
+        Some("-v" | "--version") => ParsedArgs::Version,
+        Some(arg) => match script_args::parse(arg, &mut args)? {
+            Some(script) => ParsedArgs::Script(script),
+            None => return errors::unknown_argument_error(arg),
         },
         None => ParsedArgs::Dialog(Mode::Basic),
     };
@@ -65,30 +63,30 @@ pub fn parse() -> Result<ParsedArgs, ArgError> {
     Ok(parsed_args)
 }
 
-fn parse_dialog_args(args: &mut env::Args) -> Result<Mode, ArgError> {
-    match args.next() {
+fn parse_dialog_args(args: &mut env::Args) -> Result<Mode> {
+    match args.next().as_deref() {
         None => Ok(Mode::Basic),
-        Some(arg) if arg == "-x" => Ok(Mode::Advanced),
-        Some(arg) => errors::unknown_argument_error(&arg),
+        Some("-x") => Ok(Mode::Advanced),
+        Some(arg) => errors::unknown_argument_error(arg),
     }
 }
 
-fn parse_script_args(args: &mut env::Args) -> Result<PredefinedScriptParsedArgs, ArgError> {
-    match args.next() {
-        Some(arg) if arg == "list" => Ok(PredefinedScriptParsedArgs::List),
+fn parse_script_args(args: &mut env::Args) -> Result<PredefinedScriptParsedArgs> {
+    match args.next().as_deref() {
+        Some("list") => Ok(PredefinedScriptParsedArgs::List),
         Some(arg) => arg
             .parse()
             .map(PredefinedScriptParsedArgs::Number)
-            .map_err(|e| ArgError::new(&format!("Número inválido de script {arg:?}: {e}"), &arg)),
+            .map_err(|e| ArgError::new(&format!("Número inválido de script {arg:?}: {e}"), arg)),
         None => errors::missing_argument_error("'list' ou NÚMERO"),
     }
 }
 
 pub(crate) struct Usage {
-    profile_labels: Result<[String; 2]>,
+    profile_labels: Result<[String; 2], anyhow::Error>,
 }
 impl Usage {
-    pub(crate) fn new(profile_labels: Result<[String; 2]>) -> Self {
+    pub(crate) fn new(profile_labels: Result<[String; 2], anyhow::Error>) -> Self {
         Self { profile_labels }
     }
 }
