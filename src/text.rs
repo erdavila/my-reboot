@@ -5,8 +5,8 @@ use ansi_term::Color::{Blue, Green, Red};
 #[cfg(windows)]
 use display_profile_lib::{Profile, Rotation};
 
-use crate::options_types::Values;
-#[cfg(windows)]
+use crate::options_types::{SerializeToString as _, Values};
+use crate::persist::configs::{PredefinedScript, ProfileLabel};
 use crate::text::indented_block_writer::WriteFmt;
 
 mod indented_block_writer;
@@ -119,20 +119,26 @@ fn two_values_text<T: Values + PartialEq>(
     color.bold().paint(text)
 }
 
-#[cfg(windows)]
 pub(crate) trait IndentedBlockWriterExt {
     type Error;
 
+    #[cfg(windows)]
     fn write_profile_summary(
         &mut self,
         header: impl Display,
         profile: &Profile,
     ) -> Result<(), Self::Error>;
+
+    fn write_predefined_scripts(
+        &mut self,
+        scripts: &[PredefinedScript],
+        profile_label: &impl ProfileLabel,
+    ) -> Result<(), Self::Error>;
 }
-#[cfg(windows)]
 impl<T: WriteFmt> IndentedBlockWriterExt for IndentedBlockWriter<T> {
     type Error = T::Error;
 
+    #[cfg(windows)]
     fn write_profile_summary(
         &mut self,
         header: impl Display,
@@ -170,6 +176,38 @@ impl<T: WriteFmt> IndentedBlockWriterExt for IndentedBlockWriter<T> {
             }
             Ok(())
         })
+    }
+
+    fn write_predefined_scripts(
+        &mut self,
+        scripts: &[PredefinedScript],
+        profile_label: &impl ProfileLabel,
+    ) -> Result<(), Self::Error> {
+        for (i, predef_script) in scripts.iter().enumerate() {
+            let number = i + 1;
+
+            let label = predef_script.resolve_label(profile_label);
+
+            self.write_block(format_args!("{number}: '{label}'"), |w| {
+                macro_rules! print_option {
+                    ($name:ident) => {
+                        if let Some(value) = predef_script.script.$name {
+                            w.write(format_args!(
+                                "{}: {}",
+                                stringify!($name),
+                                value.serialize_to_string()
+                            ))?;
+                        }
+                    };
+                }
+                print_option!(next_boot_operating_system);
+                print_option!(next_windows_boot_profile);
+                print_option!(switch_to_profile);
+                print_option!(reboot_action);
+                w.write("")
+            })?;
+        }
+        Ok(())
     }
 }
 

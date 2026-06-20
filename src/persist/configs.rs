@@ -60,8 +60,18 @@ impl Configs {
         Ok(None)
     }
 
-    fn path() -> PathBuf {
+    pub(crate) fn path() -> PathBuf {
         state_path(CONFIGS_FILENAME)
+    }
+}
+impl ProfileLabel for Configs {
+    type Output<'a>
+        = &'a str
+    where
+        Self: 'a;
+
+    fn profile_label(&self, profile_id: ProfileId) -> Option<Self::Output<'_>> {
+        Some(profile_id.label(self))
     }
 }
 
@@ -94,9 +104,11 @@ pub(crate) struct PredefinedScript {
     pub(crate) label_template: String,
 }
 impl PredefinedScript {
-    pub(crate) fn resolve_label(&self, configs: &Configs) -> String {
-        let profile_label =
-            |profile_id| text::profile::labeled_profile(profile_id, profile_id.label(configs));
+    pub(crate) fn resolve_label(&self, pl: &impl ProfileLabel) -> String {
+        let profile_label = |profile_id| {
+            pl.profile_label(profile_id)
+                .map(|label| text::profile::labeled_profile(profile_id, label.as_ref()))
+        };
 
         let mut template_resolver = TemplateResolver::new(&self.label_template);
 
@@ -118,9 +130,9 @@ impl PredefinedScript {
             |switch_to| {
                 use crate::script::SwitchToProfile;
                 match switch_to {
-                    SwitchToProfile::Other => "outro".to_string(),
+                    SwitchToProfile::Other => Some("outro".to_string()),
                     SwitchToProfile::Profile(profile_id) => profile_label(profile_id),
-                    SwitchToProfile::Saved => "salvo".to_string(),
+                    SwitchToProfile::Saved => Some("salvo".to_string()),
                 }
             },
             text::profile::UNDEFINED,
@@ -133,6 +145,14 @@ impl PredefinedScript {
 
         Capitalized(template_resolver.into_label()).to_string()
     }
+}
+
+pub(crate) trait ProfileLabel {
+    type Output<'a>: AsRef<str>
+    where
+        Self: 'a;
+
+    fn profile_label(&self, profile_id: ProfileId) -> Option<Self::Output<'_>>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -184,6 +204,11 @@ impl UntypedConfigs {
         configs.ensure_defaults();
 
         Ok(configs)
+    }
+
+    pub(crate) fn load() -> Result<UntypedConfigs> {
+        let content = Self::load_content()?;
+        Ok(UntypedConfigs(content))
     }
 
     #[cfg(test)]
@@ -249,7 +274,7 @@ impl UntypedConfigs {
         })
     }
 
-    fn profile_configs_strs(&self, id: ProfileId) -> Option<Result<ProfileConfigs>> {
+    pub(crate) fn profile_configs_strs(&self, id: ProfileId) -> Option<Result<ProfileConfigs>> {
         self.profile_configs_table(id).map(|profile_configs| {
             profile_configs
                 .clone()
@@ -357,8 +382,19 @@ impl UntypedConfigs {
         Ok(content)
     }
 }
+impl ProfileLabel for UntypedConfigs {
+    type Output<'a>
+        = String
+    where
+        Self: 'a;
 
-fn is_not_found_io_error(e: &anyhow::Error) -> bool {
+    fn profile_label(&self, profile_id: ProfileId) -> Option<Self::Output<'_>> {
+        let profile_configs = self.profile_configs_strs(profile_id)?.ok()?;
+        Some(profile_configs.label)
+    }
+}
+
+pub(crate) fn is_not_found_io_error(e: &anyhow::Error) -> bool {
     if let Some(io_error) = e.downcast_ref::<io::Error>() {
         io_error.kind() == io::ErrorKind::NotFound
     } else {

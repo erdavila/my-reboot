@@ -21,12 +21,17 @@ type Result<T, E = ArgError> = anyhow::Result<T, E>;
 
 pub enum ParsedArgs {
     Dialog(Mode),
-    ShowState,
+    Show(ShowArgs),
     Script(Script),
     PredefinedScript(PredefinedScriptParsedArgs),
     Configure,
     Usage,
     Version,
+}
+
+pub(crate) enum ShowArgs {
+    Options,
+    Configs,
 }
 
 pub(crate) enum PredefinedScriptParsedArgs {
@@ -43,7 +48,10 @@ pub fn parse() -> Result<ParsedArgs> {
             let mode = parse_dialog_args(&mut args)?;
             ParsedArgs::Dialog(mode)
         }
-        Some("show") => ParsedArgs::ShowState,
+        Some("show") => {
+            let show = parse_show_args(&mut args)?;
+            ParsedArgs::Show(show)
+        }
         Some("script") => {
             let script_arg = parse_script_args(&mut args)?;
             ParsedArgs::PredefinedScript(script_arg)
@@ -66,6 +74,14 @@ fn parse_dialog_args(args: &mut env::Args) -> Result<Mode> {
     match args.next().as_deref() {
         None => Ok(Mode::Basic),
         Some("-x") => Ok(Mode::Advanced),
+        Some(arg) => errors::unknown_argument_error(arg),
+    }
+}
+
+fn parse_show_args(args: &mut env::Args) -> Result<ShowArgs> {
+    match args.next().as_deref() {
+        Some("options") | None => Ok(ShowArgs::Options),
+        Some("configs") => Ok(ShowArgs::Configs),
         Some(arg) => errors::unknown_argument_error(arg),
     }
 }
@@ -183,8 +199,13 @@ impl Display for Usage {
                 })
             })?;
 
-            f.write_block("my-reboot show", |f| {
+            f.write_block("my-reboot show [options]", |f| {
                 f.write("Exibe as opções atuais para inicialização.")?;
+                f.write("")
+            })?;
+
+            f.write_block("my-reboot show configs", |f| {
+                f.write("Exibe as configurações.")?;
                 f.write("")
             })?;
 

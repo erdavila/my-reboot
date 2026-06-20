@@ -13,20 +13,23 @@ mod persist {
     pub(crate) mod options;
 }
 
+use std::fmt::Display;
+use std::io;
 use std::num::NonZeroUsize;
 
+use ansi_term::Color::Red;
 use anyhow::{Context, Result, bail};
 use dialog::Mode;
 use script::Script;
 #[cfg(all(windows, not(test)))]
 use script::SwitchToProfile;
 
-use crate::args::{ParsedArgs, PredefinedScriptParsedArgs};
+use crate::args::{ParsedArgs, PredefinedScriptParsedArgs, ShowArgs};
 use crate::host_os::HOST_OS;
-use crate::options_types::{ProfileId, SerializeToString as _, Values as _};
-use crate::persist::configs::Configs;
+use crate::options_types::{OperatingSystem, ProfileId, Values as _};
+use crate::persist::configs::{Configs, UntypedConfigs, is_not_found_io_error};
 use crate::state::StateProvider;
-use crate::text::{Capitalized, IndentedBlockWriter};
+use crate::text::{Capitalized, IndentedBlockWriter, IndentedBlockWriterExt as _, Quoted};
 
 fn main() -> Result<()> {
     let args = args::parse()
@@ -39,7 +42,8 @@ fn main() -> Result<()> {
             execute_predefined_script(number)
         }
         ParsedArgs::PredefinedScript(PredefinedScriptParsedArgs::List) => list_predefined_scripts(),
-        ParsedArgs::ShowState => show_state(),
+        ParsedArgs::Show(ShowArgs::Options) => show_options(),
+        ParsedArgs::Show(ShowArgs::Configs) => show_configs(),
         ParsedArgs::Configure => configure(),
         ParsedArgs::Usage => {
             show_usage();
@@ -132,36 +136,7 @@ fn list_predefined_scripts() -> Result<()> {
     let configs = Configs::load()?;
     let mut writer = IndentedBlockWriter::from(std::io::stdout());
 
-    for (i, predef_script) in configs.operating_system[HOST_OS].scripts.iter().enumerate() {
-        let number = i + 1;
-
-        let label = predef_script.resolve_label(&configs);
-        let Script {
-            next_boot_operating_system,
-            next_windows_boot_profile,
-            switch_to_profile,
-            reboot_action,
-        } = &predef_script.script;
-
-        writer.write_block(format_args!("{number}: '{label}'"), |w| {
-            macro_rules! print_option {
-                ($name:ident) => {
-                    if let Some(value) = $name {
-                        w.write(format_args!(
-                            "{}: {}",
-                            stringify!($name),
-                            value.serialize_to_string()
-                        ))?;
-                    }
-                };
-            }
-            print_option!(next_boot_operating_system);
-            print_option!(next_windows_boot_profile);
-            print_option!(switch_to_profile);
-            print_option!(reboot_action);
-            w.write("")
-        })?;
-    }
+    writer.write_predefined_scripts(&configs.operating_system[HOST_OS].scripts, &configs)?;
 
     Ok(())
 }
@@ -170,7 +145,7 @@ fn execute_script(script: Script) -> Result<()> {
     script.execute()
 }
 
-fn show_state() -> Result<()> {
+fn show_options() -> Result<()> {
     let provider = StateProvider::new()?;
     let state = provider.state()?;
 
@@ -198,6 +173,77 @@ fn show_state() -> Result<()> {
                 .map(|id| (id, id.label(provider.configs())))
         )
     );
+
+    Ok(())
+}
+
+fn show_configs() -> Result<()> {
+    print!("Arquivo de configurações: {}", Configs::path().display());
+    let configs = match UntypedConfigs::load() {
+        Ok(configs) => configs,
+        Err(e) => {
+            if is_not_found_io_error(&e) {
+                println!(" {}", Red.paint("(inexistente)"));
+                return Ok(());
+            }
+            return Err(e);
+        }
+    };
+    println!();
+    println!();
+
+    let missing_config = Red.paint("configuração faltando");
+    let mut writer = IndentedBlockWriter::from(std::io::stdout());
+
+    writer.write_block("Entradas do GRUB", |w| {
+        for os in OperatingSystem::values() {
+            let grub_entry = configs.grub_entry(os);
+            let entry: &dyn Display = grub_entry.as_ref().map_or(&missing_config, |entry| entry);
+            w.write(format_args!("{os}: {entry}"))?;
+        }
+        w.write("")
+    })?;
+
+    writer.write_block("Perfis", |w| {
+        for id in ProfileId::values() {
+            cfg_select! {
+                windows => {
+                    if let Some(profile_configs) = configs.profile_configs(id) {
+                        let (label, profile) = profile_configs.map_err(io::Error::other)?;
+                        w.write_profile_summary(format_args!("{id}: {}", Quoted(label)), &profile)?;
+                    } else {
+                        w.write(format_args!("{id}: {missing_config}"))?;
+                    }
+                },
+                _ => {
+                    if let Some(profile_configs) = configs.profile_configs_strs(id) {
+                        let profile_configs = profile_configs.map_err(io::Error::other)?;
+                        let label = &profile_configs.label;
+                        w.write(format_args!("{id}: {}", Quoted(label)))?;
+                    } else {
+                        w.write(format_args!("{id}: {missing_config}"))?;
+                    }
+                }
+            }
+        }
+        w.write("")
+    })?;
+
+    writer.write_block("Scripts pré-definidos", |w| {
+        for os in OperatingSystem::values() {
+            if let Some(scripts) = configs.scripts(os) {
+                let scripts = scripts.map_err(io::Error::other)?;
+                if scripts.is_empty() {
+                    w.write(format_args!("{os}: nenhum"))?;
+                } else {
+                    w.write_block(os, |w| w.write_predefined_scripts(&scripts, &configs))?;
+                }
+            } else {
+                w.write(format_args!("{os}: {}", Red.paint("indefinidos")))?;
+            }
+        }
+        Ok(())
+    })?;
 
     Ok(())
 }

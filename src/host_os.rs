@@ -43,7 +43,7 @@ impl TemplateResolver {
         &mut self,
         pattern: &str,
         option: Option<SetOrUnset<T>>,
-        f: impl FnOnce(T) -> String,
+        f: impl FnOnce(T) -> Option<String>,
         undefined_text: &str,
     ) {
         let option = Self::set_or_unset_option_to_option(option);
@@ -56,18 +56,20 @@ impl TemplateResolver {
         option: Option<T>,
         undefined_text: &str,
     ) {
-        self.resolve_option_with(pattern, option, |op| op.to_string(), undefined_text);
+        self.resolve_option_with(pattern, option, |op| Some(op.to_string()), undefined_text);
     }
 
     pub(crate) fn resolve_option_with<T>(
         &mut self,
         pattern: &str,
         option: Option<T>,
-        f: impl FnOnce(T) -> String,
+        f: impl FnOnce(T) -> Option<String>,
         undefined_text: &str,
     ) {
-        let replacement = option.map_or_else(|| format!("[{undefined_text}]"), f);
-        self.label = self.label.replace(&format!("{{{pattern}}}"), &replacement);
+        let replacement = option.map_or_else(|| Some(format!("[{undefined_text}]")), f);
+        if let Some(replacement) = replacement {
+            self.label = self.label.replace(&format!("{{{pattern}}}"), &replacement);
+        }
     }
 
     fn set_or_unset_option_to_option<T: Copy>(option: Option<SetOrUnset<T>>) -> Option<T> {
