@@ -169,7 +169,7 @@ impl ScriptExecutor {
                         );
                     } else {
                         self.switch_profile_to(to_profile)?;
-                        self.state_provider.next_windows_boot_profile();
+                        self.state_provider.set_next_windows_boot_profile(None);
                     }
                 }
                 None => {
