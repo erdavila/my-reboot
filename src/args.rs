@@ -17,6 +17,7 @@ use crate::options_types::{
     LabeledProfile, OperatingSystem, ProfileId, SerializeToString, Values as _,
 };
 use crate::script::{Script, SetOrUnset};
+use crate::text::IndentedBlockWriter;
 
 type Result<T, E = ArgError> = anyhow::Result<T, E>;
 
@@ -104,7 +105,7 @@ impl Display for Usage {
             (id, display)
         });
 
-        let mut f = UsageWriter::new(f);
+        let mut f = IndentedBlockWriter::from(f);
 
         f.write_block("Usos:", |f| {
             f.write_block("my-reboot [dialog]", |f| {
@@ -220,42 +221,6 @@ impl Display for Usage {
             f.write(format_args!("(*): {e}"))?;
         }
 
-        Ok(())
-    }
-}
-
-struct UsageWriter<'a, 'b> {
-    f: &'a mut std::fmt::Formatter<'b>,
-    indent: usize,
-}
-impl<'a, 'b> UsageWriter<'a, 'b> {
-    fn new(f: &'a mut std::fmt::Formatter<'b>) -> Self {
-        Self { f, indent: 0 }
-    }
-
-    fn write_block(
-        &mut self,
-        display: impl Display,
-        block: impl FnOnce(&mut Self) -> std::fmt::Result,
-    ) -> std::fmt::Result {
-        self.write_indent()?;
-        writeln!(self.f, "{display}")?;
-
-        self.indent += 1;
-        block(self)?;
-        self.indent -= 1;
-
-        Ok(())
-    }
-
-    fn write(&mut self, display: impl Display) -> std::fmt::Result {
-        self.write_block(display, |_| Ok(()))
-    }
-
-    fn write_indent(&mut self) -> std::fmt::Result {
-        for _ in 0..self.indent {
-            write!(self.f, "  ")?;
-        }
         Ok(())
     }
 }

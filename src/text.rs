@@ -2,8 +2,15 @@ use std::fmt::{Display, Write};
 
 use ansi_term::ANSIString;
 use ansi_term::Color::{Blue, Green, Red};
+#[cfg(windows)]
+use display_profile_lib::{Profile, Rotation};
 
 use crate::options_types::Values;
+#[cfg(windows)]
+use crate::text::indented_block_writer::WriteFmt;
+
+mod indented_block_writer;
+pub(crate) use indented_block_writer::IndentedBlockWriter;
 
 pub mod operating_system {
     use ansi_term::ANSIString;
@@ -105,6 +112,60 @@ fn two_values_text<T: Values + PartialEq>(
         None => (Red, undefined_text.to_string()),
     };
     color.bold().paint(text)
+}
+
+#[cfg(windows)]
+pub(crate) trait IndentedBlockWriterExt {
+    type Error;
+
+    fn write_profile_summary(
+        &mut self,
+        header: impl Display,
+        profile: &Profile,
+    ) -> Result<(), Self::Error>;
+}
+#[cfg(windows)]
+impl<T: WriteFmt> IndentedBlockWriterExt for IndentedBlockWriter<T> {
+    type Error = T::Error;
+
+    fn write_profile_summary(
+        &mut self,
+        header: impl Display,
+        profile: &Profile,
+    ) -> Result<(), Self::Error> {
+        self.write_block(header, |w| {
+            for monitor in profile {
+                w.write({
+                    std::fmt::from_fn(|f| {
+                        write!(
+                            f,
+                            "{}: {}x{}; {:.2}Hz; em {},{}",
+                            monitor.friendly_device_name,
+                            monitor.dimensions.width,
+                            monitor.dimensions.height,
+                            f64::from(monitor.refresh_rate.numerator)
+                                / f64::from(monitor.refresh_rate.denominator),
+                            monitor.position.x,
+                            monitor.position.y,
+                        )?;
+
+                        let rotation = match monitor.rotation {
+                            Rotation::IDENTITY => None,
+                            Rotation::ROTATE90 => Some(90),
+                            Rotation::ROTATE180 => Some(180),
+                            Rotation::ROTATE270 => Some(270),
+                        };
+                        if let Some(rotation) = rotation {
+                            write!(f, "; rotação de {rotation}°")?;
+                        }
+
+                        Ok(())
+                    })
+                })?;
+            }
+            Ok(())
+        })
+    }
 }
 
 pub(crate) struct Capitalized<T>(pub(crate) T);

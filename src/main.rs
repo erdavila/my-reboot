@@ -26,7 +26,7 @@ use crate::host_os::HOST_OS;
 use crate::options_types::{LabeledProfile, ProfileId, SerializeToString, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
-use crate::text::Capitalized;
+use crate::text::{Capitalized, IndentedBlockWriter};
 
 fn main() -> Result<()> {
     let args = args::parse()
@@ -130,6 +130,7 @@ fn execute_predefined_script(number: NonZeroUsize) -> Result<()> {
 
 fn list_predefined_scripts() -> Result<()> {
     let configs = Configs::load()?;
+    let mut writer = IndentedBlockWriter::from(std::io::stdout());
 
     for (i, predef_script) in configs.operating_system[HOST_OS].scripts.iter().enumerate() {
         let number = i + 1;
@@ -142,20 +143,24 @@ fn list_predefined_scripts() -> Result<()> {
             reboot_action,
         } = &predef_script.script;
 
-        macro_rules! print_option {
-            ($name:ident) => {
-                $name.inspect(|value| {
-                    println!("  {}: {}", stringify!($name), value.serialize_to_string())
-                });
-            };
-        }
-
-        println!("{number}: '{label}'");
-        print_option!(next_boot_operating_system);
-        print_option!(next_windows_boot_profile);
-        print_option!(switch_to_profile);
-        print_option!(reboot_action);
-        println!();
+        writer.write_block(format_args!("{number}: '{label}'"), |w| {
+            macro_rules! print_option {
+                ($name:ident) => {
+                    if let Some(value) = $name {
+                        w.write(format_args!(
+                            "{}: {}",
+                            stringify!($name),
+                            value.serialize_to_string()
+                        ))?;
+                    }
+                };
+            }
+            print_option!(next_boot_operating_system);
+            print_option!(next_windows_boot_profile);
+            print_option!(switch_to_profile);
+            print_option!(reboot_action);
+            w.write("")
+        })?;
     }
 
     Ok(())

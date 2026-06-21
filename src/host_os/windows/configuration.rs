@@ -1,10 +1,13 @@
+use std::io;
+
 use ansi_term::Color;
 use anyhow::Result;
-use display_profile_lib::{Profile, Rotation, SetProfileAction, get_profile, set_profile};
+use display_profile_lib::{Profile, SetProfileAction, get_profile, set_profile};
 
 use crate::configuration::Configurer;
 use crate::options_types::{LabeledProfile, ProfileId};
 use crate::persist::configs::ConfigsWriter;
+use crate::text::{IndentedBlockWriter, IndentedBlockWriterExt as _};
 
 pub(crate) fn configure(configurer: &mut Configurer) -> Result<()> {
     let mut configurer = WindowsConfigurer::new(configurer)?;
@@ -70,10 +73,18 @@ impl<'a> WindowsConfigurer<'a> {
 
         println!();
 
-        println!("Resumo dos perfis:");
-        Self::print_profile_summary(ProfileId::A, &profile_a_label, &profile_a);
-        Self::print_profile_summary(ProfileId::B, &profile_b_label, &profile_b);
-        println!();
+        let mut writer = IndentedBlockWriter::from(io::stdout());
+        writer.write_block("Resumo dos perfis:", |w| {
+            w.write_profile_summary(
+                LabeledProfile::new(ProfileId::A, &profile_a_label),
+                &profile_a,
+            )?;
+            w.write_profile_summary(
+                LabeledProfile::new(ProfileId::B, &profile_b_label),
+                &profile_b,
+            )?;
+            w.write("")
+        })?;
 
         self.configs_mut()
             .set_profile_configs(ProfileId::A, &profile_a_label, &profile_a)?;
@@ -120,8 +131,10 @@ impl<'a> WindowsConfigurer<'a> {
             println!("1. A configuração de tela atual corresponde ao perfil {id}");
             println!("2. Abrir as configurações de tela do Windows");
             if let Some((label, profile)) = &current {
-                println!("Tecle ENTER para manter a configuração");
-                Self::print_profile_summary(id, label, profile);
+                let mut writer = IndentedBlockWriter::from(io::stdout());
+                writer.write_block("Tecle ENTER para manter a configuração", |w| {
+                    w.write_profile_summary(format_args!("\"{label}\""), profile)
+                })?;
             }
 
             match self.readline()?.as_str() {
@@ -194,34 +207,6 @@ impl<'a> WindowsConfigurer<'a> {
             set_profile(&self.initial_profile, SetProfileAction::Apply)?;
         }
         Ok(())
-    }
-
-    fn print_profile_summary(id: ProfileId, label: &str, profile: &Profile) {
-        println!("  {}", LabeledProfile::new(id, label));
-        for monitor in profile {
-            print!(
-                "    {}: {}x{}; {:.2}Hz; em {},{}",
-                monitor.friendly_device_name,
-                monitor.dimensions.width,
-                monitor.dimensions.height,
-                f64::from(monitor.refresh_rate.numerator)
-                    / f64::from(monitor.refresh_rate.denominator),
-                monitor.position.x,
-                monitor.position.y,
-            );
-
-            let rotation = match monitor.rotation {
-                Rotation::IDENTITY => None,
-                Rotation::ROTATE90 => Some(90),
-                Rotation::ROTATE180 => Some(180),
-                Rotation::ROTATE270 => Some(270),
-            };
-            if let Some(rotation) = rotation {
-                print!("; rotação de {rotation}°");
-            }
-
-            println!();
-        }
     }
 }
 
