@@ -32,7 +32,8 @@ pub mod operating_system {
 pub(crate) mod profile {
     use ansi_term::ANSIString;
 
-    use crate::options_types::LabeledProfile;
+    use crate::options_types::ProfileId;
+    use crate::text::Quoted;
 
     pub(crate) const ON_NEXT_WINDOWS_BOOT_DESCRIPTION: &str =
         "perfil a ser usado na próxima inicialização do Windows";
@@ -58,24 +59,28 @@ pub(crate) mod profile {
     }
 
     pub(crate) fn next_boot_value_text(
-        labeled_profile: Option<LabeledProfile>,
+        id_and_label: Option<(ProfileId, &str)>,
     ) -> ANSIString<'static> {
-        value_text(labeled_profile, UNDEFINED)
+        value_text(id_and_label, UNDEFINED)
     }
 
     #[cfg(windows)]
     pub(crate) fn current_value_text(
-        labeled_profile: Option<LabeledProfile>,
+        id_and_label: Option<(ProfileId, &str)>,
     ) -> ANSIString<'static> {
-        value_text(labeled_profile, UNRECOGNIZED)
+        value_text(id_and_label, UNRECOGNIZED)
     }
 
     fn value_text(
-        labeled_profile: Option<LabeledProfile>,
+        id_and_label: Option<(ProfileId, &str)>,
         undefined_text: &str,
     ) -> ANSIString<'static> {
-        let profile_label = labeled_profile.map(|lp| (lp.profile_id(), lp.to_string()));
-        super::two_values_text(profile_label, undefined_text)
+        let labeled_profile = id_and_label.map(|(id, label)| (id, labeled_profile(id, label)));
+        super::two_values_text(labeled_profile, undefined_text)
+    }
+
+    pub(crate) fn labeled_profile(id: ProfileId, label: &str) -> String {
+        format!("{} ({id})", Quoted(label))
     }
 }
 
@@ -213,6 +218,13 @@ impl<T: Display> Display for Capitalized<T> {
             uppercased_first_char: false,
         };
         write!(adapter, "{}", self.0)
+    }
+}
+
+pub(crate) struct Quoted<T>(pub(crate) T);
+impl<T: Display> Display for Quoted<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\"", self.0)
     }
 }
 

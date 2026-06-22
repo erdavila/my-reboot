@@ -5,9 +5,9 @@ use anyhow::Result;
 use display_profile_lib::{Profile, SetProfileAction, get_profile, set_profile};
 
 use crate::configuration::Configurer;
-use crate::options_types::{LabeledProfile, ProfileId};
+use crate::options_types::ProfileId;
 use crate::persist::configs::UntypedConfigs;
-use crate::text::{IndentedBlockWriter, IndentedBlockWriterExt as _};
+use crate::text::{IndentedBlockWriter, IndentedBlockWriterExt as _, Quoted};
 
 pub(crate) fn configure(configurer: &mut Configurer) -> Result<()> {
     let mut configurer = WindowsConfigurer::new(configurer)?;
@@ -71,25 +71,25 @@ impl<'a> WindowsConfigurer<'a> {
             },
         )?;
 
+        let profiles = [
+            (ProfileId::A, profile_a, profile_a_label),
+            (ProfileId::B, profile_b, profile_b_label),
+        ];
+
         println!();
 
         let mut writer = IndentedBlockWriter::from(io::stdout());
         writer.write_block("Resumo dos perfis:", |w| {
-            w.write_profile_summary(
-                LabeledProfile::new(ProfileId::A, &profile_a_label),
-                &profile_a,
-            )?;
-            w.write_profile_summary(
-                LabeledProfile::new(ProfileId::B, &profile_b_label),
-                &profile_b,
-            )?;
+            for (id, profile, label) in &profiles {
+                w.write_profile_summary(format_args!("{}: {}", id, Quoted(label)), profile)?;
+            }
             w.write("")
         })?;
 
-        self.configs_mut()
-            .set_profile_configs(ProfileId::A, &profile_a_label, &profile_a)?;
-        self.configs_mut()
-            .set_profile_configs(ProfileId::B, &profile_b_label, &profile_b)?;
+        for (id, profile, label) in profiles {
+            self.configs_mut()
+                .set_profile_configs(id, &label, &profile)?;
+        }
 
         Ok(())
     }
@@ -133,7 +133,7 @@ impl<'a> WindowsConfigurer<'a> {
             if let Some((label, profile)) = &current {
                 let mut writer = IndentedBlockWriter::from(io::stdout());
                 writer.write_block("Tecle ENTER para manter a configuração", |w| {
-                    w.write_profile_summary(format_args!("\"{label}\""), profile)
+                    w.write_profile_summary(Quoted(label), profile)
                 })?;
             }
 
@@ -167,7 +167,7 @@ impl<'a> WindowsConfigurer<'a> {
             println!();
             println!("Digite um nome para o perfil {id}:");
             if let Some(label) = &current {
-                println!("Tecle ENTER para manter o nome \"{label}\"");
+                println!("Tecle ENTER para manter o nome {}", Quoted(label));
             }
 
             let label = self.readline()?;

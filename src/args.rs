@@ -13,11 +13,9 @@ use crate::args::script_args::{
     NEXT_BOOT_OPERATING_SYSTEM_PREFIX, NEXT_WINDOWS_BOOT_PROFILE_PREFIX,
 };
 use crate::dialog::Mode;
-use crate::options_types::{
-    LabeledProfile, OperatingSystem, ProfileId, SerializeToString, Values as _,
-};
+use crate::options_types::{OperatingSystem, ProfileId, SerializeToString, Values as _};
 use crate::script::{Script, SetOrUnset};
-use crate::text::IndentedBlockWriter;
+use crate::text::{IndentedBlockWriter, Quoted};
 
 type Result<T, E = ArgError> = anyhow::Result<T, E>;
 
@@ -97,7 +95,7 @@ impl Display for Usage {
         let profiles = ProfileId::values().map(|id| {
             let display = std::fmt::from_fn(move |f| {
                 if let Ok(labels) = &self.profile_labels {
-                    write!(f, "{}", LabeledProfile::new(id, &labels[id as usize]))
+                    write!(f, "{id} ({})", Quoted(&labels[id as usize]))
                 } else {
                     write!(f, "{id} (*)")
                 }

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::host_os::{TemplateResolver, state_path};
 use crate::options_types::{
-    LabeledProfile, OperatingSystem, ProfileId, RebootAction, SerializeToString, Values as _,
+    OperatingSystem, ProfileId, RebootAction, SerializeToString, Values as _,
 };
 use crate::script::{Script, SetOrUnset};
 use crate::text::{self, Capitalized};
@@ -95,7 +95,8 @@ pub(crate) struct PredefinedScript {
 }
 impl PredefinedScript {
     pub(crate) fn resolve_label(&self, configs: &Configs) -> String {
-        let profile_label = |profile_id| LabeledProfile::get(profile_id, configs).to_string();
+        let profile_label =
+            |profile_id| text::profile::labeled_profile(profile_id, profile_id.label(configs));
 
         let mut template_resolver = TemplateResolver::new(&self.label_template);
 

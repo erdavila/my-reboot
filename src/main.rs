@@ -23,7 +23,7 @@ use script::SwitchToProfile;
 
 use crate::args::{ParsedArgs, PredefinedScriptParsedArgs};
 use crate::host_os::HOST_OS;
-use crate::options_types::{LabeledProfile, ProfileId, SerializeToString, Values as _};
+use crate::options_types::{ProfileId, SerializeToString as _, Values as _};
 use crate::persist::configs::Configs;
 use crate::state::StateProvider;
 use crate::text::{Capitalized, IndentedBlockWriter};
@@ -82,8 +82,8 @@ fn show_dialog(mode: Mode) -> Result<()> {
         switch_profile: false,
         reboot_action: None,
     };
-    let profile_labels =
-        ProfileId::values().map(|id| LabeledProfile::get(id, provider.configs()).to_string());
+    let profile_labels = ProfileId::values()
+        .map(|id| text::profile::labeled_profile(id, id.label(provider.configs())));
 
     let outcome = dialog::show(mode, labels, script_options, profile_labels)?;
 
@@ -185,7 +185,7 @@ fn show_state() -> Result<()> {
         text::profile::next_boot_value_text(
             state
                 .next_windows_boot_profile
-                .map(|id| LabeledProfile::get(id, provider.configs()))
+                .map(|id| (id, id.label(provider.configs())))
         )
     );
     #[cfg(windows)]
@@ -195,7 +195,7 @@ fn show_state() -> Result<()> {
         text::profile::current_value_text(
             state
                 .current_profile
-                .map(|id| LabeledProfile::get(id, provider.configs()))
+                .map(|id| (id, id.label(provider.configs())))
         )
     );
 

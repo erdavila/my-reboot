@@ -42,6 +42,11 @@ pub(crate) enum ProfileId {
     #[serde(rename = "b")]
     B,
 }
+impl ProfileId {
+    pub(crate) fn label(self, configs: &Configs) -> &str {
+        &configs.profile[self].label
+    }
+}
 impl Values for ProfileId {
     fn values() -> [Self; 2] {
         [Self::A, Self::B]
@@ -57,31 +62,6 @@ impl Display for ProfileId {
                 ProfileId::B => "B",
             }
         )
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) struct LabeledProfile<'a> {
-    profile_id: ProfileId,
-    label: &'a str,
-}
-impl<'a> LabeledProfile<'a> {
-    pub(crate) fn get(profile_id: ProfileId, configs: &'a Configs) -> Self {
-        let label = &configs.profile[profile_id].label;
-        Self::new(profile_id, label)
-    }
-
-    pub(crate) fn new(profile_id: ProfileId, label: &'a str) -> Self {
-        Self { profile_id, label }
-    }
-
-    pub(crate) fn profile_id(self) -> ProfileId {
-        self.profile_id
-    }
-}
-impl Display for LabeledProfile<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\" ({})", self.label, self.profile_id)
     }
 }
 

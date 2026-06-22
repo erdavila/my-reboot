@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(windows)]
 use crate::options_types::Values as _;
-use crate::options_types::{LabeledProfile, OperatingSystem, ProfileId, RebootAction};
+use crate::options_types::{OperatingSystem, ProfileId, RebootAction};
 use crate::state::StateProvider;
 use crate::text::Capitalized;
 use crate::{host_os, text};
@@ -83,22 +83,20 @@ impl ScriptExecutor {
     }
 
     fn apply_next_windows_boot_profile(&mut self, profile_option: SetOrUnset<ProfileId>) {
-        // Clone the label to avoid capturing the state_provider lifetime.
+        // Gets an owned label to avoid capturing the state_provider lifetime.
         let profile_option = profile_option.into_option().map(|profile_id| {
-            let label = self.state_provider.configs().profile[profile_id]
-                .label
-                .clone();
+            let label = profile_id.label(self.state_provider.configs()).to_string();
             (profile_id, label)
         });
         let profile_option = profile_option
             .as_ref()
-            .map(|(profile_id, label)| LabeledProfile::new(*profile_id, label))
+            .map(|(profile_id, label)| (*profile_id, label.as_str()))
             .into();
 
         self.apply_option(
             profile_option,
             StateProvider::set_next_windows_boot_profile,
-            LabeledProfile::profile_id,
+            |(id, _label)| id,
             text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
             text::profile::WAS_UPDATED_TO,
             text::profile::next_boot_value_text,
@@ -146,11 +144,10 @@ impl ScriptExecutor {
             }
             SwitchToProfile::Profile(to_profile) => {
                 if Some(to_profile) == from_profile {
-                    let labeled_profile =
-                        LabeledProfile::get(to_profile, self.state_provider.configs());
+                    let label = to_profile.label(self.state_provider.configs());
                     println!(
                         "{} {}",
-                        text::profile::current_value_text(Some(labeled_profile)),
+                        text::profile::current_value_text(Some((to_profile, label))),
                         text::profile::switching::IS_ALREADY_CURRENT
                     );
                 } else {
@@ -160,12 +157,11 @@ impl ScriptExecutor {
             SwitchToProfile::Saved => match self.state_provider.next_windows_boot_profile() {
                 Some(to_profile) => {
                     if Some(to_profile) == from_profile {
-                        let labeled_profile =
-                            LabeledProfile::get(to_profile, self.state_provider.configs());
+                        let label = to_profile.label(self.state_provider.configs());
                         println!(
                             "O {} é {}, que já é o perfil atual",
                             text::profile::ON_NEXT_WINDOWS_BOOT_DESCRIPTION,
-                            text::profile::current_value_text(Some(labeled_profile))
+                            text::profile::current_value_text(Some((to_profile, label)))
                         );
                     } else {
                         self.switch_profile_to(to_profile)?;
@@ -187,11 +183,11 @@ impl ScriptExecutor {
 
     #[cfg(windows)]
     fn switch_profile_to(&self, profile_id: ProfileId) -> Result<()> {
-        let labeled_profile = LabeledProfile::get(profile_id, self.state_provider.configs());
+        let label = profile_id.label(self.state_provider.configs());
         println!(
             "{} {}",
             text::profile::switching::TO,
-            text::profile::current_value_text(Some(labeled_profile))
+            text::profile::current_value_text(Some((profile_id, label)))
         );
         self.state_provider.set_current_profile(profile_id)
     }
